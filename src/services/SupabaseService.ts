@@ -261,6 +261,84 @@ export async function findClauseByFamilyFacts(
 }
 
 /**
+ * ADVANCED SEARCH: Finds the most detailed clauses matching the Family Facts.
+ * Logic:
+ * 1. Search for clauses containing Father's Zodiac AND Mother's Zodiac.
+ * 2. Search for clauses containing Father's Zodiac ONLY (as fallback context).
+ * 3. Sort results by TEXT LENGTH (assuming longer text = more detailed).
+ * 4. Return the Top N distinct candidates.
+ * 
+ * @param fatherZodiac - Chinese zodiac character (e.g., "牛")
+ * @param motherZodiac - Chinese zodiac character (e.g., "兔")
+ * @param limit - Maximum number of results to return (default: 3)
+ * @returns Array of matching clauses, sorted by richness (text length)
+ */
+export async function findDetailedFamilyMatches(
+  fatherZodiac: string,
+  motherZodiac: string,
+  limit: number = 3
+): Promise<Clause[]> {
+  const fTerm = `父属${fatherZodiac}`;
+  const mTerm = `母属${motherZodiac}`;
+
+  // 1. Primary Search: Perfect Match (Father + Mother)
+  const { data: exactMatches, error: exactError } = await supabase
+    .from('tieban_clauses')
+    .select('*')
+    .ilike('content', `%${fTerm}%`)
+    .ilike('content', `%${mTerm}%`)
+    .limit(5);
+
+  if (exactError) {
+    console.error('Error in exact match search:', exactError);
+  }
+
+  // 2. Secondary Search: Father Match Only (Broader Context)
+  const { data: fatherMatches, error: fatherError } = await supabase
+    .from('tieban_clauses')
+    .select('*')
+    .ilike('content', `%${fTerm}%`)
+    .limit(5);
+
+  if (fatherError) {
+    console.error('Error in father match search:', fatherError);
+  }
+
+  // 3. Tertiary Search: Mother Match Only
+  const { data: motherMatches, error: motherError } = await supabase
+    .from('tieban_clauses')
+    .select('*')
+    .ilike('content', `%${mTerm}%`)
+    .limit(3);
+
+  if (motherError) {
+    console.error('Error in mother match search:', motherError);
+  }
+
+  // Combine all candidates
+  const allCandidates = [
+    ...(exactMatches || []),
+    ...(fatherMatches || []),
+    ...(motherMatches || []),
+  ];
+
+  // Deduplicate by clause_number
+  const seen = new Set<number>();
+  const uniqueCandidates = allCandidates.filter((clause) => {
+    if (seen.has(clause.clause_number)) return false;
+    seen.add(clause.clause_number);
+    return true;
+  });
+
+  // Sort by richness (text length) - longer = more detailed
+  const sortedByRichness = uniqueCandidates.sort(
+    (a, b) => b.content.length - a.content.length
+  );
+
+  return sortedByRichness.slice(0, limit) as Clause[];
+}
+
+/**
  * Get clauses by category
  */
 export async function fetchClausesByCategory(

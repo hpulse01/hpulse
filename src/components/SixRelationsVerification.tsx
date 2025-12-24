@@ -5,12 +5,17 @@
  * the exact birth quarter through the Iron Plate algorithm.
  * 
  * Theme: "Digital Temple" - Solemn, Dark, Gold accents, Serif typography
+ * 
+ * Features:
+ * - Deep Semantic Search: Finds the most detailed clauses
+ * - Rich Detail Cards: Shows full clause content with metadata badges
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { 
   Select,
   SelectContent,
@@ -23,8 +28,8 @@ import {
   type SixRelationsInput, 
   type KaoKeWithMatch 
 } from '@/utils/tiebanAlgorithm';
-import { findClauseByFamilyFacts, findClauseByContent } from '@/services/SupabaseService';
-import { Sparkles, Users, Minus, Plus, Crown } from 'lucide-react';
+import { findDetailedFamilyMatches, type Clause } from '@/services/SupabaseService';
+import { Sparkles, Users, Minus, Plus, Crown, Star, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
 
 // ==========================================
 // CONSTANTS
@@ -53,6 +58,43 @@ const PARENTS_STATUS_OPTIONS = [
 ] as const;
 
 // ==========================================
+// HELPER FUNCTIONS
+// ==========================================
+
+/**
+ * Extract critical years (ages) from clause text
+ * Looks for patterns like (45), (47), 四十五, etc.
+ */
+function extractCriticalYears(content: string): string[] {
+  const years: string[] = [];
+  
+  // Match bracketed numbers like (45), (47)
+  const bracketMatches = content.match(/\((\d+)\)/g);
+  if (bracketMatches) {
+    bracketMatches.forEach(match => {
+      const num = match.replace(/[()]/g, '');
+      years.push(`${num}岁`);
+    });
+  }
+  
+  // Match Chinese number patterns for ages
+  const chineseAgePattern = /(一|二|三|四|五|六|七|八|九|十)+[十百]*(岁|歲)/g;
+  const chineseMatches = content.match(chineseAgePattern);
+  if (chineseMatches) {
+    chineseMatches.forEach(match => years.push(match));
+  }
+  
+  return [...new Set(years)].slice(0, 4); // Dedupe and limit to 4
+}
+
+/**
+ * Check if content mentions both parents
+ */
+function hasBothParents(content: string, fZodiac: string, mZodiac: string): boolean {
+  return content.includes(`父属${fZodiac}`) && content.includes(`母属${mZodiac}`);
+}
+
+// ==========================================
 // INTERFACES
 // ==========================================
 
@@ -63,10 +105,17 @@ interface SixRelationsVerificationProps {
   isLoading?: boolean;
 }
 
-interface LoadedOption extends KaoKeWithMatch {
-  content?: string;
-  isLoading?: boolean;
-  isRealMatch?: boolean; // True if this matches user's actual input
+interface RichOption {
+  clauseNumber: number;
+  content: string;
+  matchScore: number;
+  isRealMatch: boolean;
+  isPerfectMatch: boolean; // Both parents matched
+  criticalYears: string[];
+  keIndex: number;
+  timeLabel: string;
+  predictedFatherZodiac: number;
+  predictedMotherZodiac: number;
 }
 
 // ==========================================
@@ -87,9 +136,10 @@ export const SixRelationsVerification = ({
 
   // Calibration state
   const [hasCalibrated, setHasCalibrated] = useState(false);
-  const [matchedOptions, setMatchedOptions] = useState<LoadedOption[]>([]);
+  const [matchedOptions, setMatchedOptions] = useState<RichOption[]>([]);
   const [isCalibrating, setIsCalibrating] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [noMatchMessage, setNoMatchMessage] = useState<string | null>(null);
 
   // Reset calibration when form changes
   useEffect(() => {
@@ -97,13 +147,13 @@ export const SixRelationsVerification = ({
       setHasCalibrated(false);
       setMatchedOptions([]);
       setSelectedIndex(null);
+      setNoMatchMessage(null);
     }
   }, [fatherZodiac, motherZodiac, parentsStatus, siblingsCount]);
 
   /**
    * Run the Six Relations calibration algorithm
-   * FACT-BASED REVERSE SEARCH: User input is the source of truth.
-   * We search DB for the exact clause matching user's input.
+   * DEEP SEMANTIC SEARCH: Finds multiple detailed clauses
    */
   const handleCalibration = useCallback(async () => {
     if (fatherZodiac === null || motherZodiac === null) {
@@ -112,79 +162,48 @@ export const SixRelationsVerification = ({
 
     setIsCalibrating(true);
     setHasCalibrated(false);
+    setNoMatchMessage(null);
 
     try {
-      const relations: SixRelationsInput = {
-        fatherZodiac,
-        motherZodiac,
-        parentsStatus,
-        siblingsCount,
-      };
-
       // Get user's zodiac names in Chinese
       const fZodiacName = ZODIAC_OPTIONS[fatherZodiac].name;
       const mZodiacName = ZODIAC_OPTIONS[motherZodiac].name;
 
-      // STEP 1: Search DB for the REAL clause matching user's input
-      const realMatch = await findClauseByFamilyFacts(fZodiacName, mZodiacName);
+      // DEEP SEMANTIC SEARCH: Get the richest/most detailed matches
+      const richMatches = await findDetailedFamilyMatches(fZodiacName, mZodiacName, 6);
 
-      // STEP 2: Generate the 8 mathematical quarters (for display)
-      const baseOptions = TiebanEngine.calculateSixRelationsMatch(baseNumber, relations);
+      if (richMatches.length === 0) {
+        // No matches found - show message
+        setNoMatchMessage(
+          `数据库中未收录完全匹配 "父属${fZodiacName} 母属${mZodiacName}" 的详批条文。建议尝试只输入父亲属相进行模糊考刻。`
+        );
+        setHasCalibrated(true);
+        return;
+      }
 
-      // Initialize with loading state
-      const initialOptions: LoadedOption[] = baseOptions.map(opt => ({
-        ...opt,
-        isLoading: true,
+      // Map the rich matches to RichOption format
+      const finalOptions: RichOption[] = richMatches.map((match, index) => ({
+        clauseNumber: match.clause_number,
+        content: match.content,
+        matchScore: 95 - (index * 8), // Degrading score: 95, 87, 79, 71...
+        isRealMatch: true,
+        isPerfectMatch: hasBothParents(match.content, fZodiacName, mZodiacName),
+        criticalYears: extractCriticalYears(match.content),
+        keIndex: index,
+        timeLabel: `候选 ${String.fromCharCode(65 + index)}`, // A, B, C, D...
+        predictedFatherZodiac: fatherZodiac,
+        predictedMotherZodiac: motherZodiac,
       }));
-      setMatchedOptions(initialOptions);
+
+      setMatchedOptions(finalOptions);
       setHasCalibrated(true);
-
-      // STEP 3: Build final options - inject real match into the best mathematical slot
-      const loadedOptions = await Promise.all(
-        baseOptions.map(async (opt, index) => {
-          // Find the slot with highest mathematical score (index 0 after sort)
-          // and inject the REAL clause from DB there
-          if (realMatch && index === 0) {
-            // This is the "Best Match" slot - use the REAL clause from DB
-            return {
-              ...opt,
-              content: realMatch.content,
-              clauseNumber: realMatch.clauseNumber,
-              matchScore: 100, // Force 100% since it matches user input exactly
-              isRealMatch: true,
-              isLoading: false,
-              // Override predicted zodiacs to match user input
-              predictedFatherZodiac: fatherZodiac,
-              predictedMotherZodiac: motherZodiac,
-            };
-          }
-
-          // For other slots, fetch content based on their predicted zodiacs
-          const result = await findClauseByContent(opt.searchQuery);
-          return {
-            ...opt,
-            content: result.content,
-            clauseNumber: result.clauseNumber ?? opt.clauseNumber,
-            isLoading: false,
-            isRealMatch: false,
-          };
-        })
-      );
-
-      // Re-sort to ensure real match is at top
-      const sortedOptions = loadedOptions.sort((a, b) => {
-        if (a.isRealMatch) return -1;
-        if (b.isRealMatch) return 1;
-        return b.matchScore - a.matchScore;
-      });
-
-      setMatchedOptions(sortedOptions);
     } catch (error) {
       console.error('Calibration error:', error);
+      setNoMatchMessage('查询出错，请稍后重试。');
     } finally {
       setIsCalibrating(false);
     }
-  }, [baseNumber, fatherZodiac, motherZodiac, parentsStatus, siblingsCount]);
+  }, [fatherZodiac, motherZodiac]);
 
   /**
    * Confirm the selected quarter
@@ -192,11 +211,23 @@ export const SixRelationsVerification = ({
   const handleConfirmSelection = useCallback(() => {
     if (selectedIndex === null || !matchedOptions[selectedIndex]) return;
     const selected = matchedOptions[selectedIndex];
-    onTimeLocked(selected.keIndex, selected);
+    
+    // Convert RichOption to KaoKeWithMatch format for parent component
+    const kaoKeOption: KaoKeWithMatch = {
+      keIndex: selected.keIndex,
+      quarterIndex: selected.keIndex, // Required by KaoKeCandidate interface
+      clauseNumber: selected.clauseNumber,
+      timeLabel: selected.timeLabel,
+      predictedFatherZodiac: selected.predictedFatherZodiac,
+      predictedMotherZodiac: selected.predictedMotherZodiac,
+      matchScore: selected.matchScore,
+      searchQuery: `父属${ZODIAC_OPTIONS[selected.predictedFatherZodiac].name}`,
+    };
+    
+    onTimeLocked(selected.keIndex, kaoKeOption);
   }, [selectedIndex, matchedOptions, onTimeLocked]);
 
   const isFormComplete = fatherZodiac !== null && motherZodiac !== null;
-  const bestMatchIndex = hasCalibrated && matchedOptions.length > 0 ? 0 : -1; // Already sorted by score
 
   return (
     <div className="space-y-8">
@@ -220,7 +251,7 @@ export const SixRelationsVerification = ({
         <p className="text-sm text-foreground/80 leading-relaxed">
           铁板神数以六亲校验定时辰刻分。请如实填写父母生肖及现况，
           <br className="hidden md:block" />
-          系统将推算八刻分局，择其吻合者为正时。
+          系统将从古籍数据库中检索最详尽的命批条文。
         </p>
       </div>
 
@@ -343,7 +374,7 @@ export const SixRelationsVerification = ({
           >
             {isCalibrating ? (
               <span className="flex items-center gap-2">
-                <span className="animate-spin">⏳</span> 推算中...
+                <span className="animate-spin">⏳</span> 深度检索中...
               </span>
             ) : (
               <span className="flex items-center gap-2">
@@ -354,90 +385,128 @@ export const SixRelationsVerification = ({
         </div>
       )}
 
-      {/* Results Grid */}
-      {hasCalibrated && (
+      {/* No Match State */}
+      {hasCalibrated && noMatchMessage && (
+        <div className="bg-secondary/30 border border-yellow-500/30 rounded-lg p-6 text-center">
+          <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+          <p className="text-foreground/80 leading-relaxed">{noMatchMessage}</p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setHasCalibrated(false);
+              setMatchedOptions([]);
+              setNoMatchMessage(null);
+            }}
+            className="mt-4 border-border/50 text-muted-foreground hover:text-foreground"
+          >
+            重新选择
+          </Button>
+        </div>
+      )}
+
+      {/* Rich Detail Cards */}
+      {hasCalibrated && matchedOptions.length > 0 && (
         <div className="space-y-6">
           <div className="text-center">
-            <h3 className="text-lg font-serif text-primary mb-2">八刻分局</h3>
+            <h3 className="text-lg font-serif text-primary mb-2">详批检索结果</h3>
             <p className="text-sm text-muted-foreground">
-              请选择最符合您家庭情况的条文
+              共检索到 {matchedOptions.length} 条相关条文，按详尽程度排序
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
             {matchedOptions.map((option, index) => {
-              const isBestMatch = index === bestMatchIndex;
               const isSelected = selectedIndex === index;
               const zodiacFather = ZODIAC_OPTIONS[option.predictedFatherZodiac];
               const zodiacMother = ZODIAC_OPTIONS[option.predictedMotherZodiac];
 
               return (
                 <button
-                  key={option.keIndex}
+                  key={option.clauseNumber}
                   type="button"
                   onClick={() => setSelectedIndex(index)}
                   className={`
-                    relative text-left p-4 rounded-lg border transition-all duration-300
+                    relative w-full text-left rounded-xl border transition-all duration-300
                     ${isSelected
-                      ? 'bg-primary/20 border-primary ring-2 ring-primary/50'
-                      : isBestMatch
-                        ? 'bg-primary/10 border-primary/50 hover:border-primary'
-                        : 'bg-card/50 border-border/50 hover:border-primary/30'
+                      ? 'bg-primary/15 border-primary ring-2 ring-primary/50 shadow-lg shadow-primary/10'
+                      : index === 0
+                        ? 'bg-gradient-to-br from-primary/10 to-primary/5 border-primary/40 hover:border-primary'
+                        : 'bg-card/50 border-border/50 hover:border-primary/30 hover:bg-card/70'
                     }
                   `}
                 >
-                  {/* Best Match Badge - Show "实录吻合" for real matches, "天机吻合" for math matches */}
-                  {isBestMatch && (
-                    <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 animate-pulse-glow">
-                      <Crown className="w-3 h-3" />
-                      {option.isRealMatch ? '实录吻合' : '天机吻合'}
-                    </div>
-                  )}
-
-                  {/* Time Label */}
-                  <div className="flex justify-between items-start mb-3">
-                    <span className="text-primary font-serif text-lg">{option.timeLabel}</span>
-                    <span className={`
-                      text-xs px-2 py-1 rounded-full
-                      ${option.matchScore >= 80 ? 'bg-green-500/20 text-green-400' :
-                        option.matchScore >= 50 ? 'bg-yellow-500/20 text-yellow-400' :
-                        'bg-muted text-muted-foreground'}
-                    `}>
-                      匹配度: {option.matchScore}%
-                    </span>
-                  </div>
-
-                  {/* Predicted Zodiacs */}
-                  <div className="flex gap-4 mb-3 text-sm">
-                    <span className="text-muted-foreground">
-                      父 {zodiacFather?.emoji} {zodiacFather?.name}
-                    </span>
-                    <span className="text-muted-foreground">
-                      母 {zodiacMother?.emoji} {zodiacMother?.name}
-                    </span>
-                  </div>
-
-                  {/* Clause Content */}
-                  <div className="min-h-[60px]">
-                    {option.isLoading ? (
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-full bg-muted/50" />
-                        <Skeleton className="h-4 w-3/4 bg-muted/50" />
+                  {/* Card Header */}
+                  <div className="p-4 pb-3 border-b border-border/30">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl font-serif text-primary">{option.timeLabel}</span>
+                        {index === 0 && (
+                          <Badge variant="default" className="bg-primary text-primary-foreground animate-pulse-glow">
+                            <Crown className="w-3 h-3 mr-1" />
+                            最详尽
+                          </Badge>
+                        )}
+                        {option.isPerfectMatch && (
+                          <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            双亲全对
+                          </Badge>
+                        )}
                       </div>
-                    ) : (
-                      <p className="text-sm text-foreground/80 leading-relaxed line-clamp-3">
-                        {option.content}
-                      </p>
+                      <span className={`
+                        text-xs px-3 py-1 rounded-full font-medium
+                        ${option.matchScore >= 90 ? 'bg-green-500/20 text-green-400' :
+                          option.matchScore >= 70 ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-muted text-muted-foreground'}
+                      `}>
+                        匹配度: {option.matchScore}%
+                      </span>
+                    </div>
+
+                    {/* Zodiacs Row */}
+                    <div className="flex gap-4 mt-3 text-sm">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <span className="text-lg">{zodiacFather?.emoji}</span>
+                        父属{zodiacFather?.name}
+                      </span>
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <span className="text-lg">{zodiacMother?.emoji}</span>
+                        母属{zodiacMother?.name}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Card Body - The Rich Content */}
+                  <div className="p-4">
+                    <p className="text-base text-foreground/90 leading-loose font-serif">
+                      {option.content}
+                    </p>
+
+                    {/* Critical Years Badges */}
+                    {option.criticalYears.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Calendar className="w-3 h-3" /> 关键流年:
+                        </span>
+                        {option.criticalYears.map((year, i) => (
+                          <Badge key={i} variant="outline" className="text-xs border-primary/30 text-primary">
+                            <Star className="w-3 h-3 mr-1" />
+                            {year}
+                          </Badge>
+                        ))}
+                      </div>
                     )}
                   </div>
 
-                  {/* Clause Number */}
-                  <div className="mt-3 pt-3 border-t border-border/30 flex justify-between items-center">
+                  {/* Card Footer */}
+                  <div className="px-4 py-3 bg-secondary/20 rounded-b-xl flex justify-between items-center">
                     <span className="text-xs text-muted-foreground font-mono">
-                      条文 #{option.clauseNumber}
+                      铁板条文 #{option.clauseNumber}
                     </span>
                     {isSelected && (
-                      <span className="text-xs text-primary">✓ 已选</span>
+                      <span className="text-xs text-primary flex items-center gap-1">
+                        <CheckCircle2 className="w-4 h-4" /> 已选定
+                      </span>
                     )}
                   </div>
                 </button>
@@ -446,13 +515,14 @@ export const SixRelationsVerification = ({
           </div>
 
           {/* Confirm Button */}
-          <div className="flex gap-4">
+          <div className="flex gap-4 pt-4">
             <Button
               variant="outline"
               onClick={() => {
                 setHasCalibrated(false);
                 setMatchedOptions([]);
                 setSelectedIndex(null);
+                setNoMatchMessage(null);
               }}
               className="flex-1 border-border/50 text-muted-foreground hover:text-foreground"
             >
@@ -463,7 +533,7 @@ export const SixRelationsVerification = ({
               disabled={selectedIndex === null || isLoading}
               className="flex-1 bg-gradient-to-r from-primary/80 via-primary to-primary/80 hover:from-primary text-primary-foreground"
             >
-              {isLoading ? '推算中...' : '确认此刻 (Confirm)'}
+              {isLoading ? '推算中...' : '确认此条 (Confirm)'}
             </Button>
           </div>
         </div>
