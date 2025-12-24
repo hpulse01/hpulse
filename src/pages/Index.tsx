@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { BirthDataForm } from '@/components/BirthDataForm';
 import { SixRelationsVerification } from '@/components/SixRelationsVerification';
-import { MultiAspectResult, ASPECT_ICONS, ASPECT_LABELS } from '@/components/MultiAspectResult';
+import { DestinyRevelation } from '@/components/DestinyRevelation';
 import { Footer } from '@/components/Footer';
-import { fetchClauseByNumber, getClauseCount } from '@/services/SupabaseService';
+import { getClauseCount } from '@/services/SupabaseService';
 import { 
   TiebanEngine,
   type TiebanInput,
@@ -11,25 +11,15 @@ import {
   type DestinyProjection,
 } from '@/utils/tiebanAlgorithm';
 import { useToast } from '@/hooks/use-toast';
-import { Activity } from 'lucide-react';
 
-type AppStep = 'input' | 'verification' | 'result';
-
-interface DestinyAspect {
-  key: string;
-  label: string;
-  clauseNumber: number;
-  content: string;
-  icon: React.ReactNode;
-}
+type AppStep = 'input' | 'calculating' | 'verification' | 'projecting' | 'result';
 
 const Index = () => {
   const [step, setStep] = useState<AppStep>('input');
-  const [isProcessing, setIsProcessing] = useState(false);
   const [birthInput, setBirthInput] = useState<TiebanInput | null>(null);
   const [ganZhiDisplay, setGanZhiDisplay] = useState('');
   const [baseNumber, setBaseNumber] = useState(0);
-  const [destinyAspects, setDestinyAspects] = useState<DestinyAspect[]>([]);
+  const [destinyProjection, setDestinyProjection] = useState<DestinyProjection | null>(null);
   const [clauseCount, setClauseCount] = useState<number | null>(null);
 
   const { toast } = useToast();
@@ -49,11 +39,14 @@ const Index = () => {
    * - Proceed to Six Relations verification
    */
   const handleBirthDataSubmit = useCallback(async (birthData: TiebanInput) => {
-    setIsProcessing(true);
+    setStep('calculating');
 
     try {
       console.log('=== STEP 1: Birth Data Submitted ===');
       console.log('Input:', birthData);
+
+      // Simulate brief calculation time for dramatic effect
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Store birth input
       setBirthInput(birthData);
@@ -75,8 +68,7 @@ const Index = () => {
         description: '请检查输入数据后重试',
         variant: 'destructive',
       });
-    } finally {
-      setIsProcessing(false);
+      setStep('input');
     }
   }, [toast]);
 
@@ -84,13 +76,12 @@ const Index = () => {
    * STEP 2: Handle Six Relations verification (user confirms which quarter matches)
    * - Lock the keIndex based on family data matching
    * - Calculate destiny paths using TiebanEngine.calculateDestinyPaths
-   * - Fetch all aspect clauses from DB
    */
   const handleTimeLocked = useCallback(async (
     lockedKeIndex: number, 
     selectedOption: KaoKeWithMatch
   ) => {
-    setIsProcessing(true);
+    setStep('projecting');
 
     try {
       console.log('=== STEP 2: User Locked Quarter via Six Relations ===');
@@ -98,38 +89,22 @@ const Index = () => {
       console.log('Match Score:', selectedOption.matchScore);
       console.log('Selected clause:', selectedOption.clauseNumber);
 
+      // Simulate projection calculation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       // Calculate all destiny paths using the locked quarter
-      const destinyProjection: DestinyProjection = TiebanEngine.calculateDestinyPaths(
+      const projection: DestinyProjection = TiebanEngine.calculateDestinyPaths(
         baseNumber, 
         lockedKeIndex
       );
 
       console.log('=== STEP 3: Destiny Projection ===');
-      console.log('Life Destiny:', destinyProjection.lifeDestiny);
-      console.log('Marriage:', destinyProjection.marriage);
-      console.log('Wealth:', destinyProjection.wealth);
-      console.log('Career:', destinyProjection.career);
+      console.log('Life Destiny:', projection.lifeDestiny);
+      console.log('Marriage:', projection.marriage);
+      console.log('Wealth:', projection.wealth);
+      console.log('Career:', projection.career);
 
-      // Fetch all 4 aspect clauses from database
-      const aspectKeys = ['lifeDestiny', 'marriage', 'wealth', 'career'] as const;
-      const aspects: DestinyAspect[] = [];
-
-      for (const key of aspectKeys) {
-        const clauseNumber = destinyProjection[key];
-        const clause = await fetchClauseByNumber(clauseNumber);
-        
-        aspects.push({
-          key,
-          label: ASPECT_LABELS[key] || key,
-          clauseNumber: clause?.clause_number || clauseNumber,
-          content: clause?.content || '此数待解，需参照古籍原文释义。',
-          icon: ASPECT_ICONS[key] || <Activity className="w-5 h-5" />,
-        });
-
-        console.log(`Fetched ${key}: clause ${clauseNumber} ->`, clause?.content?.substring(0, 30) || 'NOT FOUND');
-      }
-
-      setDestinyAspects(aspects);
+      setDestinyProjection(projection);
       setStep('result');
 
       toast({
@@ -144,8 +119,7 @@ const Index = () => {
         description: '请重新开始',
         variant: 'destructive',
       });
-    } finally {
-      setIsProcessing(false);
+      setStep('verification');
     }
   }, [baseNumber, toast]);
 
@@ -154,7 +128,7 @@ const Index = () => {
     setBirthInput(null);
     setGanZhiDisplay('');
     setBaseNumber(0);
-    setDestinyAspects([]);
+    setDestinyProjection(null);
   }, []);
 
   return (
@@ -162,7 +136,7 @@ const Index = () => {
       {/* Header */}
       <header className="py-6 md:py-8 border-b border-border/30">
         <div className="container max-w-2xl mx-auto px-4 text-center">
-          <h1 className="text-3xl md:text-5xl font-display text-primary tracking-[0.2em] mb-2">
+          <h1 className="text-3xl md:text-5xl font-serif text-primary tracking-[0.2em] mb-2">
             铁板神数
           </h1>
           <p className="text-muted-foreground text-xs md:text-sm tracking-wider">
@@ -183,34 +157,94 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="flex-1 py-8 md:py-12">
-        <div className="container max-w-xl mx-auto px-4">
+        <div className="container max-w-2xl mx-auto px-4">
           {/* Step: Input */}
           {step === 'input' && (
-            <div className="bg-card/50 border border-border rounded-lg p-6 md:p-8 shadow-xl shadow-black/20">
+            <div className="max-w-xl mx-auto bg-card/50 border border-border rounded-lg p-6 md:p-8 shadow-xl shadow-black/20">
               <BirthDataForm 
                 onSubmit={handleBirthDataSubmit} 
-                isLoading={isProcessing}
+                isLoading={false}
               />
+            </div>
+          )}
+
+          {/* Step: Calculating (Loading Transition) */}
+          {step === 'calculating' && (
+            <div className="max-w-xl mx-auto bg-card/50 border border-border rounded-lg p-12 shadow-xl shadow-black/20">
+              <div className="text-center space-y-6">
+                <div className="relative inline-block">
+                  <div className="text-6xl animate-spin text-primary">☯</div>
+                  <div className="absolute inset-0 animate-pulse-glow rounded-full" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xl font-serif text-primary tracking-wider">
+                    正在推演乾坤...
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Calculating Celestial Coordinates
+                  </p>
+                </div>
+                <div className="flex justify-center gap-1">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="w-2 h-2 rounded-full bg-primary/50 animate-pulse"
+                      style={{ animationDelay: `${i * 200}ms` }}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
           {/* Step: Six Relations Verification */}
           {step === 'verification' && (
-            <div className="max-w-2xl mx-auto bg-card/50 border border-border rounded-lg p-6 md:p-8 shadow-xl shadow-black/20">
+            <div className="bg-card/50 border border-border rounded-lg p-6 md:p-8 shadow-xl shadow-black/20">
               <SixRelationsVerification
                 baseNumber={baseNumber}
                 ganZhiDisplay={ganZhiDisplay}
                 onTimeLocked={handleTimeLocked}
-                isLoading={isProcessing}
+                isLoading={false}
               />
             </div>
           )}
 
-          {/* Step: Multi-Aspect Result */}
-          {step === 'result' && destinyAspects.length > 0 && (
+          {/* Step: Projecting Destiny (Loading Transition) */}
+          {step === 'projecting' && (
+            <div className="max-w-xl mx-auto bg-card/50 border border-border rounded-lg p-12 shadow-xl shadow-black/20">
+              <div className="text-center space-y-6">
+                <div className="relative inline-block">
+                  <div className="text-6xl text-primary animate-pulse">卦</div>
+                  <div className="absolute inset-0 animate-pulse-glow rounded-full" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xl font-serif text-primary tracking-wider">
+                    天机推演中...
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Projecting Destiny Pathways
+                  </p>
+                </div>
+                <div className="flex justify-center gap-2">
+                  {['命', '运', '缘', '财'].map((char, i) => (
+                    <span
+                      key={char}
+                      className="text-lg text-primary/50 animate-pulse"
+                      style={{ animationDelay: `${i * 300}ms` }}
+                    >
+                      {char}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step: Destiny Revelation */}
+          {step === 'result' && destinyProjection && (
             <div className="bg-card/50 border border-border rounded-lg p-6 md:p-8 shadow-xl shadow-black/20">
-              <MultiAspectResult
-                aspects={destinyAspects}
+              <DestinyRevelation
+                destinyIds={destinyProjection}
                 pillarsDisplay={ganZhiDisplay}
                 onReset={handleReset}
               />
