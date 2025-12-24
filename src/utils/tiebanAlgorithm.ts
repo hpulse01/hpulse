@@ -7,7 +7,7 @@
  * Based strictly on Heavenly Stems, Earthly Branches, and specific Minute of birth.
  */
 
-import { Solar } from 'lunar-typescript';
+import { Solar, Lunar } from 'lunar-typescript';
 
 // ==========================================
 // 1. THE AXIOMATIC CONSTANTS (公理常数)
@@ -95,6 +95,47 @@ export interface DestinyProjection {
   career: number;
   health: number;
   children: number;
+}
+
+// BaZi Profile for deep analysis
+export interface BaZiProfile {
+  dayMaster: string;           // The "Self" element (日主)
+  dayMasterElement: string;    // e.g., "火" (Fire)
+  pillars: {
+    year: string;
+    month: string;
+    day: string;
+    time: string;
+  };
+  strength: string;            // 得令/失令
+  favorableElements: string[]; // 喜用神
+  unfavorableElements: string[]; // 忌神
+}
+
+// 10-Year Luck Cycle (大运)
+export interface DaYunCycle {
+  startAge: number;
+  endAge: number;
+  ganZhi: string;              // e.g., "甲子"
+  startYear: number;
+  element: string;             // The dominant element
+}
+
+// Flow Year Projection (流年)
+export interface FlowYearClause {
+  age: number;
+  year: number;
+  ganZhi: string;              // That year's GanZhi
+  clauseNumber: number;
+  content?: string;            // Populated from DB
+}
+
+// Full Destiny Report
+export interface FullDestinyReport {
+  baziProfile: BaZiProfile;
+  lifeCycles: DaYunCycle[];
+  flowYears: FlowYearClause[];
+  destinyProjection: DestinyProjection;
 }
 
 // Six Relations (六亲) Input for Calibration
@@ -510,6 +551,182 @@ export const TiebanEngine = {
         searchQuery,
       };
     }).sort((a, b) => b.matchScore - a.matchScore); // Sort best match first
+  },
+
+  /**
+   * BAZI DEEP ANALYSIS: Calculate Full BaZi Profile
+   * Includes Day Master, Elements, and strength analysis
+   */
+  calculateBaZiProfile: (input: TiebanInput): BaZiProfile => {
+    const solar = Solar.fromYmdHms(input.year, input.month, input.day, input.hour, input.minute, 0);
+    const lunar = solar.getLunar();
+    const eightChar = lunar.getEightChar();
+    
+    // Get Day Master (日主) - the core of one's identity
+    const dayMaster = eightChar.getDayGan();
+    const dayMasterElement = eightChar.getDayWuXing();
+    
+    // Get pillars
+    const pillars = {
+      year: lunar.getYearInGanZhi(),
+      month: lunar.getMonthInGanZhi(),
+      day: lunar.getDayInGanZhi(),
+      time: lunar.getTimeInGanZhi(),
+    };
+    
+    // Simple strength analysis based on month element
+    const monthElement = eightChar.getMonthWuXing();
+    const isStrong = dayMasterElement === monthElement;
+    const strength = isStrong ? "得令 (Strong)" : "失令 (Weak)";
+    
+    // Simplified favorable elements logic based on Day Master element
+    // In real practice, this is much more complex
+    const ELEMENT_CYCLE = ['木', '火', '土', '金', '水'];
+    const dayIndex = ELEMENT_CYCLE.indexOf(dayMasterElement);
+    
+    let favorableElements: string[] = [];
+    let unfavorableElements: string[] = [];
+    
+    if (isStrong) {
+      // If strong, need elements that weaken or drain
+      favorableElements = [
+        ELEMENT_CYCLE[(dayIndex + 1) % 5], // What I produce (泄)
+        ELEMENT_CYCLE[(dayIndex + 3) % 5], // What overcomes me (克)
+      ];
+      unfavorableElements = [
+        ELEMENT_CYCLE[dayIndex], // Same element (比)
+        ELEMENT_CYCLE[(dayIndex + 4) % 5], // What produces me (生)
+      ];
+    } else {
+      // If weak, need elements that strengthen or support
+      favorableElements = [
+        ELEMENT_CYCLE[dayIndex], // Same element (比)
+        ELEMENT_CYCLE[(dayIndex + 4) % 5], // What produces me (生)
+      ];
+      unfavorableElements = [
+        ELEMENT_CYCLE[(dayIndex + 1) % 5], // What I produce (泄)
+        ELEMENT_CYCLE[(dayIndex + 3) % 5], // What overcomes me (克)
+      ];
+    }
+    
+    return {
+      dayMaster,
+      dayMasterElement,
+      pillars,
+      strength,
+      favorableElements,
+      unfavorableElements,
+    };
+  },
+
+  /**
+   * CALCULATE DA YUN (大运): 10-Year Luck Cycles
+   * Uses lunar-typescript's Yun (运) calculation
+   */
+  calculateDaYun: (input: TiebanInput): DaYunCycle[] => {
+    const solar = Solar.fromYmdHms(input.year, input.month, input.day, input.hour, input.minute, 0);
+    const lunar = solar.getLunar();
+    const eightChar = lunar.getEightChar();
+    
+    // Get the Yun (运) - gender: 1=male, 0=female
+    const yun = eightChar.getYun(input.gender === 'male' ? 1 : 0);
+    const daYunList = yun.getDaYun();
+    
+    const cycles: DaYunCycle[] = daYunList.map(dy => {
+      const ganZhi = dy.getGanZhi();
+      // Extract element from the GanZhi
+      const gan = ganZhi.charAt(0);
+      const STEM_ELEMENTS: Record<string, string> = {
+        '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土',
+        '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水'
+      };
+      
+      return {
+        startAge: dy.getStartAge(),
+        endAge: dy.getEndAge(),
+        ganZhi,
+        startYear: dy.getStartYear(),
+        element: STEM_ELEMENTS[gan] || '未知',
+      };
+    });
+    
+    return cycles;
+  },
+
+  /**
+   * FLOW YEAR CLAUSES (流年条文): Calculate clause IDs for specific ages
+   * Uses the calibrated base number to project year-by-year destiny
+   */
+  calculateFlowYearClauses: (
+    trueBase: number, 
+    systemOffset: number,
+    birthYear: number,
+    startAge: number = 1, 
+    endAge: number = 80
+  ): FlowYearClause[] => {
+    const flowYears: FlowYearClause[] = [];
+    
+    // Iron Plate "Flow Year" Formula
+    // The step constant represents the "yearly progression" in the clause structure
+    const FLOW_YEAR_STEP = 13; // Classical constant from some lineages
+    
+    for (let age = startAge; age <= endAge; age++) {
+      const year = birthYear + age;
+      
+      // Get GanZhi for that year
+      const yearSolar = Solar.fromYmdHms(year, 6, 15, 12, 0, 0);
+      const yearLunar = yearSolar.getLunar();
+      const yearGanZhi = yearLunar.getYearInGanZhi();
+      
+      // Calculate clause ID
+      // Formula: (TrueBase + SystemOffset + Age * Step + FlowYearOffset) % Range
+      let rawId = trueBase + systemOffset + (age * FLOW_YEAR_STEP) + PALACE_OFFSETS.FLOW_YEAR;
+      let clauseId = TiebanEngine.normalizeClauseId(rawId);
+      
+      flowYears.push({
+        age,
+        year,
+        ganZhi: yearGanZhi,
+        clauseNumber: clauseId,
+      });
+    }
+    
+    return flowYears;
+  },
+
+  /**
+   * GENERATE FULL DESTINY REPORT
+   * Combines all analysis into a comprehensive report
+   */
+  generateFullDestinyReport: (
+    input: TiebanInput,
+    trueBase: number,
+    systemOffset: number
+  ): FullDestinyReport => {
+    // 1. BaZi Deep Analysis
+    const baziProfile = TiebanEngine.calculateBaZiProfile(input);
+    
+    // 2. Da Yun (10-Year Cycles)
+    const lifeCycles = TiebanEngine.calculateDaYun(input);
+    
+    // 3. Flow Year Clauses (Age 1 to 80)
+    const flowYears = TiebanEngine.calculateFlowYearClauses(
+      trueBase, 
+      systemOffset, 
+      input.year,
+      1, 
+      80
+    );
+    
+    // 4. Standard Destiny Projection
+    const destinyProjection = TiebanEngine.projectDestinyWithOffset(trueBase, systemOffset);
+    
+    return {
+      baziProfile,
+      lifeCycles,
+      flowYears,
+      destinyProjection,
+    };
   },
 };
 
