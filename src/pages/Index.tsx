@@ -9,6 +9,7 @@ import {
   type TiebanInput,
   type KaoKeWithMatch,
   type DestinyProjection,
+  type CalibrationResult,
 } from '@/utils/tiebanAlgorithm';
 import { useToast } from '@/hooks/use-toast';
 
@@ -19,7 +20,9 @@ const Index = () => {
   const [birthInput, setBirthInput] = useState<TiebanInput | null>(null);
   const [ganZhiDisplay, setGanZhiDisplay] = useState('');
   const [baseNumber, setBaseNumber] = useState(0);
+  const [theoreticalBase, setTheoreticalBase] = useState(0);
   const [destinyProjection, setDestinyProjection] = useState<DestinyProjection | null>(null);
+  const [calibrationResult, setCalibrationResult] = useState<CalibrationResult | null>(null);
   const [clauseCount, setClauseCount] = useState<number | null>(null);
 
   const { toast } = useToast();
@@ -56,7 +59,12 @@ const Index = () => {
       setBaseNumber(result.baseNumber);
       setGanZhiDisplay(result.pillars.fullDisplay);
 
+      // Calculate theoretical base for BaZi-anchored calibration
+      const theoreticBase = TiebanEngine.calculateTheoreticalBase(birthData);
+      setTheoreticalBase(theoreticBase);
+
       console.log('Base Number:', result.baseNumber);
+      console.log('Theoretical Base (BaZi):', theoreticBase);
       console.log('Pillars:', result.pillars.fullDisplay);
       console.log('Stem Sum:', result.stemSum, 'Branch Sum:', result.branchSum);
 
@@ -74,8 +82,9 @@ const Index = () => {
 
   /**
    * STEP 2: Handle Six Relations verification (user confirms which quarter matches)
-   * - Lock the keIndex based on family data matching
-   * - Calculate destiny paths using TiebanEngine.calculateDestinyPaths
+   * - Uses BaZi-Anchored logic with dynamic offset calibration
+   * - Calculate the "System Offset" = Actual Clause ID - Expected ID from Math
+   * - Apply this offset to all future predictions
    */
   const handleTimeLocked = useCallback(async (
     lockedKeIndex: number, 
@@ -84,21 +93,40 @@ const Index = () => {
     setStep('projecting');
 
     try {
-      console.log('=== STEP 2: User Locked Quarter via Six Relations ===');
+      console.log('=== STEP 2: BaZi-Anchored Calibration ===');
       console.log('Locked keIndex:', lockedKeIndex);
-      console.log('Match Score:', selectedOption.matchScore);
-      console.log('Selected clause:', selectedOption.clauseNumber);
+      console.log('Confirmed clause ID:', selectedOption.clauseNumber);
+      console.log('Theoretical Base:', theoreticalBase);
 
       // Simulate projection calculation
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Calculate all destiny paths using the locked quarter
-      const projection: DestinyProjection = TiebanEngine.calculateDestinyPaths(
-        baseNumber, 
-        lockedKeIndex
+      // 1. Calculate the "System Offset" (Book Deviation)
+      // This is the key to adapting the math to the specific clause library
+      const systemOffset = TiebanEngine.calculateSystemOffset(
+        theoreticalBase, 
+        selectedOption.clauseNumber
       );
 
-      console.log('=== STEP 3: Destiny Projection ===');
+      // Store calibration result for reference
+      const calibration: CalibrationResult = {
+        theoreticalBase,
+        confirmedClauseId: selectedOption.clauseNumber,
+        systemOffset,
+        lockedQuarterIndex: lockedKeIndex
+      };
+      setCalibrationResult(calibration);
+
+      console.log('=== System Calibration Complete ===');
+      console.log('System Offset:', systemOffset);
+
+      // 2. Project all destiny paths using BaZi base + calibrated offset
+      const projection: DestinyProjection = TiebanEngine.projectDestinyWithOffset(
+        theoreticalBase,
+        systemOffset
+      );
+
+      console.log('=== STEP 3: Destiny Projection (BaZi + Offset) ===');
       console.log('Life Destiny:', projection.lifeDestiny);
       console.log('Marriage:', projection.marriage);
       console.log('Wealth:', projection.wealth);
@@ -121,14 +149,16 @@ const Index = () => {
       });
       setStep('verification');
     }
-  }, [baseNumber, toast]);
+  }, [theoreticalBase, toast]);
 
   const handleReset = useCallback(() => {
     setStep('input');
     setBirthInput(null);
     setGanZhiDisplay('');
     setBaseNumber(0);
+    setTheoreticalBase(0);
     setDestinyProjection(null);
+    setCalibrationResult(null);
   }, []);
 
   return (
