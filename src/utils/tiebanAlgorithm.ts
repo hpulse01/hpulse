@@ -80,10 +80,11 @@ export interface GanZhiPillars {
 export interface KaoKeCandidate {
   keIndex: number;         // 0-7 (representing 8 quarters of a Shichen)
   quarterIndex: number;    // Same as keIndex (for compatibility)
-  clauseNumber: number;    // The database clause_number to lookup
+  clauseNumber: number;    // The database clause_number to lookup (fallback)
   timeLabel: string;       // e.g., "一刻 (初刻)"
   debugBase?: number;      // For developer transparency
   content?: string;        // Populated from DB
+  searchQuery?: string;    // Content-based search keyword (e.g., "父属鼠")
 }
 
 export interface DestinyProjection {
@@ -108,6 +109,7 @@ export interface KaoKeWithMatch extends KaoKeCandidate {
   predictedFatherZodiac: number;
   predictedMotherZodiac: number;
   matchScore: number; // 0-100, higher = better match
+  searchQuery: string; // Content-based search keyword (e.g., "父属鼠")
 }
 
 export interface CalculationResult {
@@ -350,12 +352,16 @@ export const TiebanEngine = {
    * This is the core of Iron Plate "Kao Ke" (考刻) verification.
    * We mathematically predict family details for each quarter and score
    * how well each matches the user's actual family information.
+   * 
+   * NEW: Returns searchQuery for content-based database lookup instead of
+   * relying solely on calculated clause IDs.
    */
   calculateSixRelationsMatch: (
     baseNumber: number,
     relations: SixRelationsInput
   ): KaoKeWithMatch[] => {
     const candidates = TiebanEngine.generateKaoKeCandidates(baseNumber);
+    const ZODIAC_CN = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
 
     return candidates.map(candidate => {
       // 1. Re-derive the specific energy for this Quarter
@@ -369,7 +375,11 @@ export const TiebanEngine = {
       const predFather = (specificSeed + 3) % 12;
       const predMother = (specificSeed + 9) % 12;
 
-      // 3. Calculate Match Score (0-100)
+      // 3. Construct the Search Keyword for content-based lookup
+      // Example: "父属鼠" (Father belongs to Rat)
+      const searchQuery = `父属${ZODIAC_CN[predFather]}`;
+
+      // 4. Calculate Match Score (0-100)
       let score = 0;
 
       // Father zodiac match: 40 points
@@ -417,6 +427,7 @@ export const TiebanEngine = {
         predictedFatherZodiac: predFather,
         predictedMotherZodiac: predMother,
         matchScore: Math.min(score, 100),
+        searchQuery,
       };
     }).sort((a, b) => b.matchScore - a.matchScore); // Sort best match first
   },

@@ -23,7 +23,7 @@ import {
   type SixRelationsInput, 
   type KaoKeWithMatch 
 } from '@/utils/tiebanAlgorithm';
-import { fetchClauseByNumber } from '@/services/SupabaseService';
+import { findClauseByContent } from '@/services/SupabaseService';
 import { Sparkles, Users, Minus, Plus, Crown } from 'lucide-react';
 
 // ==========================================
@@ -129,13 +129,16 @@ export const SixRelationsVerification = ({
       setMatchedOptions(initialOptions);
       setHasCalibrated(true);
 
-      // Fetch clause content for each option
+      // Fetch clause content for each option using content-based search
       const loadedOptions = await Promise.all(
         results.map(async (opt) => {
-          const clause = await fetchClauseByNumber(opt.clauseNumber);
+          // Use content-based search with the predicted keyword (e.g., "父属鼠")
+          const result = await findClauseByContent(opt.searchQuery);
           return {
             ...opt,
-            content: clause?.content || '此刻条文待解，需参阅古籍原文。',
+            content: result.content,
+            // Update clauseNumber if we found a real match
+            clauseNumber: result.clauseNumber ?? opt.clauseNumber,
             isLoading: false,
           };
         })
