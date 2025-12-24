@@ -29,7 +29,8 @@ const TAI_XUAN_MAP: Record<string, number> = {
 // The "Golden Key" (皇极秘数) - A classical constant used to shift the base
 const GOLDEN_KEY = 9668;
 const BASE_MODULO = 12000; // Assuming the Clause Library has ~12,000 entries
-const MIN_CLAUSE_ID = 100;
+const MIN_CLAUSE_ID = 1001; // Minimum valid clause ID in the database
+const MAX_CLAUSE_ID = 13000; // Maximum valid clause ID
 
 // Category Offsets (Based on the "Twelve Palaces" logic)
 const PALACE_OFFSETS = {
@@ -118,6 +119,14 @@ export interface CalculationResult {
   stemSum: number;
   branchSum: number;
   totalScore: number;
+}
+
+// Calibration result with system offset
+export interface CalibrationResult {
+  theoreticalBase: number;
+  confirmedClauseId: number;
+  systemOffset: number;
+  lockedQuarterIndex: number;
 }
 
 // ==========================================
@@ -306,14 +315,85 @@ export const TiebanEngine = {
   },
 
   /**
-   * Helper: Ensure the ID stays within the bounds of the clause database
+   * Helper: Ensure the ID stays within the bounds of the clause database (1001-13000)
    */
   normalizeClauseId: (rawId: number): number => {
-    let validId = rawId % BASE_MODULO;
-    if (validId < MIN_CLAUSE_ID) {
-      validId += 1000;
-    }
+    let validId = rawId;
+    // Wrap within the valid range
+    const range = MAX_CLAUSE_ID - MIN_CLAUSE_ID + 1; // 12000
+    while (validId > MAX_CLAUSE_ID) validId -= range;
+    while (validId < MIN_CLAUSE_ID) validId += range;
     return Math.floor(validId);
+  },
+
+  /**
+   * BAZI-ANCHORED ALGORITHM: Calculate Theoretical Base from BaZi
+   * This is the "Foundation" - pure mathematical calculation from birth data.
+   * Formula: (TaiXuanSum * 100) + (Minute * 10) + GenderShift
+   */
+  calculateTheoreticalBase: (input: TiebanInput): number => {
+    const solar = Solar.fromYmdHms(input.year, input.month, input.day, input.hour, input.minute, 0);
+    const lunar = solar.getLunar();
+    const pillars = [
+      lunar.getYearInGanZhi(),
+      lunar.getMonthInGanZhi(),
+      lunar.getDayInGanZhi(),
+      lunar.getTimeInGanZhi()
+    ];
+
+    let score = 0;
+    pillars.forEach(p => {
+      if (p.length >= 2) {
+        score += (TAI_XUAN_MAP[p[0]] || 5) + (TAI_XUAN_MAP[p[1]] || 5);
+      }
+    });
+
+    // Formula: (TaiXuanSum * 100) + (Minute * 10)
+    // Creates a unique coordinate for this birth time
+    let base = (score * 100) + (input.minute * 10);
+    
+    // Gender shift
+    if (input.gender === 'female') {
+      base += 500;
+    }
+
+    return base % BASE_MODULO;
+  },
+
+  /**
+   * CALIBRATION ALGORITHM: Calculate System Offset
+   * Compares the "Mathematical Result" with the "Book Reality".
+   * The offset represents the deviation between standard math and the specific clause library.
+   */
+  calculateSystemOffset: (theoreticalBase: number, confirmedClauseId: number): number => {
+    // We expected the Parents Clause to be at (Base + PARENTS_OFFSET)
+    // But it was actually at (confirmedClauseId)
+    // Offset = Actual - Expected
+    const expectedId = TiebanEngine.normalizeClauseId(theoreticalBase + PALACE_OFFSETS.PARENTS);
+    const offset = confirmedClauseId - expectedId;
+    
+    console.log(`[System Calibration] Math said: ${expectedId}, Book said: ${confirmedClauseId}, Deviation: ${offset}`);
+    return offset;
+  },
+
+  /**
+   * PROJECTION WITH OFFSET: Calculate destiny using BaZi base + calibrated offset
+   * This ensures predictions are rooted in BaZi but adapted to the specific clause library.
+   */
+  projectDestinyWithOffset: (theoreticalBase: number, systemOffset: number): DestinyProjection => {
+    const getID = (categoryOffset: number): number => {
+      let id = theoreticalBase + categoryOffset + systemOffset;
+      return TiebanEngine.normalizeClauseId(id);
+    };
+
+    return {
+      lifeDestiny: getID(PALACE_OFFSETS.FATE),
+      marriage: getID(PALACE_OFFSETS.MARRIAGE),
+      wealth: getID(PALACE_OFFSETS.WEALTH),
+      career: getID(PALACE_OFFSETS.CAREER),
+      health: getID(PALACE_OFFSETS.HEALTH),
+      children: getID(PALACE_OFFSETS.CHILDREN),
+    };
   },
 
   /**
