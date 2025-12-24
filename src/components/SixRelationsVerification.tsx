@@ -28,8 +28,9 @@ import {
   type SixRelationsInput, 
   type KaoKeWithMatch 
 } from '@/utils/tiebanAlgorithm';
-import { findDetailedFamilyMatches, type Clause } from '@/services/SupabaseService';
-import { Sparkles, Users, Minus, Plus, Crown, Star, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
+import { findDetailedFamilyMatches, searchClausesFreeText, type Clause } from '@/services/SupabaseService';
+import { Input } from '@/components/ui/input';
+import { Sparkles, Users, Minus, Plus, Crown, Star, Calendar, CheckCircle2, AlertCircle, Search } from 'lucide-react';
 
 // ==========================================
 // CONSTANTS
@@ -167,6 +168,11 @@ export const SixRelationsVerification = ({
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [noMatchMessage, setNoMatchMessage] = useState<string | null>(null);
 
+  // Manual search state
+  const [manualQuery, setManualQuery] = useState('');
+  const [manualSearchResults, setManualSearchResults] = useState<Array<{ clause_number: number; content: string }>>([]);
+  const [isManualSearching, setIsManualSearching] = useState(false);
+
   // Reset calibration when form changes
   useEffect(() => {
     if (hasCalibrated) {
@@ -242,7 +248,7 @@ export const SixRelationsVerification = ({
     // Convert RichOption to KaoKeWithMatch format for parent component
     const kaoKeOption: KaoKeWithMatch = {
       keIndex: selected.keIndex,
-      quarterIndex: selected.keIndex, // Required by KaoKeCandidate interface
+      quarterIndex: selected.keIndex,
       clauseNumber: selected.clauseNumber,
       timeLabel: selected.timeLabel,
       predictedFatherZodiac: selected.predictedFatherZodiac,
@@ -253,6 +259,44 @@ export const SixRelationsVerification = ({
     
     onTimeLocked(selected.keIndex, kaoKeOption);
   }, [selectedIndex, matchedOptions, onTimeLocked]);
+
+  /**
+   * Handle manual free-text search
+   */
+  const handleManualSearch = useCallback(async () => {
+    if (!manualQuery.trim()) return;
+    
+    setIsManualSearching(true);
+    try {
+      const results = await searchClausesFreeText(manualQuery, 20);
+      setManualSearchResults(results);
+    } catch (error) {
+      console.error('Manual search error:', error);
+      setManualSearchResults([]);
+    } finally {
+      setIsManualSearching(false);
+    }
+  }, [manualQuery]);
+
+  /**
+   * Handle manual anchor selection
+   * Uses the selected clause to anchor the calculation
+   */
+  const handleManualAnchor = useCallback((clauseNumber: number, content: string) => {
+    // Create a KaoKeWithMatch from the manually selected clause
+    const kaoKeOption: KaoKeWithMatch = {
+      keIndex: 2, // Default to Q3 as median
+      quarterIndex: 2,
+      clauseNumber: clauseNumber,
+      timeLabel: '手动定局',
+      predictedFatherZodiac: fatherZodiac ?? 0,
+      predictedMotherZodiac: motherZodiac ?? 0,
+      matchScore: 100, // Manual selection = 100% match
+      searchQuery: manualQuery,
+    };
+    
+    onTimeLocked(2, kaoKeOption);
+  }, [fatherZodiac, motherZodiac, manualQuery, onTimeLocked]);
 
   const isFormComplete = fatherZodiac !== null && motherZodiac !== null;
 
@@ -571,6 +615,87 @@ export const SixRelationsVerification = ({
           </div>
         </div>
       )}
+
+      {/* Manual Search & Anchor Section */}
+      <div className="mt-8 border border-border/50 rounded-lg bg-card/30 overflow-hidden">
+        <div className="p-4 border-b border-border/30 bg-secondary/20">
+          <h3 className="text-lg font-serif text-primary flex items-center gap-2">
+            <Search className="w-5 h-5" />
+            手动检索定局 (Manual Override)
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            可输入任意特征组合进行全文检索，如：父属牛 母属兔 兄弟三人
+          </p>
+        </div>
+        
+        <div className="p-4">
+          {/* Search Input */}
+          <div className="flex gap-2 mb-4">
+            <Input
+              type="text"
+              value={manualQuery}
+              onChange={(e) => setManualQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleManualSearch()}
+              placeholder="输入任意特征，如：父属牛 母属兔"
+              className="flex-1 bg-input border-border/50 text-foreground placeholder:text-muted-foreground"
+            />
+            <Button
+              onClick={handleManualSearch}
+              disabled={!manualQuery.trim() || isManualSearching}
+              variant="secondary"
+              className="border border-border/50"
+            >
+              {isManualSearching ? (
+                <span className="animate-spin">⏳</span>
+              ) : (
+                <>
+                  <Search className="w-4 h-4 mr-2" />
+                  检索
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Search Results */}
+          {manualSearchResults.length > 0 && (
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
+              <p className="text-xs text-muted-foreground mb-2">
+                找到 {manualSearchResults.length} 条相关条文
+              </p>
+              {manualSearchResults.map((result) => (
+                <div
+                  key={result.clause_number}
+                  className="group flex justify-between items-start gap-4 p-3 bg-secondary/30 border border-border/30 rounded-lg hover:border-primary/50 hover:bg-secondary/50 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <span className="text-primary font-mono text-sm mr-2">
+                      #{result.clause_number}
+                    </span>
+                    <span className="text-sm text-foreground/80 font-serif leading-relaxed">
+                      {result.content}
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => handleManualAnchor(result.clause_number, result.content)}
+                    disabled={isLoading}
+                    className="shrink-0 bg-primary/80 hover:bg-primary text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    确认定局
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* No results state */}
+          {manualQuery.trim() && manualSearchResults.length === 0 && !isManualSearching && (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              未找到匹配条文，请尝试其他关键词
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
