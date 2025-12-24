@@ -23,7 +23,7 @@ import {
   type SixRelationsInput, 
   type KaoKeWithMatch 
 } from '@/utils/tiebanAlgorithm';
-import { findClauseByContent } from '@/services/SupabaseService';
+import { findClauseByFamilyFacts, findClauseByContent } from '@/services/SupabaseService';
 import { Sparkles, Users, Minus, Plus, Crown } from 'lucide-react';
 
 // ==========================================
@@ -66,6 +66,7 @@ interface SixRelationsVerificationProps {
 interface LoadedOption extends KaoKeWithMatch {
   content?: string;
   isLoading?: boolean;
+  isRealMatch?: boolean; // True if this matches user's actual input
 }
 
 // ==========================================
@@ -101,6 +102,8 @@ export const SixRelationsVerification = ({
 
   /**
    * Run the Six Relations calibration algorithm
+   * FACT-BASED REVERSE SEARCH: User input is the source of truth.
+   * We search DB for the exact clause matching user's input.
    */
   const handleCalibration = useCallback(async () => {
     if (fatherZodiac === null || motherZodiac === null) {
@@ -118,33 +121,64 @@ export const SixRelationsVerification = ({
         siblingsCount,
       };
 
-      // Run the matching algorithm
-      const results = TiebanEngine.calculateSixRelationsMatch(baseNumber, relations);
+      // Get user's zodiac names in Chinese
+      const fZodiacName = ZODIAC_OPTIONS[fatherZodiac].name;
+      const mZodiacName = ZODIAC_OPTIONS[motherZodiac].name;
+
+      // STEP 1: Search DB for the REAL clause matching user's input
+      const realMatch = await findClauseByFamilyFacts(fZodiacName, mZodiacName);
+
+      // STEP 2: Generate the 8 mathematical quarters (for display)
+      const baseOptions = TiebanEngine.calculateSixRelationsMatch(baseNumber, relations);
 
       // Initialize with loading state
-      const initialOptions: LoadedOption[] = results.map(opt => ({
+      const initialOptions: LoadedOption[] = baseOptions.map(opt => ({
         ...opt,
         isLoading: true,
       }));
       setMatchedOptions(initialOptions);
       setHasCalibrated(true);
 
-      // Fetch clause content for each option using content-based search
+      // STEP 3: Build final options - inject real match into the best mathematical slot
       const loadedOptions = await Promise.all(
-        results.map(async (opt) => {
-          // Use content-based search with the predicted keyword (e.g., "父属鼠")
+        baseOptions.map(async (opt, index) => {
+          // Find the slot with highest mathematical score (index 0 after sort)
+          // and inject the REAL clause from DB there
+          if (realMatch && index === 0) {
+            // This is the "Best Match" slot - use the REAL clause from DB
+            return {
+              ...opt,
+              content: realMatch.content,
+              clauseNumber: realMatch.clauseNumber,
+              matchScore: 100, // Force 100% since it matches user input exactly
+              isRealMatch: true,
+              isLoading: false,
+              // Override predicted zodiacs to match user input
+              predictedFatherZodiac: fatherZodiac,
+              predictedMotherZodiac: motherZodiac,
+            };
+          }
+
+          // For other slots, fetch content based on their predicted zodiacs
           const result = await findClauseByContent(opt.searchQuery);
           return {
             ...opt,
             content: result.content,
-            // Update clauseNumber if we found a real match
             clauseNumber: result.clauseNumber ?? opt.clauseNumber,
             isLoading: false,
+            isRealMatch: false,
           };
         })
       );
 
-      setMatchedOptions(loadedOptions);
+      // Re-sort to ensure real match is at top
+      const sortedOptions = loadedOptions.sort((a, b) => {
+        if (a.isRealMatch) return -1;
+        if (b.isRealMatch) return 1;
+        return b.matchScore - a.matchScore;
+      });
+
+      setMatchedOptions(sortedOptions);
     } catch (error) {
       console.error('Calibration error:', error);
     } finally {
@@ -352,11 +386,11 @@ export const SixRelationsVerification = ({
                     }
                   `}
                 >
-                  {/* Best Match Badge */}
+                  {/* Best Match Badge - Show "实录吻合" for real matches, "天机吻合" for math matches */}
                   {isBestMatch && (
                     <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 animate-pulse-glow">
                       <Crown className="w-3 h-3" />
-                      天机吻合
+                      {option.isRealMatch ? '实录吻合' : '天机吻合'}
                     </div>
                   )}
 

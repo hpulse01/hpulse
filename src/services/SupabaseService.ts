@@ -206,6 +206,61 @@ export async function findClauseByContent(keyword: string): Promise<{ content: s
 }
 
 /**
+ * REVERSE LOOKUP: Find a clause based on Family Zodiacs (Both Father AND Mother)
+ * This ensures the text displayed MATCHES the user's input exactly.
+ * 
+ * @param fatherZodiac - Chinese zodiac character (e.g., "牛")
+ * @param motherZodiac - Chinese zodiac character (e.g., "兔")
+ * @returns The matching clause or null
+ */
+export async function findClauseByFamilyFacts(
+  fatherZodiac: string,
+  motherZodiac: string
+): Promise<{ content: string; clauseNumber: number } | null> {
+  // Construct search terms based on classical Chinese phrasing
+  const fatherTerm = `父属${fatherZodiac}`;
+  const motherTerm = `母属${motherZodiac}`;
+
+  // Search for clauses containing BOTH father AND mother zodiacs
+  const { data, error } = await supabase
+    .from('tieban_clauses')
+    .select('content, clause_number')
+    .ilike('content', `%${fatherTerm}%`)
+    .ilike('content', `%${motherTerm}%`)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error finding clause by family facts:', error);
+    return null;
+  }
+
+  if (!data) {
+    // Try searching for just father zodiac as fallback
+    const { data: fatherOnlyData } = await supabase
+      .from('tieban_clauses')
+      .select('content, clause_number')
+      .ilike('content', `%${fatherTerm}%`)
+      .limit(1)
+      .maybeSingle();
+
+    if (fatherOnlyData) {
+      return {
+        content: fatherOnlyData.content,
+        clauseNumber: fatherOnlyData.clause_number,
+      };
+    }
+
+    return null;
+  }
+
+  return {
+    content: data.content,
+    clauseNumber: data.clause_number,
+  };
+}
+
+/**
  * Get clauses by category
  */
 export async function fetchClausesByCategory(
