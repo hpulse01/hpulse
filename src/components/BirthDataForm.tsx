@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { TiebanInput } from '@/services/TiebanCalculator';
+import type { TiebanInput } from '@/utils/tiebanAlgorithm';
 
 interface BirthDataFormProps {
   onSubmit: (data: TiebanInput) => void;

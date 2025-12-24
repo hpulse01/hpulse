@@ -13,9 +13,40 @@ export interface Clause {
   created_at: string;
 }
 
+// Cache for valid clause numbers (populated on first load)
+let validClauseNumbersCache: Set<number> | null = null;
+
+/**
+ * Get all valid clause numbers from database (for fallback logic)
+ */
+export async function getValidClauseNumbers(): Promise<Set<number>> {
+  if (validClauseNumbersCache) {
+    return validClauseNumbersCache;
+  }
+
+  const { data, error } = await supabase
+    .from('tieban_clauses')
+    .select('clause_number');
+
+  if (error) {
+    console.error('Error fetching clause numbers:', error);
+    return new Set();
+  }
+
+  validClauseNumbersCache = new Set(data?.map(d => d.clause_number) || []);
+  return validClauseNumbersCache;
+}
+
+/**
+ * Clear the cache (call after data import)
+ */
+export function clearClauseCache(): void {
+  validClauseNumbersCache = null;
+}
+
 /**
  * Fetch a single clause by its number
- * Includes fallback search if exact match not found
+ * Includes fallback search if exact match not found (tries ±1, ±2, up to ±10)
  */
 export async function fetchClauseByNumber(
   clauseNumber: number,
@@ -37,30 +68,36 @@ export async function fetchClauseByNumber(
     return exactMatch as Clause;
   }
 
-  // Fallback: search nearby numbers
-  const { data: nearbyMatches, error: nearbyError } = await supabase
-    .from('tieban_clauses')
-    .select('*')
-    .gte('clause_number', clauseNumber - searchRadius)
-    .lte('clause_number', clauseNumber + searchRadius)
-    .order('clause_number')
-    .limit(1);
+  // Fallback: search nearby numbers (±1, ±2, etc.)
+  console.log(`Clause ${clauseNumber} not found, searching nearby...`);
+  
+  for (let offset = 1; offset <= searchRadius; offset++) {
+    // Try +offset
+    const { data: plusMatch } = await supabase
+      .from('tieban_clauses')
+      .select('*')
+      .eq('clause_number', clauseNumber + offset)
+      .maybeSingle();
 
-  if (nearbyError) {
-    console.error('Error fetching nearby clause:', nearbyError);
-    return null;
+    if (plusMatch) {
+      console.log(`Found fallback clause: ${clauseNumber + offset}`);
+      return plusMatch as Clause;
+    }
+
+    // Try -offset
+    const { data: minusMatch } = await supabase
+      .from('tieban_clauses')
+      .select('*')
+      .eq('clause_number', clauseNumber - offset)
+      .maybeSingle();
+
+    if (minusMatch) {
+      console.log(`Found fallback clause: ${clauseNumber - offset}`);
+      return minusMatch as Clause;
+    }
   }
 
-  if (nearbyMatches && nearbyMatches.length > 0) {
-    // Find the closest match
-    const closest = nearbyMatches.reduce((prev, curr) => {
-      const prevDist = Math.abs(prev.clause_number - clauseNumber);
-      const currDist = Math.abs(curr.clause_number - clauseNumber);
-      return currDist < prevDist ? curr : prev;
-    });
-    return closest as Clause;
-  }
-
+  console.warn(`No clause found near ${clauseNumber}`);
   return null;
 }
 
@@ -181,6 +218,9 @@ export async function importClausesFromJson(
     console.error('Import error:', error);
     return { success: false, imported: 0, errors: [error.message] };
   }
+
+  // Clear cache after import so new data is fetched
+  clearClauseCache();
 
   return data;
 }
