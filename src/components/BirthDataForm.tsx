@@ -10,15 +10,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { BirthData } from '@/services/TiebanCalculator';
+import type { TiebanInput } from '@/services/TiebanCalculator';
 
 interface BirthDataFormProps {
-  onSubmit: (data: BirthData) => void;
+  onSubmit: (data: TiebanInput) => void;
   isLoading?: boolean;
 }
 
 export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
-  const [formData, setFormData] = useState<BirthData>({
+  const [formData, setFormData] = useState<TiebanInput>({
     year: 1990,
     month: 1,
     day: 1,
