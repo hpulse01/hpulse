@@ -97,24 +97,40 @@ function PillarCard({ title, ganZhi, subtitle }: { title: string; ganZhi: string
 }
 
 // Da Yun Timeline Item
-function DaYunItem({ cycle, isActive }: { cycle: { startAge: number; endAge: number; ganZhi: string; element: string }; isActive: boolean }) {
+function DaYunItem({ 
+  cycle, 
+  isActive, 
+  isSelected,
+  onClick 
+}: { 
+  cycle: { startAge: number; endAge: number; ganZhi: string; element: string; startYear: number }; 
+  isActive: boolean;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
   const ElementIcon = ELEMENT_ICONS[cycle.element] || CircleDot;
   const colorClass = ELEMENT_COLORS[cycle.element] || 'text-gray-400 bg-gray-500/20 border-gray-500/30';
   
   return (
-    <div className={`
-      flex flex-col items-center p-3 rounded-lg border transition-all
-      ${isActive 
-        ? 'bg-primary/20 border-primary shadow-lg shadow-primary/10' 
-        : 'bg-card/50 border-border/50 hover:border-primary/30'}
-    `}>
+    <button
+      onClick={onClick}
+      className={`
+        flex flex-col items-center p-3 rounded-lg border transition-all cursor-pointer
+        ${isSelected
+          ? 'bg-primary/30 border-primary ring-2 ring-primary/50 shadow-lg shadow-primary/20'
+          : isActive 
+            ? 'bg-primary/20 border-primary shadow-lg shadow-primary/10' 
+            : 'bg-card/50 border-border/50 hover:border-primary/30 hover:bg-primary/10'}
+      `}
+    >
       <span className="text-xs text-muted-foreground">{cycle.startAge}-{cycle.endAge}岁</span>
       <span className="text-lg font-serif text-primary my-1">{cycle.ganZhi}</span>
       <Badge variant="outline" className={`text-xs ${colorClass}`}>
         <ElementIcon className="w-3 h-3 mr-1" />
         {cycle.element}
       </Badge>
-    </div>
+      <span className="text-xs text-muted-foreground mt-1">{cycle.startYear}年起</span>
+    </button>
   );
 }
 
@@ -198,6 +214,7 @@ export function DestinyDashboard({
   const [isLoadingAspects, setIsLoadingAspects] = useState(true);
   const [isLoadingFlowYears, setIsLoadingFlowYears] = useState(false);
   const [flowYearRange, setFlowYearRange] = useState({ start: 20, end: 40 });
+  const [selectedDaYunIndex, setSelectedDaYunIndex] = useState<number | null>(null);
 
   // Calculate current age
   const currentAge = useMemo(() => {
@@ -370,6 +387,7 @@ export function DestinyDashboard({
             <h3 className="text-lg font-serif text-primary mb-4 flex items-center gap-2">
               <Calendar className="w-5 h-5" />
               十年大运
+              <span className="text-xs text-muted-foreground font-normal ml-2">(点击查看详情)</span>
             </h3>
             <ScrollArea className="w-full">
               <div className="flex gap-3 pb-4">
@@ -378,10 +396,52 @@ export function DestinyDashboard({
                     key={index} 
                     cycle={cycle} 
                     isActive={index === activeDaYunIndex}
+                    isSelected={index === selectedDaYunIndex}
+                    onClick={() => setSelectedDaYunIndex(selectedDaYunIndex === index ? null : index)}
                   />
                 ))}
               </div>
             </ScrollArea>
+            
+            {/* Selected Da Yun Details */}
+            {selectedDaYunIndex !== null && report.lifeCycles[selectedDaYunIndex] && (
+              <div className="mt-4 p-4 bg-primary/10 border border-primary/30 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-serif text-primary text-lg">
+                    第{selectedDaYunIndex + 1}步大运 · {report.lifeCycles[selectedDaYunIndex].ganZhi}
+                  </h4>
+                  <Badge variant="outline" className={ELEMENT_COLORS[report.lifeCycles[selectedDaYunIndex].element]}>
+                    {report.lifeCycles[selectedDaYunIndex].element}运
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">起运年龄:</span>
+                    <span className="ml-2 text-foreground">{report.lifeCycles[selectedDaYunIndex].startAge}岁</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">结束年龄:</span>
+                    <span className="ml-2 text-foreground">{report.lifeCycles[selectedDaYunIndex].endAge}岁</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">起运年份:</span>
+                    <span className="ml-2 text-foreground">{report.lifeCycles[selectedDaYunIndex].startYear}年</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">运势五行:</span>
+                    <span className="ml-2 text-foreground">{report.lifeCycles[selectedDaYunIndex].element}</span>
+                  </div>
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  此运{report.lifeCycles[selectedDaYunIndex].element}气当令，
+                  {report.baziProfile.favorableElements.includes(report.lifeCycles[selectedDaYunIndex].element) 
+                    ? '与命局喜用相合，运势较佳。' 
+                    : report.baziProfile.unfavorableElements.includes(report.lifeCycles[selectedDaYunIndex].element)
+                      ? '与命局忌神相冲，宜谨慎行事。'
+                      : '运势平稳，顺其自然。'}
+                </p>
+              </div>
+            )}
           </div>
         </TabsContent>
 
