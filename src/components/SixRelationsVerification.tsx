@@ -29,8 +29,9 @@ import {
   type KaoKeWithMatch 
 } from '@/utils/tiebanAlgorithm';
 import { findDetailedFamilyMatches, searchClausesFreeText, type Clause } from '@/services/SupabaseService';
+import { KeywordParser, type ParsedKeywords } from '@/utils/KeywordParser';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Users, Minus, Plus, Crown, Star, Calendar, CheckCircle2, AlertCircle, Search } from 'lucide-react';
+import { Sparkles, Users, Minus, Plus, Crown, Star, Calendar, CheckCircle2, AlertCircle, Search, Lightbulb } from 'lucide-react';
 
 // ==========================================
 // CONSTANTS
@@ -172,6 +173,7 @@ export const SixRelationsVerification = ({
   const [manualQuery, setManualQuery] = useState('');
   const [manualSearchResults, setManualSearchResults] = useState<Array<{ clause_number: number; content: string }>>([]);
   const [isManualSearching, setIsManualSearching] = useState(false);
+  const [parsedKeywords, setParsedKeywords] = useState<ParsedKeywords | null>(null);
 
   // Reset calibration when form changes
   useEffect(() => {
@@ -261,14 +263,26 @@ export const SixRelationsVerification = ({
   }, [selectedIndex, matchedOptions, onTimeLocked]);
 
   /**
-   * Handle manual free-text search
+   * Handle manual free-text search with intelligent keyword parsing
    */
   const handleManualSearch = useCallback(async () => {
     if (!manualQuery.trim()) return;
     
     setIsManualSearching(true);
     try {
-      const results = await searchClausesFreeText(manualQuery, 20);
+      // 1. INTELLIGENT PARSING
+      // User types: "我爸爸属牛，妈妈属虎"
+      // Parser returns: { searchTerms: ["父牛", "母虎"], ... }
+      const parsed = KeywordParser.extractSearchTerms(manualQuery);
+      setParsedKeywords(parsed);
+      
+      console.log('[KeywordParser] Input:', manualQuery);
+      console.log('[KeywordParser] Parsed:', parsed);
+
+      // 2. SEARCH DB using the parsed terms
+      const optimizedQuery = KeywordParser.toQueryString(parsed);
+      const results = await searchClausesFreeText(optimizedQuery, 20);
+      
       setManualSearchResults(results);
     } catch (error) {
       console.error('Manual search error:', error);
@@ -624,19 +638,30 @@ export const SixRelationsVerification = ({
             手动检索定局 (Manual Override)
           </h3>
           <p className="text-xs text-muted-foreground mt-1">
-            可输入任意特征组合进行全文检索，如：父属牛 母属兔 兄弟三人
+            支持自然语言，如："父牛母兔"、"爸爸属牛 妈妈兔"、"Father Ox Mother Rabbit"
           </p>
         </div>
         
         <div className="p-4">
+          {/* Hint */}
+          <div className="flex items-start gap-2 mb-3 p-2 bg-primary/5 border border-primary/10 rounded text-xs text-muted-foreground">
+            <Lightbulb className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <span>
+              智能解析：输入"父亲生肖牛，母亲兔"系统自动识别为"父牛母兔"进行精确检索
+            </span>
+          </div>
+
           {/* Search Input */}
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2 mb-3">
             <Input
               type="text"
               value={manualQuery}
-              onChange={(e) => setManualQuery(e.target.value)}
+              onChange={(e) => {
+                setManualQuery(e.target.value);
+                setParsedKeywords(null); // Reset parsed on input change
+              }}
               onKeyDown={(e) => e.key === 'Enter' && handleManualSearch()}
-              placeholder="输入任意特征，如：父属牛 母属兔"
+              placeholder="输入任意特征，如：父牛母兔、兄弟三人..."
               className="flex-1 bg-input border-border/50 text-foreground placeholder:text-muted-foreground"
             />
             <Button
@@ -655,6 +680,21 @@ export const SixRelationsVerification = ({
               )}
             </Button>
           </div>
+
+          {/* Parsed Keywords Display */}
+          {parsedKeywords && parsedKeywords.hasStructuredData && (
+            <div className="flex flex-wrap items-center gap-2 mb-3 p-2 bg-green-500/10 border border-green-500/20 rounded">
+              <span className="text-xs text-green-400 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                已识别特征:
+              </span>
+              {KeywordParser.getDisplayBadges(parsedKeywords).map((badge, i) => (
+                <Badge key={i} variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                  {badge}
+                </Badge>
+              ))}
+            </div>
+          )}
 
           {/* Search Results */}
           {manualSearchResults.length > 0 && (
