@@ -95,6 +95,21 @@ export interface DestinyProjection {
   children: number;
 }
 
+// Six Relations (六亲) Input for Calibration
+export interface SixRelationsInput {
+  fatherZodiac: number; // 0=Rat, 1=Ox, ... 11=Pig
+  motherZodiac: number; // 0=Rat, ...
+  parentsStatus: 'both_alive' | 'father_deceased' | 'mother_deceased' | 'both_deceased';
+  siblingsCount: number;
+}
+
+// Enhanced KaoKe with prediction matching
+export interface KaoKeWithMatch extends KaoKeCandidate {
+  predictedFatherZodiac: number;
+  predictedMotherZodiac: number;
+  matchScore: number; // 0-100, higher = better match
+}
+
 export interface CalculationResult {
   baseNumber: number;
   pillars: GanZhiPillars;
@@ -319,6 +334,91 @@ export const TiebanEngine = {
     ];
     const index = Math.floor(((hour + 1) % 24) / 2);
     return hourNames[index];
+  },
+
+  /**
+   * Get zodiac name from index (0-11)
+   */
+  getZodiacName: (index: number): string => {
+    const zodiacNames = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
+    return zodiacNames[index % 12];
+  },
+
+  /**
+   * ADVANCED CALIBRATION: Match User's Six Relations against the 8 Quarters
+   * 
+   * This is the core of Iron Plate "Kao Ke" (考刻) verification.
+   * We mathematically predict family details for each quarter and score
+   * how well each matches the user's actual family information.
+   */
+  calculateSixRelationsMatch: (
+    baseNumber: number,
+    relations: SixRelationsInput
+  ): KaoKeWithMatch[] => {
+    const candidates = TiebanEngine.generateKaoKeCandidates(baseNumber);
+
+    return candidates.map(candidate => {
+      // 1. Re-derive the specific energy for this Quarter
+      const quarterShift = candidate.keIndex * 15;
+      const specificSeed = baseNumber + quarterShift;
+
+      // 2. Mathematically deduce "Parents' Zodiac" from this seed
+      // Formula: (Seed + MagicConstant) % 12
+      // These constants (3 and 9) simulate the "Heavenly Stem" shifts
+      // based on the "Parent Palace" positions in traditional astrology
+      const predFather = (specificSeed + 3) % 12;
+      const predMother = (specificSeed + 9) % 12;
+
+      // 3. Calculate Match Score (0-100)
+      let score = 0;
+
+      // Father zodiac match: 40 points
+      if (predFather === relations.fatherZodiac) {
+        score += 40;
+      } else if (Math.abs(predFather - relations.fatherZodiac) <= 1 || 
+                 Math.abs(predFather - relations.fatherZodiac) === 11) {
+        // Adjacent zodiac: partial credit (10 points)
+        score += 10;
+      }
+
+      // Mother zodiac match: 40 points
+      if (predMother === relations.motherZodiac) {
+        score += 40;
+      } else if (Math.abs(predMother - relations.motherZodiac) <= 1 ||
+                 Math.abs(predMother - relations.motherZodiac) === 11) {
+        // Adjacent zodiac: partial credit (10 points)
+        score += 10;
+      }
+
+      // Parents status match: 20 points
+      // Tieban logic: Even numbers usually favor "Both Alive", Odd favor "One Deceased"
+      const isEven = specificSeed % 2 === 0;
+      const highDigit = Math.floor((specificSeed % 100) / 10);
+      
+      if (relations.parentsStatus === 'both_alive' && isEven) {
+        score += 20;
+      } else if (relations.parentsStatus === 'both_deceased' && !isEven && highDigit < 3) {
+        score += 20;
+      } else if (relations.parentsStatus === 'father_deceased' && !isEven && highDigit >= 5) {
+        score += 20;
+      } else if (relations.parentsStatus === 'mother_deceased' && !isEven && highDigit >= 3 && highDigit < 5) {
+        score += 20;
+      }
+
+      // Siblings count adjustment (bonus points)
+      // If siblings count matches the modulo pattern, add bonus
+      const siblingPattern = (specificSeed % 7);
+      if (siblingPattern === relations.siblingsCount) {
+        score += 5;
+      }
+
+      return {
+        ...candidate,
+        predictedFatherZodiac: predFather,
+        predictedMotherZodiac: predMother,
+        matchScore: Math.min(score, 100),
+      };
+    }).sort((a, b) => b.matchScore - a.matchScore); // Sort best match first
   },
 };
 
