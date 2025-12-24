@@ -479,3 +479,43 @@ export async function importClausesFromJson(
 
   return data;
 }
+
+/**
+ * MANUAL SEARCH: Generic fuzzy search for clauses.
+ * Allows searching by ANY text, supporting multi-keyword AND logic.
+ * e.g., query: "父属牛 母属兔" -> searches for clauses containing "父属牛" AND "母属兔"
+ * 
+ * @param query - Space-separated keywords to search for
+ * @param limit - Maximum number of results to return (default: 20)
+ * @returns Array of matching clauses with clause_number and content
+ */
+export async function searchClausesFreeText(
+  query: string,
+  limit: number = 20
+): Promise<Array<{ clause_number: number; content: string }>> {
+  // Split query by spaces to allow multi-keyword search
+  const keywords = query.split(/\s+/).filter(k => k.trim() !== '');
+  
+  if (keywords.length === 0) return [];
+
+  // Build query with chained ilike for AND logic
+  let dbQuery = supabase
+    .from('tieban_clauses')
+    .select('clause_number, content');
+
+  // Chain "ilike" for each keyword (AND logic)
+  keywords.forEach(keyword => {
+    dbQuery = dbQuery.ilike('content', `%${keyword}%`);
+  });
+
+  // Execute with limit
+  const { data, error } = await dbQuery.limit(limit);
+  
+  if (error) {
+    console.error('Free text search error:', error);
+    return [];
+  }
+  
+  // Sort by content length (more detailed first)
+  return (data || []).sort((a, b) => b.content.length - a.content.length);
+}
