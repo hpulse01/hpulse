@@ -169,6 +169,43 @@ export async function searchClauses(
 }
 
 /**
+ * Find a single clause containing specific keywords (for Six Relations verification)
+ * Returns the clause content, or a fallback message if not found.
+ * 
+ * @param keyword - The search keyword (e.g., "父属鼠")
+ * @returns The clause content or a constructed fallback
+ */
+export async function findClauseByContent(keyword: string): Promise<{ content: string; clauseNumber: number | null }> {
+  const { data, error } = await supabase
+    .from('tieban_clauses')
+    .select('content, clause_number')
+    .ilike('content', `%${keyword}%`)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error finding clause by content:', error);
+    return {
+      content: `(数据库查询出错，推演结果应为：${keyword})`,
+      clauseNumber: null,
+    };
+  }
+
+  if (!data) {
+    // Fallback if exact phrase not found
+    return {
+      content: `(数据库未收录此具体条文，推演结果应为：${keyword})`,
+      clauseNumber: null,
+    };
+  }
+
+  return {
+    content: data.content,
+    clauseNumber: data.clause_number,
+  };
+}
+
+/**
  * Get clauses by category
  */
 export async function fetchClausesByCategory(
