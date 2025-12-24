@@ -1,22 +1,26 @@
 import { useState, useCallback, useEffect } from 'react';
 import { BirthDataForm } from '@/components/BirthDataForm';
 import { KaoKeVerification } from '@/components/KaoKeVerification';
-import { DestinyResult } from '@/components/DestinyResult';
+import { MultiAspectResult, ASPECT_ICONS, ASPECT_LABELS } from '@/components/MultiAspectResult';
 import { Footer } from '@/components/Footer';
 import { fetchClauseByNumber, getClauseCount } from '@/services/SupabaseService';
 import { 
   TiebanEngine,
   type TiebanInput,
   type KaoKeCandidate,
+  type DestinyProjection,
 } from '@/utils/tiebanAlgorithm';
 import { useToast } from '@/hooks/use-toast';
+import { Heart, Coins, Briefcase, Activity } from 'lucide-react';
 
 type AppStep = 'input' | 'verification' | 'result';
 
-interface DestinyData {
+interface DestinyAspect {
+  key: string;
+  label: string;
   clauseNumber: number;
   content: string;
-  category?: string;
+  icon: React.ReactNode;
 }
 
 const Index = () => {
@@ -25,42 +29,47 @@ const Index = () => {
   const [kaoKeOptions, setKaoKeOptions] = useState<KaoKeCandidate[]>([]);
   const [ganZhiDisplay, setGanZhiDisplay] = useState('');
   const [baseNumber, setBaseNumber] = useState(0);
-  const [destinyData, setDestinyData] = useState<DestinyData | null>(null);
+  const [destinyAspects, setDestinyAspects] = useState<DestinyAspect[]>([]);
   const [clauseCount, setClauseCount] = useState<number | null>(null);
 
   const { toast } = useToast();
 
   // Check clause count on mount
   useEffect(() => {
-    getClauseCount().then(setClauseCount);
+    getClauseCount().then(count => {
+      setClauseCount(count);
+      console.log('Database clause count:', count);
+    });
   }, []);
 
   /**
    * STEP 1: Handle birth data submission
-   * - Calculate base number
+   * - Calculate base number using TiebanEngine
    * - Generate Kao Ke candidates
-   * - DO NOT calculate destiny yet
+   * - DO NOT calculate destiny yet (verification first!)
    */
   const handleBirthDataSubmit = useCallback(async (birthData: TiebanInput) => {
     setIsProcessing(true);
 
     try {
+      console.log('=== STEP 1: Birth Data Submitted ===');
+      console.log('Input:', birthData);
+
       // Calculate base number and get pillars
       const result = TiebanEngine.calculateBaseNumber(birthData);
       setBaseNumber(result.baseNumber);
       setGanZhiDisplay(result.pillars.fullDisplay);
 
-      console.log('=== STEP 1: Base Calculation ===');
-      console.log('Input:', birthData);
       console.log('Base Number:', result.baseNumber);
       console.log('Pillars:', result.pillars.fullDisplay);
+      console.log('Stem Sum:', result.stemSum, 'Branch Sum:', result.branchSum);
 
       // Generate Kao Ke verification candidates
       const candidates = TiebanEngine.generateKaoKeCandidates(result.baseNumber);
       
-      console.log('=== STEP 2: Kao Ke Candidates ===');
+      console.log('=== STEP 2: Generated 8 Kao Ke Candidates ===');
       candidates.forEach((c, i) => {
-        console.log(`  [${i}] keIndex=${c.keIndex}, clauseNumber=${c.clauseNumber}, label=${c.timeLabel}`);
+        console.log(`  [${i}] keIndex=${c.keIndex}, clauseNumber=${c.clauseNumber}`);
       });
 
       if (candidates.length === 0) {
@@ -88,9 +97,10 @@ const Index = () => {
   }, [toast]);
 
   /**
-   * STEP 3: Handle Kao Ke selection (user clicks "This matches my situation")
+   * STEP 3: Handle Kao Ke selection (user confirms which option matches)
    * - Lock the keIndex
-   * - NOW calculate destiny paths
+   * - NOW calculate destiny paths using TiebanEngine.calculateDestinyPaths
+   * - Fetch all 4 aspect clauses from DB
    */
   const handleKaoKeSelect = useCallback(async (
     lockedKeIndex: number, 
@@ -99,40 +109,49 @@ const Index = () => {
     setIsProcessing(true);
 
     try {
-      console.log('=== STEP 3: User Locked keIndex ===');
+      console.log('=== STEP 3: User Locked Quarter ===');
       console.log('Locked keIndex:', lockedKeIndex);
       console.log('Selected clause:', selectedOption.clauseNumber);
 
-      // NOW we can calculate destiny (only after user verification)
-      const destinyClauseNumber = TiebanEngine.calculatePrimaryDestiny(
+      // Calculate all destiny paths using the locked quarter
+      const destinyProjection: DestinyProjection = TiebanEngine.calculateDestinyPaths(
         baseNumber, 
         lockedKeIndex
       );
 
-      console.log('=== STEP 4: Destiny Calculation ===');
-      console.log('Primary Destiny Clause:', destinyClauseNumber);
+      console.log('=== STEP 4: Destiny Projection ===');
+      console.log('Life Destiny:', destinyProjection.lifeDestiny);
+      console.log('Marriage:', destinyProjection.marriage);
+      console.log('Wealth:', destinyProjection.wealth);
+      console.log('Career:', destinyProjection.career);
 
-      // Fetch the clause content from database (with fallback)
-      const destinyClause = await fetchClauseByNumber(destinyClauseNumber);
+      // Fetch all 4 aspect clauses from database
+      const aspectKeys = ['lifeDestiny', 'marriage', 'wealth', 'career'] as const;
+      const aspects: DestinyAspect[] = [];
 
-      if (destinyClause) {
-        console.log('Found clause:', destinyClause.clause_number, destinyClause.content);
-        setDestinyData({
-          clauseNumber: destinyClause.clause_number,
-          content: destinyClause.content,
-          category: destinyClause.category || undefined,
+      for (const key of aspectKeys) {
+        const clauseNumber = destinyProjection[key];
+        const clause = await fetchClauseByNumber(clauseNumber);
+        
+        aspects.push({
+          key,
+          label: ASPECT_LABELS[key] || key,
+          clauseNumber: clause?.clause_number || clauseNumber,
+          content: clause?.content || '此数待解，需参照古籍原文释义。',
+          icon: ASPECT_ICONS[key] || <Activity className="w-5 h-5" />,
         });
-      } else {
-        // Fallback if clause not found even with nearby search
-        console.warn('No clause found, using fallback text');
-        setDestinyData({
-          clauseNumber: destinyClauseNumber,
-          content: '此数待解，需参照古籍原文释义。天机幽微，非常理可尽述。',
-          category: '待解读',
-        });
+
+        console.log(`Fetched ${key}: clause ${clauseNumber} ->`, clause?.content?.substring(0, 30) || 'NOT FOUND');
       }
 
+      setDestinyAspects(aspects);
       setStep('result');
+
+      toast({
+        title: '推算完成',
+        description: '天机已显，请细细体会',
+      });
+
     } catch (error) {
       console.error('Projection error:', error);
       toast({
@@ -150,18 +169,18 @@ const Index = () => {
     setKaoKeOptions([]);
     setGanZhiDisplay('');
     setBaseNumber(0);
-    setDestinyData(null);
+    setDestinyAspects([]);
   }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="py-8 border-b border-border/30">
+      <header className="py-6 md:py-8 border-b border-border/30">
         <div className="container max-w-2xl mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-display text-primary tracking-[0.2em] mb-2">
+          <h1 className="text-3xl md:text-5xl font-display text-primary tracking-[0.2em] mb-2">
             铁板神数
           </h1>
-          <p className="text-muted-foreground text-sm tracking-wider">
+          <p className="text-muted-foreground text-xs md:text-sm tracking-wider">
             Iron Plate Divine Number System
           </p>
           {clauseCount !== null && clauseCount > 0 && (
@@ -169,15 +188,20 @@ const Index = () => {
               条文库: {clauseCount.toLocaleString()} 条
             </p>
           )}
+          {clauseCount === 0 && (
+            <p className="text-accent/70 text-xs mt-2">
+              ⚠ 条文库为空，请先导入数据 → <a href="/admin-import" className="underline hover:text-accent">导入页面</a>
+            </p>
+          )}
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 py-12">
+      <main className="flex-1 py-8 md:py-12">
         <div className="container max-w-xl mx-auto px-4">
           {/* Step: Input */}
           {step === 'input' && (
-            <div className="bg-card/50 border border-border rounded-lg p-8 shadow-xl shadow-black/20">
+            <div className="bg-card/50 border border-border rounded-lg p-6 md:p-8 shadow-xl shadow-black/20">
               <BirthDataForm 
                 onSubmit={handleBirthDataSubmit} 
                 isLoading={isProcessing}
@@ -187,7 +211,7 @@ const Index = () => {
 
           {/* Step: Verification (Kao Ke) */}
           {step === 'verification' && (
-            <div className="bg-card/50 border border-border rounded-lg p-8 shadow-xl shadow-black/20">
+            <div className="bg-card/50 border border-border rounded-lg p-6 md:p-8 shadow-xl shadow-black/20">
               <KaoKeVerification
                 options={kaoKeOptions}
                 onSelect={handleKaoKeSelect}
@@ -197,13 +221,12 @@ const Index = () => {
             </div>
           )}
 
-          {/* Step: Result */}
-          {step === 'result' && destinyData && (
-            <div className="bg-card/50 border border-border rounded-lg p-8 shadow-xl shadow-black/20">
-              <DestinyResult
-                clauseNumber={destinyData.clauseNumber}
-                content={destinyData.content}
-                category={destinyData.category}
+          {/* Step: Multi-Aspect Result */}
+          {step === 'result' && destinyAspects.length > 0 && (
+            <div className="bg-card/50 border border-border rounded-lg p-6 md:p-8 shadow-xl shadow-black/20">
+              <MultiAspectResult
+                aspects={destinyAspects}
+                pillarsDisplay={ganZhiDisplay}
                 onReset={handleReset}
               />
             </div>
