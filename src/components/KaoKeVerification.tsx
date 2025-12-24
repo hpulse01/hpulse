@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { fetchClauseByNumber } from '@/services/SupabaseService';
-import type { KaoKeCandidate } from '@/services/TiebanCalculator';
+import type { KaoKeCandidate } from '@/utils/tiebanAlgorithm';
 
 interface KaoKeVerificationProps {
   options: KaoKeCandidate[];
-  onSelect: (selectedOption: KaoKeCandidate) => void;
+  onSelect: (lockedKeIndex: number, selectedOption: KaoKeCandidate) => void;
   ganZhiDisplay: string;
   isLoading?: boolean;
 }
@@ -31,7 +31,7 @@ export function KaoKeVerification({
           const clause = await fetchClauseByNumber(option.clauseNumber);
           return {
             ...option,
-            content: clause?.content || `条文 ${option.clauseNumber} (待解读)`,
+            content: clause?.content || `条文 ${option.clauseNumber} (待加载)`,
           };
         })
       );
@@ -47,11 +47,13 @@ export function KaoKeVerification({
 
   const handleConfirm = () => {
     if (selectedIndex !== null) {
-      onSelect(loadedOptions[selectedIndex]);
+      const selectedOption = loadedOptions[selectedIndex];
+      // Return the keIndex for locking
+      onSelect(selectedOption.keIndex, selectedOption);
     }
   };
 
-  // Show only 4-5 options to reduce noise (filter by relevance if needed)
+  // Show 5 options to reduce noise while maintaining accuracy
   const displayOptions = loadedOptions.slice(0, 5);
 
   return (
@@ -73,13 +75,13 @@ export function KaoKeVerification({
         </div>
       </div>
 
-      {/* Verification Question */}
+      {/* Verification Instruction */}
       <div className="text-center mb-6">
         <p className="text-lg text-foreground/80">
           以下哪项描述与您的家庭情况相符？
         </p>
         <p className="text-sm text-muted-foreground mt-2">
-          此步骤用于校准出生时刻的精确分秒
+          此步骤校准出生时刻的精确刻分，直接影响推算准确性
         </p>
       </div>
 
@@ -93,12 +95,12 @@ export function KaoKeVerification({
         </div>
       )}
 
-      {/* Options */}
+      {/* Options - Selection Cards */}
       {!isLoadingClauses && (
         <div className="space-y-4">
           {displayOptions.map((option, index) => (
             <button
-              key={option.clauseNumber}
+              key={`${option.clauseNumber}-${option.keIndex}`}
               onClick={() => setSelectedIndex(index)}
               className={cn(
                 "w-full p-6 text-left rounded border transition-all duration-300",
@@ -130,7 +132,7 @@ export function KaoKeVerification({
                     {option.content}
                   </p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {option.timeLabel}
+                    {option.timeLabel} · 条文 #{option.clauseNumber}
                   </p>
                 </div>
               </div>
@@ -139,7 +141,7 @@ export function KaoKeVerification({
         </div>
       )}
 
-      {/* Confirm Button */}
+      {/* Confirm Button - "This matches my situation" */}
       {!isLoadingClauses && (
         <div className="pt-6 border-t border-border">
           <Button
@@ -155,12 +157,12 @@ export function KaoKeVerification({
             {isLoading ? (
               <span className="animate-pulse">验证中...</span>
             ) : (
-              '确认选择'
+              '此项与我情况相符'
             )}
           </Button>
           
           <p className="text-center text-muted-foreground text-sm mt-4">
-            选择错误将影响推算准确性，请如实选择
+            确认后将锁定时刻坐标，进行命运推算
           </p>
         </div>
       )}
