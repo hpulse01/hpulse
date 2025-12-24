@@ -1,17 +1,17 @@
 import { useState, useCallback, useEffect } from 'react';
 import { BirthDataForm } from '@/components/BirthDataForm';
-import { KaoKeVerification } from '@/components/KaoKeVerification';
+import { SixRelationsVerification } from '@/components/SixRelationsVerification';
 import { MultiAspectResult, ASPECT_ICONS, ASPECT_LABELS } from '@/components/MultiAspectResult';
 import { Footer } from '@/components/Footer';
 import { fetchClauseByNumber, getClauseCount } from '@/services/SupabaseService';
 import { 
   TiebanEngine,
   type TiebanInput,
-  type KaoKeCandidate,
+  type KaoKeWithMatch,
   type DestinyProjection,
 } from '@/utils/tiebanAlgorithm';
 import { useToast } from '@/hooks/use-toast';
-import { Heart, Coins, Briefcase, Activity } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 type AppStep = 'input' | 'verification' | 'result';
 
@@ -26,7 +26,7 @@ interface DestinyAspect {
 const Index = () => {
   const [step, setStep] = useState<AppStep>('input');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [kaoKeOptions, setKaoKeOptions] = useState<KaoKeCandidate[]>([]);
+  const [birthInput, setBirthInput] = useState<TiebanInput | null>(null);
   const [ganZhiDisplay, setGanZhiDisplay] = useState('');
   const [baseNumber, setBaseNumber] = useState(0);
   const [destinyAspects, setDestinyAspects] = useState<DestinyAspect[]>([]);
@@ -45,8 +45,8 @@ const Index = () => {
   /**
    * STEP 1: Handle birth data submission
    * - Calculate base number using TiebanEngine
-   * - Generate Kao Ke candidates
-   * - DO NOT calculate destiny yet (verification first!)
+   * - Store birth input for later use
+   * - Proceed to Six Relations verification
    */
   const handleBirthDataSubmit = useCallback(async (birthData: TiebanInput) => {
     setIsProcessing(true);
@@ -54,6 +54,9 @@ const Index = () => {
     try {
       console.log('=== STEP 1: Birth Data Submitted ===');
       console.log('Input:', birthData);
+
+      // Store birth input
+      setBirthInput(birthData);
 
       // Calculate base number and get pillars
       const result = TiebanEngine.calculateBaseNumber(birthData);
@@ -64,25 +67,6 @@ const Index = () => {
       console.log('Pillars:', result.pillars.fullDisplay);
       console.log('Stem Sum:', result.stemSum, 'Branch Sum:', result.branchSum);
 
-      // Generate Kao Ke verification candidates
-      const candidates = TiebanEngine.generateKaoKeCandidates(result.baseNumber);
-      
-      console.log('=== STEP 2: Generated 8 Kao Ke Candidates ===');
-      candidates.forEach((c, i) => {
-        console.log(`  [${i}] keIndex=${c.keIndex}, clauseNumber=${c.clauseNumber}`);
-      });
-
-      if (candidates.length === 0) {
-        toast({
-          title: '推算出错',
-          description: '无法生成验证选项',
-          variant: 'destructive',
-        });
-        setIsProcessing(false);
-        return;
-      }
-
-      setKaoKeOptions(candidates);
       setStep('verification');
     } catch (error) {
       console.error('Calculation error:', error);
@@ -97,20 +81,21 @@ const Index = () => {
   }, [toast]);
 
   /**
-   * STEP 3: Handle Kao Ke selection (user confirms which option matches)
-   * - Lock the keIndex
-   * - NOW calculate destiny paths using TiebanEngine.calculateDestinyPaths
-   * - Fetch all 4 aspect clauses from DB
+   * STEP 2: Handle Six Relations verification (user confirms which quarter matches)
+   * - Lock the keIndex based on family data matching
+   * - Calculate destiny paths using TiebanEngine.calculateDestinyPaths
+   * - Fetch all aspect clauses from DB
    */
-  const handleKaoKeSelect = useCallback(async (
+  const handleTimeLocked = useCallback(async (
     lockedKeIndex: number, 
-    selectedOption: KaoKeCandidate
+    selectedOption: KaoKeWithMatch
   ) => {
     setIsProcessing(true);
 
     try {
-      console.log('=== STEP 3: User Locked Quarter ===');
+      console.log('=== STEP 2: User Locked Quarter via Six Relations ===');
       console.log('Locked keIndex:', lockedKeIndex);
+      console.log('Match Score:', selectedOption.matchScore);
       console.log('Selected clause:', selectedOption.clauseNumber);
 
       // Calculate all destiny paths using the locked quarter
@@ -119,7 +104,7 @@ const Index = () => {
         lockedKeIndex
       );
 
-      console.log('=== STEP 4: Destiny Projection ===');
+      console.log('=== STEP 3: Destiny Projection ===');
       console.log('Life Destiny:', destinyProjection.lifeDestiny);
       console.log('Marriage:', destinyProjection.marriage);
       console.log('Wealth:', destinyProjection.wealth);
@@ -166,7 +151,7 @@ const Index = () => {
 
   const handleReset = useCallback(() => {
     setStep('input');
-    setKaoKeOptions([]);
+    setBirthInput(null);
     setGanZhiDisplay('');
     setBaseNumber(0);
     setDestinyAspects([]);
@@ -209,13 +194,13 @@ const Index = () => {
             </div>
           )}
 
-          {/* Step: Verification (Kao Ke) */}
+          {/* Step: Six Relations Verification */}
           {step === 'verification' && (
-            <div className="bg-card/50 border border-border rounded-lg p-6 md:p-8 shadow-xl shadow-black/20">
-              <KaoKeVerification
-                options={kaoKeOptions}
-                onSelect={handleKaoKeSelect}
+            <div className="max-w-2xl mx-auto bg-card/50 border border-border rounded-lg p-6 md:p-8 shadow-xl shadow-black/20">
+              <SixRelationsVerification
+                baseNumber={baseNumber}
                 ganZhiDisplay={ganZhiDisplay}
+                onTimeLocked={handleTimeLocked}
                 isLoading={isProcessing}
               />
             </div>
