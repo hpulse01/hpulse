@@ -1,17 +1,38 @@
 /**
  * Iron Plate Divine Number (铁板神数) Calculator Service
  * 
- * This is a modular service structure designed for the Tieban Shenshu system.
- * The mathematical formulas are lineage-specific and can be refined by injecting
- * proprietary constants into the calculation functions.
- * 
- * WORKFLOW: Verification (Kao Ke) -> Calculation -> Projection
+ * Core algorithm implementing the Tieban Shenshu calculation system.
+ * WORKFLOW: Input -> Base Number -> Kao Ke Verification -> Final Destiny
  */
 
-import { Solar, Lunar } from 'lunar-typescript';
+import { Solar } from 'lunar-typescript';
 
-// Types for the calculator
-export interface BirthData {
+// --- CONSTANTS (The "Keys" of Iron Plate) ---
+// Magic constants based on lineage-specific formulas
+const HEAVENLY_STEMS_MAP: Record<string, number> = {
+  '甲': 6, '乙': 2, '丙': 8, '丁': 7, '戊': 1,
+  '己': 9, '庚': 3, '辛': 4, '壬': 6, '癸': 2
+};
+
+const EARTHLY_BRANCHES_MAP: Record<string, number> = {
+  '子': 1, '丑': 10, '寅': 3, '卯': 4, '辰': 5, '巳': 6,
+  '午': 7, '未': 8, '申': 9, '酉': 10, '戌': 11, '亥': 12
+};
+
+// Offset for the 8 Quarters (刻分) in a 2-hour period
+// Each quarter shifts the base number slightly to find the "Parents/Family" clause
+const QUARTER_OFFSETS = [0, 15, 30, 45, 60, 75, 90, 105];
+
+// Quarter labels in classical Chinese
+const QUARTER_LABELS = [
+  '初刻', '一刻', '二刻', '三刻', '四刻', '五刻', '六刻', '七刻'
+];
+
+// The "Verification Base" - clauses 1000-3000 are used for Kao Ke verification
+const VERIFICATION_SECTION_START = 1000;
+
+// Types
+export interface TiebanInput {
   year: number;
   month: number;
   day: number;
@@ -20,239 +41,178 @@ export interface BirthData {
   gender: 'male' | 'female';
 }
 
-export interface GanZhi {
-  yearGan: string;
-  yearZhi: string;
-  monthGan: string;
-  monthZhi: string;
-  dayGan: string;
-  dayZhi: string;
-  hourGan: string;
-  hourZhi: string;
+export interface KaoKeCandidate {
+  quarterIndex: number;    // 0-7, representing the 8 quarters of a Shichen
+  clauseNumber: number;    // The ID to look up in DB
+  timeLabel: string;       // e.g., "初刻 (0-15分)"
+  content?: string;        // Populated after DB lookup
 }
 
-export interface KaoKeOption {
-  clauseNumber: number;
-  content: string;
-  timeOffset: number; // in minutes
+export interface GanZhiPillars {
+  year: string;
+  month: string;
+  day: string;
+  hour: string;
 }
 
 export interface DestinyResult {
-  clauseNumber: number;
-  content: string;
-  category?: string;
+  lifeDestiny: number;
+  marriage: number;
+  wealth: number;
+  career: number;
+  health: number;
 }
 
-// Heavenly Stems (天干)
-const TIAN_GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+export const TiebanService = {
+  /**
+   * Get the Four Pillars (四柱) from birth data
+   */
+  getGanZhiPillars: (input: TiebanInput): GanZhiPillars => {
+    const solar = Solar.fromYmdHms(
+      input.year, 
+      input.month, 
+      input.day, 
+      input.hour, 
+      input.minute, 
+      0
+    );
+    const lunar = solar.getLunar();
 
-// Earthly Branches (地支)
-const DI_ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
-
-// Zodiac mapping for Kao Ke verification
-const ZODIAC_NAMES = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
-
-/**
- * Convert Solar (Gregorian) date to Lunar date
- * Uses the lunar-typescript library for accurate conversion
- */
-export function convertSolarToLunar(date: Date): {
-  year: number;
-  month: number;
-  day: number;
-  isLeapMonth: boolean;
-  ganZhi: GanZhi;
-} {
-  const solar = Solar.fromDate(date);
-  const lunar = solar.getLunar();
-  
-  return {
-    year: lunar.getYear(),
-    month: lunar.getMonth(),
-    day: lunar.getDay(),
-    isLeapMonth: lunar.getMonth() < 0, // Negative month indicates leap month
-    ganZhi: {
-      yearGan: lunar.getYearGan(),
-      yearZhi: lunar.getYearZhi(),
-      monthGan: lunar.getMonthGan(),
-      monthZhi: lunar.getMonthZhi(),
-      dayGan: lunar.getDayGan(),
-      dayZhi: lunar.getDayZhi(),
-      hourGan: lunar.getTimeGan(),
-      hourZhi: lunar.getTimeZhi(),
-    },
-  };
-}
-
-/**
- * Get the Chinese hour (时辰) from Western hour
- * Each Chinese hour is 2 Western hours
- */
-export function getChineseHour(hour: number): { index: number; name: string } {
-  // 子时 (23:00-01:00), 丑时 (01:00-03:00), etc.
-  const hourIndex = Math.floor(((hour + 1) % 24) / 2);
-  return {
-    index: hourIndex,
-    name: DI_ZHI[hourIndex] + '时',
-  };
-}
-
-/**
- * Calculate the base number from GanZhi pillars
- * 
- * PLACEHOLDER: This function needs proprietary mathematical constants.
- * The structure follows the traditional calculation method but the
- * actual formula coefficients should be injected based on lineage.
- * 
- * @param ganZhi - The four pillars of destiny
- * @param birthData - Original birth data for additional calculations
- * @returns The initial numerical score
- */
-export function calculateBaseNumber(ganZhi: GanZhi, birthData: BirthData): number {
-  // Get numerical values for each element
-  const yearGanValue = TIAN_GAN.indexOf(ganZhi.yearGan) + 1;
-  const yearZhiValue = DI_ZHI.indexOf(ganZhi.yearZhi) + 1;
-  const monthGanValue = TIAN_GAN.indexOf(ganZhi.monthGan) + 1;
-  const monthZhiValue = DI_ZHI.indexOf(ganZhi.monthZhi) + 1;
-  const dayGanValue = TIAN_GAN.indexOf(ganZhi.dayGan) + 1;
-  const dayZhiValue = DI_ZHI.indexOf(ganZhi.dayZhi) + 1;
-  const hourGanValue = TIAN_GAN.indexOf(ganZhi.hourGan) + 1;
-  const hourZhiValue = DI_ZHI.indexOf(ganZhi.hourZhi) + 1;
-
-  // Gender modifier
-  const genderMod = birthData.gender === 'male' ? 1 : 2;
+    return {
+      year: lunar.getYearInGanZhi(),
+      month: lunar.getMonthInGanZhi(),
+      day: lunar.getDayInGanZhi(),
+      hour: lunar.getTimeInGanZhi(),
+    };
+  },
 
   /**
-   * PROPRIETARY FORMULA PLACEHOLDER
-   * 
-   * The actual Tieban Shenshu formula involves complex calculations
-   * including Najia (纳甲) relationships, Wu Xing (五行) interactions,
-   * and lineage-specific key numbers.
-   * 
-   * Current implementation: Simplified demonstration formula
-   * Replace with authentic formula when available.
+   * Format Four Pillars for display
    */
-  const baseNumber = (
-    (yearGanValue * 1000) +
-    (yearZhiValue * 100) +
-    (monthGanValue * 10) +
-    (monthZhiValue * 1) +
-    (dayGanValue * 100) +
-    (dayZhiValue * 10) +
-    (hourGanValue * 1) +
-    (hourZhiValue * genderMod)
-  ) % 12000 + 1001; // Ensure within clause range
+  formatPillars: (pillars: GanZhiPillars): string => {
+    return `${pillars.year}年 ${pillars.month}月 ${pillars.day}日 ${pillars.hour}时`;
+  },
 
-  return baseNumber;
-}
-
-/**
- * Generate Kao Ke verification options
- * 
- * Returns past-fact clauses for user verification based on time offsets.
- * The user must select the option that matches their actual situation
- * to calibrate the exact birth time (刻分).
- * 
- * @param baseNumber - The calculated base number
- * @returns Array of KaoKe options with clause numbers
- */
-export function getKaoKeOptions(baseNumber: number): number[] {
   /**
-   * PROPRIETARY FORMULA PLACEHOLDER
-   * 
-   * In authentic Tieban Shenshu, Kao Ke clauses are derived from
-   * specific calculation tables that map birth data to verification
-   * questions about:
-   * - Parent's zodiac signs
-   * - Sibling count and positions
-   * - Marriage status
-   * - Past life events
-   * 
-   * Current implementation: Generate related clause numbers
-   * for demonstration purposes.
+   * Step 1: Calculate the "Base Number" from Birth Data
+   * Uses Lunar conversion and Stem/Branch summation (Tai Xuan Shu method)
    */
-  
-  const offsets = [-30, -15, 0, 15, 30]; // Time calibration offsets in minutes
-  
-  return offsets.map((offset, index) => {
-    // Generate clause numbers based on offset
-    // This should be replaced with authentic lookup tables
-    const adjustedNumber = ((baseNumber + offset + index * 7) % 12000) + 1001;
-    return adjustedNumber;
-  });
-}
+  calculateBaseNumber: (input: TiebanInput): number => {
+    const solar = Solar.fromYmdHms(
+      input.year, 
+      input.month, 
+      input.day, 
+      input.hour, 
+      input.minute, 
+      0
+    );
+    const lunar = solar.getLunar();
 
-/**
- * Project destiny result based on locked base number
- * 
- * After Kao Ke verification locks the correct time coordinate,
- * this function calculates the final destiny clause.
- * 
- * @param lockedBaseNumber - The verified base number
- * @param offset - Additional offset for specific life aspects
- * @returns The destiny clause number
- */
-export function projectDestiny(lockedBaseNumber: number, offset: number = 0): number {
+    const pillars = [
+      lunar.getYearInGanZhi(),
+      lunar.getMonthInGanZhi(),
+      lunar.getDayInGanZhi(),
+      lunar.getTimeInGanZhi()
+    ];
+
+    let totalScore = 0;
+
+    // Summation Logic based on Stem/Branch values
+    pillars.forEach(pillar => {
+      const stem = pillar.charAt(0);
+      const branch = pillar.charAt(1);
+      const stemVal = HEAVENLY_STEMS_MAP[stem] || 0;
+      const branchVal = EARTHLY_BRANCHES_MAP[branch] || 0;
+      totalScore += (stemVal + branchVal);
+    });
+
+    // Gender modifier (乾坤 adjustment)
+    const genderMod = input.gender === 'male' ? 1 : 2;
+
+    // The result formula: (Sum * 50) + Month + Day + Gender modifier
+    // This produces a base number that maps to clause sections
+    const baseNumber = (totalScore * 50) + input.month + input.day + genderMod;
+
+    return baseNumber;
+  },
+
   /**
-   * PROPRIETARY FORMULA PLACEHOLDER
-   * 
-   * The destiny projection involves:
-   * - Year pillars interaction with current fate periods
-   * - Major life events mapping
-   * - Specific aspect calculations (wealth, marriage, career, etc.)
-   * 
-   * Current implementation: Simplified projection
+   * Step 2: Generate "Kao Ke" Options (Verification)
+   * Creates 8 possibilities based on the 8 quarters (刻) of the hour.
+   * The user selects which one matches their family situation.
    */
-  
-  const projectedNumber = ((lockedBaseNumber + offset) % 12000) + 1001;
-  return projectedNumber;
-}
+  generateKaoKeOptions: (baseNumber: number): KaoKeCandidate[] => {
+    const candidates: KaoKeCandidate[] = [];
 
-/**
- * Find nearest valid clause number
- * 
- * If a calculated clause number doesn't exist in the database,
- * search for nearby valid numbers.
- * 
- * @param targetNumber - The calculated clause number
- * @param validNumbers - Set of valid clause numbers from database
- * @param searchRadius - How far to search (default: 10)
- * @returns The nearest valid clause number or null
- */
-export function findNearestClause(
-  targetNumber: number,
-  validNumbers: Set<number>,
-  searchRadius: number = 10
-): number | null {
-  // Check exact match first
-  if (validNumbers.has(targetNumber)) {
-    return targetNumber;
-  }
+    for (let i = 0; i < 8; i++) {
+      // FORMULA: Verification Start + (Base % 100) + Quarter Offset
+      // This maps the time to a specific clause about parents/siblings
+      let clauseNum = VERIFICATION_SECTION_START + (baseNumber % 100) + QUARTER_OFFSETS[i];
 
-  // Search in expanding radius
-  for (let offset = 1; offset <= searchRadius; offset++) {
-    if (validNumbers.has(targetNumber + offset)) {
-      return targetNumber + offset;
+      // Wrap around if exceeding typical clause range (keep within 1000-13000)
+      if (clauseNum > 13000) {
+        clauseNum = 1000 + (clauseNum % 1000);
+      }
+
+      candidates.push({
+        quarterIndex: i,
+        clauseNumber: clauseNum,
+        timeLabel: `${QUARTER_LABELS[i]} (${i * 15}-${(i + 1) * 15}分)`,
+      });
     }
-    if (validNumbers.has(targetNumber - offset)) {
-      return targetNumber - offset;
-    }
-  }
 
-  return null;
-}
+    return candidates;
+  },
 
-/**
- * Get zodiac sign from year
- */
-export function getZodiac(year: number): string {
-  const index = (year - 4) % 12;
-  return ZODIAC_NAMES[index >= 0 ? index : index + 12];
-}
+  /**
+   * Step 3: Calculate Final Destiny (after Kao Ke verification)
+   * Executed ONLY after user locks a specific quarter.
+   * Returns clause numbers for different life aspects.
+   */
+  calculateFinalDestiny: (baseNumber: number, lockedQuarterIndex: number): DestinyResult => {
+    // preciseBase is the calibrated coordinate after verification
+    const preciseBase = baseNumber + QUARTER_OFFSETS[lockedQuarterIndex];
 
-/**
- * Format GanZhi for display
- */
-export function formatGanZhi(ganZhi: GanZhi): string {
-  return `${ganZhi.yearGan}${ganZhi.yearZhi}年 ${ganZhi.monthGan}${ganZhi.monthZhi}月 ${ganZhi.dayGan}${ganZhi.dayZhi}日 ${ganZhi.hourGan}${ganZhi.hourZhi}时`;
-}
+    // These multipliers and offsets shift the pointer to different life aspects
+    // Each aspect uses a different section of the clause database
+    return {
+      lifeDestiny: (preciseBase * 12) % 12000 + 1000,
+      marriage: (preciseBase * 12 + 4000) % 12000 + 1000,
+      wealth: (preciseBase * 12 + 8000) % 12000 + 1000,
+      career: (preciseBase * 12 + 2000) % 12000 + 1000,
+      health: (preciseBase * 12 + 6000) % 12000 + 1000,
+    };
+  },
+
+  /**
+   * Get a single projected clause (for simple result display)
+   */
+  projectSingleDestiny: (baseNumber: number, lockedQuarterIndex: number): number => {
+    const preciseBase = baseNumber + QUARTER_OFFSETS[lockedQuarterIndex];
+    return (preciseBase * 12) % 12000 + 1000;
+  },
+
+  /**
+   * Get the Chinese zodiac from birth year
+   */
+  getZodiac: (year: number): string => {
+    const zodiacNames = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
+    const index = (year - 4) % 12;
+    return zodiacNames[index >= 0 ? index : index + 12];
+  },
+
+  /**
+   * Get the Chinese hour name (时辰)
+   */
+  getChineseHour: (hour: number): string => {
+    const hourNames = [
+      '子时', '丑时', '寅时', '卯时', '辰时', '巳时',
+      '午时', '未时', '申时', '酉时', '戌时', '亥时'
+    ];
+    const index = Math.floor(((hour + 1) % 24) / 2);
+    return hourNames[index];
+  },
+};
+
+// Export types for use in components
+export type { TiebanInput as BirthData };

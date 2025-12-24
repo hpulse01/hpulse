@@ -3,24 +3,15 @@ import { BirthDataForm } from '@/components/BirthDataForm';
 import { KaoKeVerification } from '@/components/KaoKeVerification';
 import { DestinyResult } from '@/components/DestinyResult';
 import { Footer } from '@/components/Footer';
-import { useClauseData } from '@/hooks/useClauseData';
+import { fetchClauseByNumber, getClauseCount } from '@/services/SupabaseService';
 import { 
-  convertSolarToLunar, 
-  calculateBaseNumber, 
-  getKaoKeOptions,
-  projectDestiny,
-  formatGanZhi,
-  type BirthData 
+  TiebanService,
+  type TiebanInput,
+  type KaoKeCandidate,
 } from '@/services/TiebanCalculator';
 import { useToast } from '@/hooks/use-toast';
 
 type AppStep = 'input' | 'verification' | 'result';
-
-interface KaoKeOption {
-  clauseNumber: number;
-  content: string;
-  timeOffset: number;
-}
 
 interface DestinyData {
   clauseNumber: number;
@@ -31,53 +22,42 @@ interface DestinyData {
 const Index = () => {
   const [step, setStep] = useState<AppStep>('input');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [kaoKeOptions, setKaoKeOptions] = useState<KaoKeOption[]>([]);
+  const [kaoKeOptions, setKaoKeOptions] = useState<KaoKeCandidate[]>([]);
   const [ganZhiDisplay, setGanZhiDisplay] = useState('');
   const [baseNumber, setBaseNumber] = useState(0);
   const [destinyData, setDestinyData] = useState<DestinyData | null>(null);
+  const [clauseCount, setClauseCount] = useState<number | null>(null);
 
-  const { getClause, getClauses, isLoading: clausesLoading } = useClauseData();
   const { toast } = useToast();
 
-  const handleBirthDataSubmit = useCallback((birthData: BirthData) => {
+  // Check clause count on mount
+  useState(() => {
+    getClauseCount().then(setClauseCount);
+  });
+
+  const handleBirthDataSubmit = useCallback(async (birthData: TiebanInput) => {
     setIsProcessing(true);
 
     try {
-      // Convert to lunar calendar and get GanZhi
-      const birthDate = new Date(
-        birthData.year,
-        birthData.month - 1,
-        birthData.day,
-        birthData.hour,
-        birthData.minute
-      );
-      
-      const lunarData = convertSolarToLunar(birthDate);
-      const ganZhi = formatGanZhi(lunarData.ganZhi);
+      // Step 1: Get GanZhi pillars for display
+      const pillars = TiebanService.getGanZhiPillars(birthData);
+      const ganZhi = TiebanService.formatPillars(pillars);
       setGanZhiDisplay(ganZhi);
 
-      // Calculate base number
-      const calculatedBase = calculateBaseNumber(lunarData.ganZhi, birthData);
+      // Step 2: Calculate base number
+      const calculatedBase = TiebanService.calculateBaseNumber(birthData);
       setBaseNumber(calculatedBase);
 
-      // Get Kao Ke verification options
-      const optionNumbers = getKaoKeOptions(calculatedBase);
-      const clauseData = getClauses(optionNumbers);
+      console.log('Base number calculated:', calculatedBase);
+      console.log('GanZhi:', ganZhi);
 
-      // Build options with content
-      const options: KaoKeOption[] = optionNumbers.map((num, index) => {
-        const clause = clauseData[index];
-        return {
-          clauseNumber: num,
-          content: clause?.content || `条文 ${num} (待解读)`,
-          timeOffset: [-30, -15, 0, 15, 30][index] || 0,
-        };
-      }).filter(opt => opt.content);
+      // Step 3: Generate Kao Ke verification options
+      const options = TiebanService.generateKaoKeOptions(calculatedBase);
 
       if (options.length === 0) {
         toast({
-          title: '条文数据尚未加载',
-          description: '请稍后重试或联系管理员',
+          title: '推算出错',
+          description: '无法生成验证选项',
           variant: 'destructive',
         });
         setIsProcessing(false);
@@ -96,18 +76,25 @@ const Index = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [getClauses, toast]);
+  }, [toast]);
 
-  const handleKaoKeSelect = useCallback((selectedOption: KaoKeOption) => {
+  const handleKaoKeSelect = useCallback(async (selectedOption: KaoKeCandidate) => {
     setIsProcessing(true);
 
     try {
-      // Lock the base number with the selected time offset
-      const lockedNumber = baseNumber + selectedOption.timeOffset;
-      
-      // Project destiny
-      const destinyClauseNumber = projectDestiny(lockedNumber);
-      const destinyClause = getClause(destinyClauseNumber);
+      console.log('Selected quarter:', selectedOption.quarterIndex);
+      console.log('Clause number:', selectedOption.clauseNumber);
+
+      // Step 4: Calculate final destiny with locked quarter
+      const destinyClauseNumber = TiebanService.projectSingleDestiny(
+        baseNumber, 
+        selectedOption.quarterIndex
+      );
+
+      console.log('Destiny clause number:', destinyClauseNumber);
+
+      // Fetch the clause content from database
+      const destinyClause = await fetchClauseByNumber(destinyClauseNumber);
 
       if (destinyClause) {
         setDestinyData({
@@ -135,7 +122,7 @@ const Index = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [baseNumber, getClause, toast]);
+  }, [baseNumber, toast]);
 
   const handleReset = useCallback(() => {
     setStep('input');
@@ -156,24 +143,19 @@ const Index = () => {
           <p className="text-muted-foreground text-sm tracking-wider">
             Iron Plate Divine Number System
           </p>
+          {clauseCount !== null && clauseCount > 0 && (
+            <p className="text-muted-foreground/50 text-xs mt-2">
+              条文库: {clauseCount.toLocaleString()} 条
+            </p>
+          )}
         </div>
       </header>
 
       {/* Main Content */}
       <main className="flex-1 py-12">
         <div className="container max-w-xl mx-auto px-4">
-          {/* Loading State for Clauses */}
-          {clausesLoading && (
-            <div className="text-center py-20">
-              <div className="inline-block animate-pulse">
-                <span className="text-primary text-2xl">☯</span>
-              </div>
-              <p className="text-muted-foreground mt-4">加载条文数据中...</p>
-            </div>
-          )}
-
           {/* Step: Input */}
-          {!clausesLoading && step === 'input' && (
+          {step === 'input' && (
             <div className="bg-card/50 border border-border rounded-lg p-8 shadow-xl shadow-black/20">
               <BirthDataForm 
                 onSubmit={handleBirthDataSubmit} 
@@ -183,7 +165,7 @@ const Index = () => {
           )}
 
           {/* Step: Verification */}
-          {!clausesLoading && step === 'verification' && (
+          {step === 'verification' && (
             <div className="bg-card/50 border border-border rounded-lg p-8 shadow-xl shadow-black/20">
               <KaoKeVerification
                 options={kaoKeOptions}
@@ -195,7 +177,7 @@ const Index = () => {
           )}
 
           {/* Step: Result */}
-          {!clausesLoading && step === 'result' && destinyData && (
+          {step === 'result' && destinyData && (
             <div className="bg-card/50 border border-border rounded-lg p-8 shadow-xl shadow-black/20">
               <DestinyResult
                 clauseNumber={destinyData.clauseNumber}
