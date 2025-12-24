@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { BirthDataForm } from '@/components/BirthDataForm';
 import { SixRelationsVerification } from '@/components/SixRelationsVerification';
-import { DestinyRevelation } from '@/components/DestinyRevelation';
+import { DestinyDashboard } from '@/components/DestinyDashboard';
 import { Footer } from '@/components/Footer';
 import { getClauseCount } from '@/services/SupabaseService';
 import { 
@@ -10,6 +10,7 @@ import {
   type KaoKeWithMatch,
   type DestinyProjection,
   type CalibrationResult,
+  type FullDestinyReport,
 } from '@/utils/tiebanAlgorithm';
 import { useToast } from '@/hooks/use-toast';
 
@@ -22,6 +23,7 @@ const Index = () => {
   const [baseNumber, setBaseNumber] = useState(0);
   const [theoreticalBase, setTheoreticalBase] = useState(0);
   const [destinyProjection, setDestinyProjection] = useState<DestinyProjection | null>(null);
+  const [fullReport, setFullReport] = useState<FullDestinyReport | null>(null);
   const [calibrationResult, setCalibrationResult] = useState<CalibrationResult | null>(null);
   const [clauseCount, setClauseCount] = useState<number | null>(null);
 
@@ -120,19 +122,20 @@ const Index = () => {
       console.log('=== System Calibration Complete ===');
       console.log('System Offset:', systemOffset);
 
-      // 2. Project all destiny paths using BaZi base + calibrated offset
-      const projection: DestinyProjection = TiebanEngine.projectDestinyWithOffset(
+      // 2. Generate Full Destiny Report (BaZi + Da Yun + Flow Years + Projections)
+      const report: FullDestinyReport = TiebanEngine.generateFullDestinyReport(
+        birthInput!,
         theoreticalBase,
         systemOffset
       );
 
-      console.log('=== STEP 3: Destiny Projection (BaZi + Offset) ===');
-      console.log('Life Destiny:', projection.lifeDestiny);
-      console.log('Marriage:', projection.marriage);
-      console.log('Wealth:', projection.wealth);
-      console.log('Career:', projection.career);
+      console.log('=== STEP 3: Full Destiny Report Generated ===');
+      console.log('BaZi Profile:', report.baziProfile);
+      console.log('Da Yun Cycles:', report.lifeCycles.length);
+      console.log('Flow Years:', report.flowYears.length);
 
-      setDestinyProjection(projection);
+      setDestinyProjection(report.destinyProjection);
+      setFullReport(report);
       setStep('result');
 
       toast({
@@ -149,7 +152,7 @@ const Index = () => {
       });
       setStep('verification');
     }
-  }, [theoreticalBase, toast]);
+  }, [theoreticalBase, birthInput, toast]);
 
   const handleReset = useCallback(() => {
     setStep('input');
@@ -158,6 +161,7 @@ const Index = () => {
     setBaseNumber(0);
     setTheoreticalBase(0);
     setDestinyProjection(null);
+    setFullReport(null);
     setCalibrationResult(null);
   }, []);
 
@@ -187,7 +191,7 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="flex-1 py-8 md:py-12">
-        <div className="container max-w-2xl mx-auto px-4">
+        <div className={`container mx-auto px-4 ${step === 'result' ? 'max-w-4xl' : 'max-w-2xl'}`}>
           {/* Step: Input */}
           {step === 'input' && (
             <div className="max-w-xl mx-auto bg-card/50 border border-border rounded-lg p-6 md:p-8 shadow-xl shadow-black/20">
@@ -270,12 +274,13 @@ const Index = () => {
             </div>
           )}
 
-          {/* Step: Destiny Revelation */}
-          {step === 'result' && destinyProjection && (
+          {/* Step: Destiny Dashboard */}
+          {step === 'result' && fullReport && birthInput && (
             <div className="bg-card/50 border border-border rounded-lg p-6 md:p-8 shadow-xl shadow-black/20">
-              <DestinyRevelation
-                destinyIds={destinyProjection}
+              <DestinyDashboard
+                report={fullReport}
                 pillarsDisplay={ganZhiDisplay}
+                birthYear={birthInput.year}
                 onReset={handleReset}
               />
             </div>
