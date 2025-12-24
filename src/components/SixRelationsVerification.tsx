@@ -94,6 +94,31 @@ function hasBothParents(content: string, fZodiac: string, mZodiac: string): bool
   return content.includes(`父属${fZodiac}`) && content.includes(`母属${mZodiac}`);
 }
 
+/**
+ * Convert number to Chinese numeral (matching service logic)
+ */
+function toChineseNumeral(num: number): string {
+  const numerals = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+  if (num <= 10) return numerals[num];
+  if (num < 20) return `十${numerals[num - 10]}`;
+  return num.toString();
+}
+
+/**
+ * Check if content mentions sibling count
+ */
+function hasSiblingsMatch(content: string, siblingsCount: number): boolean {
+  const chineseNum = toChineseNumeral(siblingsCount);
+  const patterns = [
+    `兄弟${chineseNum}人`,
+    `兄弟${siblingsCount}人`,
+    `弟兄${chineseNum}`,
+    `同胞${chineseNum}`,
+    `手足${chineseNum}`,
+  ];
+  return patterns.some(p => content.includes(p));
+}
+
 // ==========================================
 // INTERFACES
 // ==========================================
@@ -111,6 +136,7 @@ interface RichOption {
   matchScore: number;
   isRealMatch: boolean;
   isPerfectMatch: boolean; // Both parents matched
+  hasSiblingsMatch: boolean; // Siblings count matched
   criticalYears: string[];
   keIndex: number;
   timeLabel: string;
@@ -169,8 +195,8 @@ export const SixRelationsVerification = ({
       const fZodiacName = ZODIAC_OPTIONS[fatherZodiac].name;
       const mZodiacName = ZODIAC_OPTIONS[motherZodiac].name;
 
-      // DEEP SEMANTIC SEARCH: Get the richest/most detailed matches
-      const richMatches = await findDetailedFamilyMatches(fZodiacName, mZodiacName, 6);
+      // DEEP SEMANTIC SEARCH: Get the richest/most detailed matches (with siblings)
+      const richMatches = await findDetailedFamilyMatches(fZodiacName, mZodiacName, siblingsCount, 6);
 
       if (richMatches.length === 0) {
         // No matches found - show message
@@ -188,6 +214,7 @@ export const SixRelationsVerification = ({
         matchScore: 95 - (index * 8), // Degrading score: 95, 87, 79, 71...
         isRealMatch: true,
         isPerfectMatch: hasBothParents(match.content, fZodiacName, mZodiacName),
+        hasSiblingsMatch: hasSiblingsMatch(match.content, siblingsCount),
         criticalYears: extractCriticalYears(match.content),
         keIndex: index,
         timeLabel: `候选 ${String.fromCharCode(65 + index)}`, // A, B, C, D...
@@ -450,6 +477,12 @@ export const SixRelationsVerification = ({
                           <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
                             <CheckCircle2 className="w-3 h-3 mr-1" />
                             双亲全对
+                          </Badge>
+                        )}
+                        {option.hasSiblingsMatch && (
+                          <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                            <Users className="w-3 h-3 mr-1" />
+                            兄弟相符
                           </Badge>
                         )}
                       </div>

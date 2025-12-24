@@ -261,81 +261,166 @@ export async function findClauseByFamilyFacts(
 }
 
 /**
+ * Convert number to Chinese numeral for sibling matching
+ */
+function toChineseNumeral(num: number): string {
+  const numerals = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+  if (num <= 10) return numerals[num];
+  if (num < 20) return `十${numerals[num - 10]}`;
+  return num.toString();
+}
+
+/**
+ * Generate sibling search patterns
+ * e.g., for 3 siblings: ['兄弟三人', '兄弟3人', '弟兄三', '同胞三']
+ */
+function getSiblingsPatterns(count: number): string[] {
+  const chineseNum = toChineseNumeral(count);
+  return [
+    `兄弟${chineseNum}人`,
+    `兄弟${count}人`,
+    `弟兄${chineseNum}`,
+    `同胞${chineseNum}`,
+    `手足${chineseNum}`,
+  ];
+}
+
+/**
  * ADVANCED SEARCH: Finds the most detailed clauses matching the Family Facts.
  * Logic:
- * 1. Search for clauses containing Father's Zodiac AND Mother's Zodiac.
- * 2. Search for clauses containing Father's Zodiac ONLY (as fallback context).
- * 3. Sort results by TEXT LENGTH (assuming longer text = more detailed).
- * 4. Return the Top N distinct candidates.
+ * 1. Search for clauses containing Father's Zodiac AND Mother's Zodiac AND Siblings.
+ * 2. Search for clauses containing Father's Zodiac AND Mother's Zodiac.
+ * 3. Search for clauses containing Father's Zodiac AND Siblings.
+ * 4. Search for clauses containing Father's Zodiac ONLY (as fallback context).
+ * 5. Sort results by MATCH QUALITY and TEXT LENGTH.
  * 
  * @param fatherZodiac - Chinese zodiac character (e.g., "牛")
  * @param motherZodiac - Chinese zodiac character (e.g., "兔")
- * @param limit - Maximum number of results to return (default: 3)
- * @returns Array of matching clauses, sorted by richness (text length)
+ * @param siblingsCount - Number of siblings including the user
+ * @param limit - Maximum number of results to return (default: 6)
+ * @returns Array of matching clauses, sorted by richness and relevance
  */
 export async function findDetailedFamilyMatches(
   fatherZodiac: string,
   motherZodiac: string,
-  limit: number = 3
+  siblingsCount: number = 1,
+  limit: number = 6
 ): Promise<Clause[]> {
   const fTerm = `父属${fatherZodiac}`;
   const mTerm = `母属${motherZodiac}`;
+  const siblingPatterns = getSiblingsPatterns(siblingsCount);
 
-  // 1. Primary Search: Perfect Match (Father + Mother)
-  const { data: exactMatches, error: exactError } = await supabase
-    .from('tieban_clauses')
-    .select('*')
-    .ilike('content', `%${fTerm}%`)
-    .ilike('content', `%${mTerm}%`)
-    .limit(5);
+  // Build all search results
+  type SearchResult = { data: Clause[] | null; priority: number };
+  const searchResults: SearchResult[] = [];
 
-  if (exactError) {
-    console.error('Error in exact match search:', exactError);
-  }
+  // Helper to run a search and capture result
+  const runSearch = async (
+    query: PromiseLike<{ data: any[] | null }>,
+    priority: number
+  ): Promise<SearchResult> => {
+    const { data } = await query;
+    return { data: data as Clause[] | null, priority };
+  };
 
-  // 2. Secondary Search: Father Match Only (Broader Context)
-  const { data: fatherMatches, error: fatherError } = await supabase
-    .from('tieban_clauses')
-    .select('*')
-    .ilike('content', `%${fTerm}%`)
-    .limit(5);
-
-  if (fatherError) {
-    console.error('Error in father match search:', fatherError);
-  }
-
-  // 3. Tertiary Search: Mother Match Only
-  const { data: motherMatches, error: motherError } = await supabase
-    .from('tieban_clauses')
-    .select('*')
-    .ilike('content', `%${mTerm}%`)
-    .limit(3);
-
-  if (motherError) {
-    console.error('Error in mother match search:', motherError);
-  }
-
-  // Combine all candidates
-  const allCandidates = [
-    ...(exactMatches || []),
-    ...(fatherMatches || []),
-    ...(motherMatches || []),
-  ];
-
-  // Deduplicate by clause_number
-  const seen = new Set<number>();
-  const uniqueCandidates = allCandidates.filter((clause) => {
-    if (seen.has(clause.clause_number)) return false;
-    seen.add(clause.clause_number);
-    return true;
-  });
-
-  // Sort by richness (text length) - longer = more detailed
-  const sortedByRichness = uniqueCandidates.sort(
-    (a, b) => b.content.length - a.content.length
+  // 1. BEST: Father + Mother + Siblings (any pattern)
+  const siblingSearches = siblingPatterns.map((sibPattern) =>
+    runSearch(
+      supabase
+        .from('tieban_clauses')
+        .select('*')
+        .ilike('content', `%${fTerm}%`)
+        .ilike('content', `%${mTerm}%`)
+        .ilike('content', `%${sibPattern}%`)
+        .limit(3),
+      1
+    )
   );
 
-  return sortedByRichness.slice(0, limit) as Clause[];
+  // 2. Father + Mother (no siblings)
+  const parentSearch = runSearch(
+    supabase
+      .from('tieban_clauses')
+      .select('*')
+      .ilike('content', `%${fTerm}%`)
+      .ilike('content', `%${mTerm}%`)
+      .limit(5),
+    2
+  );
+
+  // 3. Father + Siblings
+  const fatherSiblingSearches = siblingPatterns.slice(0, 2).map((sibPattern) =>
+    runSearch(
+      supabase
+        .from('tieban_clauses')
+        .select('*')
+        .ilike('content', `%${fTerm}%`)
+        .ilike('content', `%${sibPattern}%`)
+        .limit(3),
+      3
+    )
+  );
+
+  // 4. Father Only (broad fallback)
+  const fatherSearch = runSearch(
+    supabase
+      .from('tieban_clauses')
+      .select('*')
+      .ilike('content', `%${fTerm}%`)
+      .limit(5),
+    4
+  );
+
+  // 5. Mother Only
+  const motherSearch = runSearch(
+    supabase
+      .from('tieban_clauses')
+      .select('*')
+      .ilike('content', `%${mTerm}%`)
+      .limit(3),
+    5
+  );
+
+  // Execute all searches in parallel
+  const results = await Promise.all([
+    ...siblingSearches,
+    parentSearch,
+    ...fatherSiblingSearches,
+    fatherSearch,
+    motherSearch,
+  ]);
+
+  // Combine and tag with priority
+  const allCandidates: Array<Clause & { _priority: number }> = [];
+  for (const { data, priority } of results) {
+    if (data) {
+      for (const clause of data) {
+        allCandidates.push({ ...clause, _priority: priority });
+      }
+    }
+  }
+
+  // Deduplicate by clause_number, keeping highest priority (lowest number)
+  const seen = new Map<number, Clause & { _priority: number }>();
+  for (const clause of allCandidates) {
+    const existing = seen.get(clause.clause_number);
+    if (!existing || clause._priority < existing._priority) {
+      seen.set(clause.clause_number, clause);
+    }
+  }
+
+  const uniqueCandidates = Array.from(seen.values());
+
+  // Sort by: priority first, then text length (richness)
+  const sortedResults = uniqueCandidates.sort((a, b) => {
+    if (a._priority !== b._priority) {
+      return a._priority - b._priority;
+    }
+    return b.content.length - a.content.length;
+  });
+
+  // Remove internal _priority field and return
+  return sortedResults.slice(0, limit).map(({ _priority, ...clause }) => clause) as Clause[];
 }
 
 /**
