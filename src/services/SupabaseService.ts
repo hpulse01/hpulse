@@ -286,13 +286,39 @@ function getSiblingsPatterns(count: number): string[] {
 }
 
 /**
+ * Generate multiple search patterns for father's zodiac
+ * e.g., for "牛": ["父牛", "父属牛", "生父属牛", "父命属牛"]
+ */
+function getFatherPatterns(zodiac: string): string[] {
+  return [
+    `父${zodiac}`,      // 父牛 (compact form - most common in DB)
+    `父属${zodiac}`,    // 父属牛 (formal form)
+    `生父属${zodiac}`,  // 生父属牛 (biological father)
+    `父命属${zodiac}`,  // 父命属牛 (father's destiny)
+  ];
+}
+
+/**
+ * Generate multiple search patterns for mother's zodiac
+ * e.g., for "兔": ["母兔", "母属兔", "生母属兔", "母命属兔"]
+ */
+function getMotherPatterns(zodiac: string): string[] {
+  return [
+    `母${zodiac}`,      // 母兔 (compact form - most common in DB)
+    `母属${zodiac}`,    // 母属兔 (formal form)
+    `生母属${zodiac}`,  // 生母属兔 (biological mother)
+    `母命属${zodiac}`,  // 母命属兔 (mother's destiny)
+  ];
+}
+
+/**
  * ADVANCED SEARCH: Finds the most detailed clauses matching the Family Facts.
- * Logic:
- * 1. Search for clauses containing Father's Zodiac AND Mother's Zodiac AND Siblings.
- * 2. Search for clauses containing Father's Zodiac AND Mother's Zodiac.
- * 3. Search for clauses containing Father's Zodiac AND Siblings.
- * 4. Search for clauses containing Father's Zodiac ONLY (as fallback context).
- * 5. Sort results by MATCH QUALITY and TEXT LENGTH.
+ * Uses multiple keyword patterns to match various formats in the database.
+ * 
+ * Patterns matched:
+ * - Compact: 父牛母兔
+ * - Formal: 父属牛 母属兔
+ * - Combined search with siblings
  * 
  * @param fatherZodiac - Chinese zodiac character (e.g., "牛")
  * @param motherZodiac - Chinese zodiac character (e.g., "兔")
@@ -306,13 +332,13 @@ export async function findDetailedFamilyMatches(
   siblingsCount: number = 1,
   limit: number = 6
 ): Promise<Clause[]> {
-  const fTerm = `父属${fatherZodiac}`;
-  const mTerm = `母属${motherZodiac}`;
+  // Generate all search patterns
+  const fatherPatterns = getFatherPatterns(fatherZodiac);
+  const motherPatterns = getMotherPatterns(motherZodiac);
   const siblingPatterns = getSiblingsPatterns(siblingsCount);
 
   // Build all search results
   type SearchResult = { data: Clause[] | null; priority: number };
-  const searchResults: SearchResult[] = [];
 
   // Helper to run a search and capture result
   const runSearch = async (
@@ -323,71 +349,98 @@ export async function findDetailedFamilyMatches(
     return { data: data as Clause[] | null, priority };
   };
 
-  // 1. BEST: Father + Mother + Siblings (any pattern)
-  const siblingSearches = siblingPatterns.map((sibPattern) =>
+  // Use primary patterns (compact form is most common in DB)
+  const fPrimary = fatherPatterns[0]; // 父牛
+  const mPrimary = motherPatterns[0]; // 母兔
+
+  // === PRIORITY 0: Exact compact match "父牛母兔" ===
+  const exactCompactSearch = runSearch(
+    supabase
+      .from('tieban_clauses')
+      .select('*')
+      .ilike('content', `%${fPrimary}${mPrimary}%`)
+      .limit(5),
+    0
+  );
+
+  // === PRIORITY 1: Father + Mother + Siblings (any pattern) ===
+  const siblingSearches = siblingPatterns.flatMap((sibPattern) =>
+    fatherPatterns.slice(0, 2).map((fPattern) =>
+      runSearch(
+        supabase
+          .from('tieban_clauses')
+          .select('*')
+          .ilike('content', `%${fPattern}%`)
+          .ilike('content', `%母${motherZodiac}%`)
+          .ilike('content', `%${sibPattern}%`)
+          .limit(3),
+        1
+      )
+    )
+  );
+
+  // === PRIORITY 2: Father + Mother (various patterns) ===
+  const parentSearches = fatherPatterns.slice(0, 2).flatMap((fPattern) =>
+    motherPatterns.slice(0, 2).map((mPattern) =>
+      runSearch(
+        supabase
+          .from('tieban_clauses')
+          .select('*')
+          .ilike('content', `%${fPattern}%`)
+          .ilike('content', `%${mPattern}%`)
+          .limit(5),
+        2
+      )
+    )
+  );
+
+  // === PRIORITY 3: Father + Siblings ===
+  const fatherSiblingSearches = siblingPatterns.slice(0, 2).flatMap((sibPattern) =>
+    fatherPatterns.slice(0, 2).map((fPattern) =>
+      runSearch(
+        supabase
+          .from('tieban_clauses')
+          .select('*')
+          .ilike('content', `%${fPattern}%`)
+          .ilike('content', `%${sibPattern}%`)
+          .limit(3),
+        3
+      )
+    )
+  );
+
+  // === PRIORITY 4: Father Only (any pattern) ===
+  const fatherSearches = fatherPatterns.map((fPattern) =>
     runSearch(
       supabase
         .from('tieban_clauses')
         .select('*')
-        .ilike('content', `%${fTerm}%`)
-        .ilike('content', `%${mTerm}%`)
-        .ilike('content', `%${sibPattern}%`)
-        .limit(3),
-      1
+        .ilike('content', `%${fPattern}%`)
+        .limit(5),
+      4
     )
   );
 
-  // 2. Father + Mother (no siblings)
-  const parentSearch = runSearch(
-    supabase
-      .from('tieban_clauses')
-      .select('*')
-      .ilike('content', `%${fTerm}%`)
-      .ilike('content', `%${mTerm}%`)
-      .limit(5),
-    2
-  );
-
-  // 3. Father + Siblings
-  const fatherSiblingSearches = siblingPatterns.slice(0, 2).map((sibPattern) =>
+  // === PRIORITY 5: Mother Only (any pattern) ===
+  const motherSearches = motherPatterns.map((mPattern) =>
     runSearch(
       supabase
         .from('tieban_clauses')
         .select('*')
-        .ilike('content', `%${fTerm}%`)
-        .ilike('content', `%${sibPattern}%`)
+        .ilike('content', `%${mPattern}%`)
         .limit(3),
-      3
+      5
     )
-  );
-
-  // 4. Father Only (broad fallback)
-  const fatherSearch = runSearch(
-    supabase
-      .from('tieban_clauses')
-      .select('*')
-      .ilike('content', `%${fTerm}%`)
-      .limit(5),
-    4
-  );
-
-  // 5. Mother Only
-  const motherSearch = runSearch(
-    supabase
-      .from('tieban_clauses')
-      .select('*')
-      .ilike('content', `%${mTerm}%`)
-      .limit(3),
-    5
   );
 
   // Execute all searches in parallel
   const results = await Promise.all([
+    exactCompactSearch,
     ...siblingSearches,
-    parentSearch,
+    ...parentSearches,
     ...fatherSiblingSearches,
-    fatherSearch,
-    motherSearch,
+    ...fatherSearches,
+    ...motherSearches,
   ]);
 
   // Combine and tag with priority
