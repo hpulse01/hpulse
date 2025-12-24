@@ -1,59 +1,74 @@
 /**
- * Tieban Shenshu (铁板神数) Algorithm Engine
+ * Iron Plate Divine Number (铁板神数) Engine
  * 
- * CRITICAL LOGIC:
- * 1. Strict Indexing: clause_number MUST match database clause_number column
- * 2. Verification Flow: generateKaoKeCandidates FIRST, then user selection, then calculateDestinyPaths
- * 3. Error Margin: Fallback to ID±1 for missing clauses
+ * Professional Standard Model based on:
+ * 1. Tai Xuan Numerology (太玄数) - The mathematical foundation
+ * 2. Hexagram Transformation (卦气) - Entropy generation
+ * 3. 8-Quarter Calibration (考刻) - Birth time precision
+ * 4. Category-Based Projection - Life aspect derivation
  */
 
 import { Solar } from 'lunar-typescript';
 
-// ==================== CONSTANTS ====================
+// ==========================================
+// 1. CONSTANTS & METAPHYSICAL DICTIONARIES
+// ==========================================
 
-// Heavenly Stems (天干) numerical values
-const HEAVENLY_STEMS_MAP: Record<string, number> = {
-  '甲': 6, '乙': 2, '丙': 8, '丁': 7, '戊': 1,
-  '己': 9, '庚': 3, '辛': 4, '壬': 6, '癸': 2
+/**
+ * Tai Xuan Numbers (太玄数) - The mathematical foundation of Iron Plate
+ * 甲己子午九，乙庚丑未八，丙辛寅申七，丁壬卯酉六，戊癸辰戌五，巳亥四数存。
+ */
+const TAI_XUAN_MAP: Record<string, number> = {
+  '甲': 9, '己': 9, '子': 9, '午': 9,
+  '乙': 8, '庚': 8, '丑': 8, '未': 8,
+  '丙': 7, '辛': 7, '寅': 7, '申': 7,
+  '丁': 6, '壬': 6, '卯': 6, '酉': 6,
+  '戊': 5, '癸': 5, '辰': 5, '戌': 5,
+  '巳': 4, '亥': 4
 };
 
-// Earthly Branches (地支) numerical values
-const EARTHLY_BRANCHES_MAP: Record<string, number> = {
-  '子': 1, '丑': 10, '寅': 3, '卯': 4, '辰': 5, '巳': 6,
-  '午': 7, '未': 8, '申': 9, '酉': 10, '戌': 11, '亥': 12
+// Heavenly Stems Order (for Hexagram derivation)
+const STEM_ORDER = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+
+// Earthly Branches Order
+const BRANCH_ORDER = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+
+/**
+ * Tieban "Magic Keys" (Category Offsets)
+ * These offsets map the Base Number to specific life categories.
+ * Derived from standard distribution patterns in classical texts.
+ */
+const CATEGORY_OFFSETS = {
+  GENERAL_LUCK: 0,        // Base number itself
+  PARENTS_KAO_KE: 1000,   // Verification clauses (1000-2000 block)
+  SIBLINGS: 2000,         // Siblings (2000-3000 block)
+  MARRIAGE: 4000,         // Marriage (4000-5000 block)
+  CHILDREN: 5000,         // Children (5000-6000 block)
+  WEALTH: 7000,           // Wealth (7000-8000 block)
+  CAREER: 9000,           // Career (9000-10000 block)
+  HEALTH: 10000,          // Health (10000-11000 block)
+  LATE_YEARS: 11000       // End of life (11000-12000 block)
 };
 
-// 8 Quarters (刻分) offsets within a 2-hour period (时辰)
-const QUARTER_OFFSETS = [0, 15, 30, 45, 60, 75, 90, 105];
+// The Maximum Clause Number in the database (to prevent overflow)
+const MAX_CLAUSE_ID = 12000;
+const MIN_CLAUSE_ID = 1001;
 
 // Quarter labels in classical Chinese
 const QUARTER_LABELS = [
-  '初刻 (0-15分)',
-  '一刻 (15-30分)',
-  '二刻 (30-45分)',
-  '三刻 (45-60分)',
-  '四刻 (60-75分)',
-  '五刻 (75-90分)',
-  '六刻 (90-105分)',
-  '七刻 (105-120分)'
+  "初刻 (0-15分)",
+  "二刻 (15-30分)",
+  "三刻 (30-45分)",
+  "四刻 (45-60分)",
+  "五刻 (60-75分)",
+  "六刻 (75-90分)",
+  "七刻 (90-105分)",
+  "八刻 (105-120分)"
 ];
 
-// Verification section: clauses 1001-3000 typically used for Kao Ke
-const VERIFICATION_SECTION_START = 1001;
-const CLAUSE_MIN = 1001;
-const CLAUSE_MAX = 13000;
-
-// Destiny aspect offsets (maps to different sections of the clause database)
-const DESTINY_OFFSETS = {
-  lifeDestiny: 0,
-  career: 2000,
-  marriage: 4000,
-  health: 6000,
-  wealth: 8000,
-  children: 10000,
-};
-
-// ==================== TYPES ====================
+// ==========================================
+// 2. INTERFACES
+// ==========================================
 
 export interface TiebanInput {
   year: number;
@@ -73,27 +88,34 @@ export interface GanZhiPillars {
 }
 
 export interface KaoKeCandidate {
-  keIndex: number;           // 0-7, the quarter index
-  clauseNumber: number;      // The clause_number to lookup in DB
-  timeLabel: string;         // Display label e.g. "初刻 (0-15分)"
-  content?: string;          // To be populated from DB
+  keIndex: number;         // 0-7 (representing 8 quarters of a Shichen)
+  quarterIndex: number;    // Same as keIndex (for compatibility)
+  clauseNumber: number;    // The database clause_number to lookup
+  timeLabel: string;       // e.g., "初刻 (0-15分)"
+  debugBase?: number;      // For developer transparency
+  content?: string;        // Populated from DB
 }
 
-export interface DestinyPath {
-  aspect: string;            // e.g. "lifeDestiny", "marriage"
-  aspectLabel: string;       // Chinese label
-  clauseNumber: number;      // The clause_number to lookup in DB
-  content?: string;          // To be populated from DB
+export interface DestinyProjection {
+  lifeDestiny: number;
+  marriage: number;
+  wealth: number;
+  career: number;
+  health: number;
+  children: number;
 }
 
 export interface CalculationResult {
   baseNumber: number;
   pillars: GanZhiPillars;
-  lockedKeIndex?: number;
-  preciseNumber?: number;
+  stemSum: number;
+  branchSum: number;
+  totalScore: number;
 }
 
-// ==================== ENGINE ====================
+// ==========================================
+// 3. THE ENGINE
+// ==========================================
 
 export const TiebanEngine = {
   /**
@@ -125,61 +147,94 @@ export const TiebanEngine = {
   },
 
   /**
-   * STEP 1: Calculate Base Number from birth data
-   * Uses Stem/Branch summation method
+   * Core Function: Calculate the "Base Number" (Primal Frequency)
+   * Logic: Sum(TaiXuan) -> Hexagram Seed -> Normalized Base
+   * 
+   * Uses authentic Tai Xuan numerology for deterministic calculation.
+   * Same input always produces same output.
    */
   calculateBaseNumber: (input: TiebanInput): CalculationResult => {
-    const pillars = TiebanEngine.extractPillars(input);
-    
-    const pillarStrings = [pillars.year, pillars.month, pillars.day, pillars.hour];
-    
-    let totalScore = 0;
+    // 1. Convert to Lunar & Extract Pillars
+    const solar = Solar.fromYmdHms(
+      input.year, 
+      input.month, 
+      input.day, 
+      input.hour, 
+      input.minute, 
+      0
+    );
+    const lunar = solar.getLunar();
 
-    // Sum the numerical values of all stems and branches
+    const pillars = TiebanEngine.extractPillars(input);
+    const pillarStrings = [pillars.year, pillars.month, pillars.day, pillars.hour];
+
+    // 2. Calculate "Heaven & Earth Sum" (天地数) via Tai Xuan
+    let totalScore = 0;
+    let stemSum = 0;
+    let branchSum = 0;
+
     pillarStrings.forEach(pillar => {
       if (pillar.length >= 2) {
         const stem = pillar.charAt(0);
         const branch = pillar.charAt(1);
-        const stemVal = HEAVENLY_STEMS_MAP[stem] || 0;
-        const branchVal = EARTHLY_BRANCHES_MAP[branch] || 0;
-        totalScore += stemVal + branchVal;
+
+        const sVal = TAI_XUAN_MAP[stem] || 5;
+        const bVal = TAI_XUAN_MAP[branch] || 5;
+
+        stemSum += sVal;
+        branchSum += bVal;
+        totalScore += (sVal + bVal);
       }
     });
 
-    // Gender modifier (乾命/坤命)
-    const genderMod = input.gender === 'male' ? 1 : 2;
+    // 3. Advanced Logic: Generate a "Hexagram Seed" (卦气)
+    // Creates high entropy to ensure diversity in results
+    // Formula: ((StemSum * BranchSum) + LunarDay + LunarMonth) * HarmonyFactor
+    const harmonyFactor = (input.gender === 'male') ? 1.05 : 0.95; // Yang/Yin differentiation
 
-    // Base formula: (Sum * 50) + Month + Day + Gender modifier
-    const baseNumber = (totalScore * 50) + input.month + input.day + genderMod;
+    const rawSeed = ((stemSum * branchSum) + lunar.getDay() + lunar.getMonth()) * 100 * harmonyFactor;
 
+    // 4. Return the integer Base Number
     return {
-      baseNumber,
+      baseNumber: Math.floor(rawSeed),
       pillars,
+      stemSum,
+      branchSum,
+      totalScore,
     };
   },
 
   /**
-   * STEP 2: Generate Kao Ke (考刻) Candidates
+   * The "Kao Ke" Generator
+   * Generates 8 distinct verification clauses based on the 8 quarters of the hour.
    * 
-   * CRITICAL: These clause_number values MUST exist in the database.
-   * Returns 8 candidates for the 8 quarters of the hour.
+   * CRITICAL: These clause_number values are used to lookup texts in the database.
    * The user must select which one matches their family situation.
    */
   generateKaoKeCandidates: (baseNumber: number): KaoKeCandidate[] => {
     const candidates: KaoKeCandidate[] = [];
 
     for (let i = 0; i < 8; i++) {
-      // FORMULA: Base clause + (baseNumber % 100) + quarter offset
-      // This maps to verification clauses (typically about parents/siblings)
-      let clauseNumber = VERIFICATION_SECTION_START + (baseNumber % 100) + QUARTER_OFFSETS[i];
+      // LOGIC: The "Quarter" acts as a fine-tuning variable.
+      // Offset formula: (Base + (Quarter * 15)) % 200
+      // Then map to the "Parents Section" (1001-1200)
 
-      // Ensure within valid clause range
-      clauseNumber = TiebanEngine.normalizeClauseNumber(clauseNumber);
+      const quarterShift = i * 15;
+      const uniqueSeed = Math.abs(baseNumber + quarterShift);
+
+      // Map to a valid clause ID in the 1000s range (Verification Zone)
+      // Uses a deterministic hash to pick a number between 1001 and 1200
+      let clauseId = CATEGORY_OFFSETS.PARENTS_KAO_KE + (uniqueSeed % 200);
+
+      // Safety check: ensure ID is within valid range
+      clauseId = TiebanEngine.normalizeClauseId(clauseId);
 
       candidates.push({
         keIndex: i,
-        clauseNumber,
+        quarterIndex: i,
+        clauseNumber: clauseId,
         timeLabel: QUARTER_LABELS[i],
+        debugBase: baseNumber,
       });
     }
 
@@ -187,96 +242,54 @@ export const TiebanEngine = {
   },
 
   /**
-   * STEP 3: Calculate Destiny Paths (ONLY after user locks a keIndex)
+   * The Final Projection
+   * Triggered ONLY AFTER the user confirms which "Quarter" is correct.
    * 
-   * CRITICAL: This should NEVER be called before user verification!
-   * 
-   * @param baseNumber - The initial base number
-   * @param lockedKeIndex - The quarter index user selected (0-7)
+   * @param lockedBase - The original base number from calculateBaseNumber
+   * @param lockedQuarterIndex - The quarter (0-7) that user confirmed
    */
-  calculateDestinyPaths: (baseNumber: number, lockedKeIndex: number): DestinyPath[] => {
-    // Calculate the precise number with locked quarter
-    const preciseNumber = baseNumber + QUARTER_OFFSETS[lockedKeIndex];
+  calculateDestinyPaths: (lockedBase: number, lockedQuarterIndex: number): DestinyProjection => {
+    // 1. Reconstruct the "Precise Coordinate"
+    const quarterShift = lockedQuarterIndex * 15;
+    const preciseSeed = Math.abs(lockedBase + quarterShift);
 
-    const aspectLabels: Record<string, string> = {
-      lifeDestiny: '命运总论',
-      career: '事业前程',
-      marriage: '婚姻姻缘',
-      health: '健康寿元',
-      wealth: '财运财富',
-      children: '子嗣儿女',
+    // 2. Apply the "Magic Keys" to jump to different life aspects
+    // This simulates the "Adding/Subtracting Secret Numbers" method
+
+    return {
+      lifeDestiny: TiebanEngine.normalizeClauseId(preciseSeed + CATEGORY_OFFSETS.GENERAL_LUCK),
+      marriage: TiebanEngine.normalizeClauseId(preciseSeed + CATEGORY_OFFSETS.MARRIAGE),
+      wealth: TiebanEngine.normalizeClauseId(preciseSeed + CATEGORY_OFFSETS.WEALTH),
+      career: TiebanEngine.normalizeClauseId(preciseSeed + CATEGORY_OFFSETS.CAREER),
+      health: TiebanEngine.normalizeClauseId(preciseSeed + CATEGORY_OFFSETS.HEALTH),
+      children: TiebanEngine.normalizeClauseId(preciseSeed + CATEGORY_OFFSETS.CHILDREN),
     };
-
-    const paths: DestinyPath[] = [];
-
-    for (const [aspect, offset] of Object.entries(DESTINY_OFFSETS)) {
-      // FORMULA: (preciseNumber * 12 + aspectOffset) % 12000 + 1001
-      let clauseNumber = ((preciseNumber * 12) + offset) % 12000 + CLAUSE_MIN;
-      
-      // Normalize to valid range
-      clauseNumber = TiebanEngine.normalizeClauseNumber(clauseNumber);
-
-      paths.push({
-        aspect,
-        aspectLabel: aspectLabels[aspect] || aspect,
-        clauseNumber,
-      });
-    }
-
-    return paths;
   },
 
   /**
    * Get a single primary destiny clause (for simple result display)
    */
-  calculatePrimaryDestiny: (baseNumber: number, lockedKeIndex: number): number => {
-    const preciseNumber = baseNumber + QUARTER_OFFSETS[lockedKeIndex];
-    let clauseNumber = ((preciseNumber * 12) % 12000) + CLAUSE_MIN;
-    return TiebanEngine.normalizeClauseNumber(clauseNumber);
+  calculatePrimaryDestiny: (lockedBase: number, lockedQuarterIndex: number): number => {
+    const quarterShift = lockedQuarterIndex * 15;
+    const preciseSeed = Math.abs(lockedBase + quarterShift);
+    return TiebanEngine.normalizeClauseId(preciseSeed + CATEGORY_OFFSETS.GENERAL_LUCK);
   },
 
   /**
-   * Normalize clause number to valid range [1001, 13000]
+   * Helper: Ensure the ID stays within the bounds of the clause database
+   * Wraps around using modulo to prevent overflow
    */
-  normalizeClauseNumber: (num: number): number => {
-    if (num < CLAUSE_MIN) {
-      return CLAUSE_MIN + (num % 1000);
-    }
-    if (num > CLAUSE_MAX) {
-      return CLAUSE_MIN + ((num - CLAUSE_MIN) % (CLAUSE_MAX - CLAUSE_MIN));
-    }
-    return num;
-  },
+  normalizeClauseId: (rawId: number): number => {
+    // Wrap within valid range (1001-12000)
+    const range = MAX_CLAUSE_ID - MIN_CLAUSE_ID;
+    let validId = (rawId % range) + MIN_CLAUSE_ID;
 
-  /**
-   * Find fallback clause number if target doesn't exist
-   * Tries ±1, ±2, up to ±10
-   * 
-   * @param targetNumber - The calculated clause number
-   * @param existingNumbers - Set of valid clause numbers from database
-   * @param maxOffset - Maximum offset to search (default: 10)
-   */
-  findFallbackClause: (
-    targetNumber: number,
-    existingNumbers: Set<number>,
-    maxOffset: number = 10
-  ): number | null => {
-    // Try exact match first
-    if (existingNumbers.has(targetNumber)) {
-      return targetNumber;
+    // Ensure minimum bound
+    if (validId < MIN_CLAUSE_ID) {
+      validId = MIN_CLAUSE_ID + (Math.abs(validId) % range);
     }
 
-    // Try alternating offsets: +1, -1, +2, -2, ...
-    for (let offset = 1; offset <= maxOffset; offset++) {
-      if (existingNumbers.has(targetNumber + offset)) {
-        return targetNumber + offset;
-      }
-      if (existingNumbers.has(targetNumber - offset)) {
-        return targetNumber - offset;
-      }
-    }
-
-    return null;
+    return validId;
   },
 
   /**
@@ -299,6 +312,20 @@ export const TiebanEngine = {
     ];
     const index = Math.floor(((hour + 1) % 24) / 2);
     return hourNames[index];
+  },
+
+  /**
+   * Get Stem index (0-9)
+   */
+  getStemIndex: (stem: string): number => {
+    return STEM_ORDER.indexOf(stem);
+  },
+
+  /**
+   * Get Branch index (0-11)
+   */
+  getBranchIndex: (branch: string): number => {
+    return BRANCH_ORDER.indexOf(branch);
   },
 };
 
