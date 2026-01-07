@@ -26,27 +26,28 @@ const TAI_XUAN_MAP: Record<string, number> = {
   '巳': 4, '亥': 4
 };
 
-// The "Golden Key" (皇极秘数) - Classical constant from PDF page 27-30
-const GOLDEN_KEY = 9668;
-const BASE_MODULO = 12000; // Standard clause library size
-const MIN_CLAUSE_ID = 1001; // Minimum valid clause ID
-const MAX_CLAUSE_ID = 12000; // Maximum valid clause ID per PDF
+// PDF page 27-30: 皇极经世数
+// 铁板神数条文共12000条，分为12类（每类约1000条）
+const BASE_MODULO = 12000; // 条文总数
+const MIN_CLAUSE_ID = 1; // 最小有效条文号
+const MAX_CLAUSE_ID = 12000; // 最大有效条文号
 
-// Category Offsets - Based on PDF "十二宫" (Twelve Palaces) structure
-// These offsets are derived from the classical "铁板神数条文分类" system
+// PDF page 27-30: 十二宫分类偏移量
+// 条文库按照宫位分类，每宫约1000条
+// 重要：这些是相对偏移，用于区分不同宫位的条文
 const PALACE_OFFSETS = {
-  KAO_KE: 0,        // 考刻条文 (Parents verification)
-  PARENTS: 1000,    // 六亲宫 (Six Relations Palace)
-  FATE: 2000,       // 命宫 (Destiny Palace) - PDF p.28
-  MARRIAGE: 3000,   // 婚姻宫 (Marriage Palace) - PDF p.29
-  CHILDREN: 4000,   // 子女宫 (Children Palace)
-  SIBLINGS: 5000,   // 兄弟宫 (Siblings Palace)
-  WEALTH: 6000,     // 财帛宫 (Wealth Palace) - PDF p.30
-  CAREER: 7000,     // 官禄宫 (Career Palace)
-  HEALTH: 8000,     // 疾厄宫 (Health Palace)
-  PROPERTY: 9000,   // 田宅宫 (Property Palace)
-  FLOW_YEAR: 10000, // 流年宫 (Flow Year Palace)
-  FLOW_MONTH: 11000 // 流月宫 (Flow Month Palace)
+  KAO_KE: 0,        // 考刻条文 (1-1000) - 父母属相验证
+  PARENTS: 0,       // 六亲宫 (同考刻，用于验证)
+  FATE: 1000,       // 命宫 (1001-2000) - 一生总论
+  SIBLINGS: 2000,   // 兄弟宫 (2001-3000)
+  MARRIAGE: 3000,   // 婚姻宫 (3001-4000)
+  CHILDREN: 4000,   // 子女宫 (4001-5000)
+  WEALTH: 5000,     // 财帛宫 (5001-6000)
+  CAREER: 6000,     // 官禄宫 (6001-7000)
+  HEALTH: 7000,     // 疾厄宫 (7001-8000)
+  PROPERTY: 8000,   // 田宅宫 (8001-9000)
+  FLOW_YEAR: 9000,  // 流年宫 (9001-10000)
+  FLOW_MONTH: 10000 // 流月宫 (10001-11000)
 };
 
 // 起运年龄表 - Based on PDF page 25 (民国年份起运表)
@@ -360,30 +361,29 @@ export const TiebanEngine = {
   /**
    * PROJECTION ALGORITHM: The "Iron Plate Deduction" (铁板神推)
    * Once the Quarter (Ke) is locked, the destiny is fixed.
-   * We apply the specific offsets to derive other life aspects.
+   * 
+   * 注意：此函数是旧版本，建议使用 projectDestinyWithOffset
    */
   calculateDestinyPaths: (lockedBase: number, lockedQuarterIndex: number): DestinyProjection => {
     // 1. Apply the "Locked" shift
     const lockedBase2 = lockedBase + (lockedQuarterIndex * 15);
 
-    // 2. Apply the "Golden Key" (9668) Rotation
-    // In many texts, the "Life Clause" is found by adding the Key to the Base.
-    // Formula: FinalID = (LockedBase + GoldenKey + CategoryOffset) % Limit
-
-    const getID = (offset: number): number => {
-      let id = (lockedBase2 + GOLDEN_KEY + offset) % BASE_MODULO;
-      if (id <= 0) id += 1000;
-      if (id < MIN_CLAUSE_ID) id += MIN_CLAUSE_ID;
-      return Math.floor(id);
+    // 使用新的宫位计算逻辑
+    const getClauseForPalace = (palaceOffset: number): number => {
+      const inPalaceOffset = ((lockedBase2 % 1000) + 1000) % 1000;
+      let clauseId = palaceOffset + inPalaceOffset + 1;
+      if (clauseId < MIN_CLAUSE_ID) clauseId = MIN_CLAUSE_ID;
+      if (clauseId > MAX_CLAUSE_ID) clauseId = MAX_CLAUSE_ID;
+      return Math.floor(clauseId);
     };
 
     return {
-      lifeDestiny: getID(PALACE_OFFSETS.FATE),
-      marriage: getID(PALACE_OFFSETS.MARRIAGE),
-      wealth: getID(PALACE_OFFSETS.WEALTH),
-      career: getID(PALACE_OFFSETS.CAREER),
-      health: getID(PALACE_OFFSETS.HEALTH),
-      children: getID(PALACE_OFFSETS.CHILDREN),
+      lifeDestiny: getClauseForPalace(PALACE_OFFSETS.FATE),
+      marriage: getClauseForPalace(PALACE_OFFSETS.MARRIAGE),
+      wealth: getClauseForPalace(PALACE_OFFSETS.WEALTH),
+      career: getClauseForPalace(PALACE_OFFSETS.CAREER),
+      health: getClauseForPalace(PALACE_OFFSETS.HEALTH),
+      children: getClauseForPalace(PALACE_OFFSETS.CHILDREN),
     };
   },
 
@@ -392,21 +392,23 @@ export const TiebanEngine = {
    */
   calculatePrimaryDestiny: (lockedBase: number, lockedQuarterIndex: number): number => {
     const lockedBase2 = lockedBase + (lockedQuarterIndex * 15);
-    let id = (lockedBase2 + GOLDEN_KEY + PALACE_OFFSETS.FATE) % BASE_MODULO;
-    if (id <= 0) id += 1000;
-    if (id < MIN_CLAUSE_ID) id += MIN_CLAUSE_ID;
-    return Math.floor(id);
+    const inPalaceOffset = ((lockedBase2 % 1000) + 1000) % 1000;
+    let clauseId = PALACE_OFFSETS.FATE + inPalaceOffset + 1;
+    if (clauseId < MIN_CLAUSE_ID) clauseId = MIN_CLAUSE_ID;
+    if (clauseId > MAX_CLAUSE_ID) clauseId = MAX_CLAUSE_ID;
+    return Math.floor(clauseId);
   },
 
   /**
-   * Helper: Ensure the ID stays within the bounds of the clause database (1001-13000)
+   * Helper: Ensure the ID stays within the bounds of the clause database (1-12000)
+   * PDF规定条文范围为1-12000
    */
   normalizeClauseId: (rawId: number): number => {
     let validId = rawId;
-    // Wrap within the valid range
-    const range = MAX_CLAUSE_ID - MIN_CLAUSE_ID + 1; // 12000
-    while (validId > MAX_CLAUSE_ID) validId -= range;
-    while (validId < MIN_CLAUSE_ID) validId += range;
+    // 确保在1-12000范围内循环
+    validId = ((validId - 1) % BASE_MODULO + BASE_MODULO) % BASE_MODULO + 1;
+    if (validId < MIN_CLAUSE_ID) validId = MIN_CLAUSE_ID;
+    if (validId > MAX_CLAUSE_ID) validId = MAX_CLAUSE_ID;
     return Math.floor(validId);
   },
 
@@ -446,38 +448,81 @@ export const TiebanEngine = {
 
   /**
    * CALIBRATION ALGORITHM: Calculate System Offset
-   * Compares the "Mathematical Result" with the "Book Reality".
-   * The offset represents the deviation between standard math and the specific clause library.
+   * 
+   * PDF 考刻校正法:
+   * 用户确认的考刻条文号与数学推算的对照，得出系统偏移
+   * 此偏移量将应用于所有后续宫位的计算
    */
   calculateSystemOffset: (theoreticalBase: number, confirmedClauseId: number): number => {
-    // We expected the Parents Clause to be at (Base + PARENTS_OFFSET)
-    // But it was actually at (confirmedClauseId)
-    // Offset = Actual - Expected
-    const expectedId = TiebanEngine.normalizeClauseId(theoreticalBase + PALACE_OFFSETS.PARENTS);
+    // 考刻条文在第一宫(1-1000范围)
+    // 计算理论上应该对应的条文号
+    const theoreticalInPalace = ((theoreticalBase % 1000) + 1000) % 1000;
+    const expectedId = PALACE_OFFSETS.KAO_KE + theoreticalInPalace + 1;
+    
+    // 系统偏移 = 用户确认的条文号 - 理论条文号
+    // 这个偏移量反映了数学模型与实际条文库的对应关系
     const offset = confirmedClauseId - expectedId;
     
-    console.log(`[System Calibration] Math said: ${expectedId}, Book said: ${confirmedClauseId}, Deviation: ${offset}`);
+    console.log('[系统校正]', {
+      theoreticalBase,
+      theoreticalInPalace,
+      expectedId,
+      confirmedClauseId,
+      systemOffset: offset
+    });
+    
     return offset;
   },
 
   /**
    * PROJECTION WITH OFFSET: Calculate destiny using BaZi base + calibrated offset
-   * This ensures predictions are rooted in BaZi but adapted to the specific clause library.
+   * 
+   * PDF page 27-30 核心算法:
+   * 1. 基础数 = 四柱太玄数之和 × 刻分系数
+   * 2. 各宫条文号 = (基础数 + 系统偏移 + 宫位偏移) 规范化到对应宫位范围
+   * 
+   * 关键修正：每个宫位的条文需要落在其对应的1000条范围内
    */
   projectDestinyWithOffset: (theoreticalBase: number, systemOffset: number): DestinyProjection => {
-    const getID = (categoryOffset: number): number => {
-      let id = theoreticalBase + categoryOffset + systemOffset;
-      return TiebanEngine.normalizeClauseId(id);
+    /**
+     * 精确计算各宫条文号
+     * 公式: clauseId = ((base + offset) % 1000) + palaceStart
+     * 确保每个宫位的条文在其正确范围内
+     */
+    const getClauseForPalace = (palaceOffset: number): number => {
+      // 计算基础值
+      const rawValue = theoreticalBase + systemOffset;
+      
+      // 对1000取模得到宫内偏移(0-999)
+      const inPalaceOffset = ((rawValue % 1000) + 1000) % 1000;
+      
+      // 宫位起始点 + 宫内偏移 + 1 (条文从1开始)
+      let clauseId = palaceOffset + inPalaceOffset + 1;
+      
+      // 确保在有效范围内
+      if (clauseId < MIN_CLAUSE_ID) clauseId = MIN_CLAUSE_ID;
+      if (clauseId > MAX_CLAUSE_ID) clauseId = MAX_CLAUSE_ID;
+      
+      return Math.floor(clauseId);
     };
 
-    return {
-      lifeDestiny: getID(PALACE_OFFSETS.FATE),
-      marriage: getID(PALACE_OFFSETS.MARRIAGE),
-      wealth: getID(PALACE_OFFSETS.WEALTH),
-      career: getID(PALACE_OFFSETS.CAREER),
-      health: getID(PALACE_OFFSETS.HEALTH),
-      children: getID(PALACE_OFFSETS.CHILDREN),
+    const result = {
+      lifeDestiny: getClauseForPalace(PALACE_OFFSETS.FATE),
+      marriage: getClauseForPalace(PALACE_OFFSETS.MARRIAGE),
+      wealth: getClauseForPalace(PALACE_OFFSETS.WEALTH),
+      career: getClauseForPalace(PALACE_OFFSETS.CAREER),
+      health: getClauseForPalace(PALACE_OFFSETS.HEALTH),
+      children: getClauseForPalace(PALACE_OFFSETS.CHILDREN),
     };
+
+    console.log('[终身总评] 推算结果:', {
+      theoreticalBase,
+      systemOffset,
+      rawValue: theoreticalBase + systemOffset,
+      result
+    });
+
+    return result;
   },
 
   /**
@@ -739,8 +784,10 @@ export const TiebanEngine = {
 
   /**
    * FLOW YEAR CLAUSES (流年条文): Calculate clause IDs for specific ages
-   * Enhanced based on PDF page 31 流年推算法
-   * Uses the calibrated base number to project year-by-year destiny
+   * 
+   * PDF page 31 流年推算法:
+   * 流年条文应落在流年宫(9001-10000)范围内
+   * 公式: clauseId = ((base + age×12) % 1000) + 流年宫起点
    */
   calculateFlowYearClauses: (
     trueBase: number, 
@@ -750,10 +797,6 @@ export const TiebanEngine = {
     endAge: number = 80
   ): FlowYearClause[] => {
     const flowYears: FlowYearClause[] = [];
-    
-    // PDF page 31: 流年步进常数
-    // 每年递增值与地支周期(12)相关
-    // Using FLOW_YEAR_STEP constant defined at top (= 12)
     
     // 地支序数用于流年运势计算
     const BRANCH_INDEX: Record<string, number> = {
@@ -773,11 +816,16 @@ export const TiebanEngine = {
       const yearBranch = yearGanZhi.charAt(1);
       const branchValue = BRANCH_INDEX[yearBranch] || 0;
       
-      // Enhanced Flow Year Formula based on PDF:
-      // clauseId = (基础数 + 系统偏移 + 年龄×步进 + 当年地支数 + 流年宫位) % 范围
-      // This incorporates the actual year's energy into the calculation
-      let rawId = trueBase + systemOffset + (age * FLOW_YEAR_STEP) + branchValue + PALACE_OFFSETS.FLOW_YEAR;
-      let clauseId = TiebanEngine.normalizeClauseId(rawId);
+      // PDF page 31: 流年条文计算
+      // 基础值 + 系统偏移 + 年龄步进 + 当年地支能量
+      const rawValue = trueBase + systemOffset + (age * FLOW_YEAR_STEP) + branchValue;
+      
+      // 流年条文落在流年宫(9001-10000)
+      const inPalaceOffset = ((rawValue % 1000) + 1000) % 1000;
+      let clauseId = PALACE_OFFSETS.FLOW_YEAR + inPalaceOffset + 1;
+      
+      // 确保在有效范围
+      if (clauseId > MAX_CLAUSE_ID) clauseId = PALACE_OFFSETS.FLOW_YEAR + 1;
       
       flowYears.push({
         age,
@@ -792,7 +840,7 @@ export const TiebanEngine = {
 
   /**
    * Calculate Flow Year for a specific Da Yun period
-   * Enhanced method considering the Da Yun stem influence
+   * 考虑大运干支影响的流年计算
    */
   calculateFlowYearWithDaYun: (
     trueBase: number,
@@ -810,9 +858,12 @@ export const TiebanEngine = {
     const daYunStem = daYunGanZhi.charAt(0);
     const daYunValue = TAI_XUAN_MAP[daYunStem] || 5;
     
-    // Enhanced formula incorporating Da Yun
-    let rawId = trueBase + systemOffset + (age * FLOW_YEAR_STEP) + daYunValue + PALACE_OFFSETS.FLOW_YEAR;
-    let clauseId = TiebanEngine.normalizeClauseId(rawId);
+    // 计算流年条文(落在9001-10000)
+    const rawValue = trueBase + systemOffset + (age * FLOW_YEAR_STEP) + daYunValue;
+    const inPalaceOffset = ((rawValue % 1000) + 1000) % 1000;
+    let clauseId = PALACE_OFFSETS.FLOW_YEAR + inPalaceOffset + 1;
+    
+    if (clauseId > MAX_CLAUSE_ID) clauseId = PALACE_OFFSETS.FLOW_YEAR + 1;
     
     return {
       age,
