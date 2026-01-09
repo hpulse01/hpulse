@@ -26,15 +26,29 @@ const TAI_XUAN_MAP: Record<string, number> = {
   '巳': 4, '亥': 4
 };
 
-// PDF page 27-30: 皇极经世数
-// 铁板神数条文共12000条，分为12类（每类约1000条）
+// PDF page 33: 洛书数配 - 一九合十，二八合十，三七合十，四六合十
+// PDF page 48: 铁板神数条文编号规则
 const BASE_MODULO = 12000; // 条文总数
 const MIN_CLAUSE_ID = 1; // 最小有效条文号
 const MAX_CLAUSE_ID = 12000; // 最大有效条文号
 
-// PDF page 27-30: 十二宫分类偏移量
-// 条文库按照宫位分类，每宫约1000条
-// 重要：这些是相对偏移，用于区分不同宫位的条文
+// PDF page 43: 地支时辰对应数 (爻数表)
+// 子→30, 寅→60, 辰→90, 丑→30, 午→120, 申→150
+const BRANCH_YAO_VALUES: Record<string, number> = {
+  '子': 30, '丑': 30, '寅': 60, '卯': 60,
+  '辰': 90, '巳': 90, '午': 120, '未': 120,
+  '申': 150, '酉': 150, '戌': 180, '亥': 180
+};
+
+// PDF page 33: 洛书数的相配 (用于宫位计算)
+// 1-9北，2-8合十，3-7合十，4-6合十，5居中
+const LUO_SHU_COMBINE: Record<number, number> = {
+  1: 9, 9: 1, 2: 8, 8: 2, 3: 7, 7: 3, 4: 6, 6: 4, 5: 5
+};
+
+// PDF 乾坤集: 十二宫分类
+// 上半部分: 主要提供人生的重要经历及六亲状况
+// 下半部分: 从「小运卦用事」开始，说的是一岁至九十八岁每岁所发生之事
 const PALACE_OFFSETS = {
   KAO_KE: 0,        // 考刻条文 (1-1000) - 父母属相验证
   PARENTS: 0,       // 六亲宫 (同考刻，用于验证)
@@ -218,8 +232,8 @@ export interface CalibrationResult {
 
 export const TiebanEngine = {
   /**
-   * CORE ALGORITHM: The "Tai Xuan" Summation
-   * Calculates the raw energy weight of the Eight Characters.
+   * CORE ALGORITHM: The "Tai Xuan" Summation (太玄数)
+   * PDF page 43: 甲己子午九，乙庚丑未八，丙辛寅申七，丁壬卯酉六，戊癸辰戌五，巳亥四
    */
   getTaiXuanScore: (ganZhiArr: string[]): number => {
     let score = 0;
@@ -232,6 +246,26 @@ export const TiebanEngine = {
       }
     });
     return score;
+  },
+
+  /**
+   * PDF page 43: 获取地支爻数值
+   * 子丑=30, 寅卯=60, 辰巳=90, 午未=120, 申酉=150, 戌亥=180
+   */
+  getBranchYaoValue: (branch: string): number => {
+    return BRANCH_YAO_VALUES[branch] || 30;
+  },
+
+  /**
+   * PDF page 45-46: 计算单柱数值
+   * 公式: 天干太玄数 + 地支太玄数
+   * 例如: 甲子 = 甲(9) + 子(9) = 18
+   */
+  getPillarValue: (ganZhi: string): number => {
+    if (ganZhi.length < 2) return 10;
+    const stem = ganZhi.charAt(0);
+    const branch = ganZhi.charAt(1);
+    return (TAI_XUAN_MAP[stem] || 5) + (TAI_XUAN_MAP[branch] || 5);
   },
 
   /**
@@ -263,14 +297,16 @@ export const TiebanEngine = {
   },
 
   /**
-   * CORE ALGORITHM: The "Base Number" Derivation
-   * Formula: (Year+Month+Day+Hour TaiXuan) * MinuteFactor + GenderShift
+   * PDF page 45-48: CORE ALGORITHM - 四柱合计法
    * 
-   * Iron Plate differs from BaZi by using Minutes.
-   * We convert the exact minute into a "Depth Factor" (0-119).
+   * 核心公式: 年柱数 + 月柱数 + 日柱数 + 时柱数 = 基础数
+   * 每柱数 = 天干太玄数 + 地支太玄数
+   * 
+   * PDF page 48 示例: 26 + 42 = 2642
+   * 这说明条文号直接由四柱数值组合而成
    */
   calculateBaseNumber: (input: TiebanInput): CalculationResult => {
-    // 1. Precise Solar -> Lunar
+    // 1. 精确的阳历转阴历
     const solar = Solar.fromYmdHms(
       input.year,
       input.month,
@@ -281,14 +317,17 @@ export const TiebanEngine = {
     );
     const lunar = solar.getLunar();
 
-    // 2. Extract Pillars
+    // 2. 提取四柱
     const pillars = TiebanEngine.extractPillars(input);
     const pillarStrings = [pillars.year, pillars.month, pillars.day, pillars.hour];
 
-    // 3. Sum Tai Xuan Values (The Static Chart)
-    const staticScore = TiebanEngine.getTaiXuanScore(pillarStrings);
+    // 3. PDF page 45-46: 计算各柱数值
+    const yearValue = TiebanEngine.getPillarValue(pillars.year);
+    const monthValue = TiebanEngine.getPillarValue(pillars.month);
+    const dayValue = TiebanEngine.getPillarValue(pillars.day);
+    const hourValue = TiebanEngine.getPillarValue(pillars.hour);
 
-    // Calculate individual sums for reference
+    // 4. 分别计算天干和地支之和
     let stemSum = 0;
     let branchSum = 0;
     pillarStrings.forEach(pillar => {
@@ -298,16 +337,21 @@ export const TiebanEngine = {
       }
     });
 
-    // 4. Calculate "Dynamic Minute Factor" (The Moving Qi)
-    // Iron Plate emphasizes that the exact minute changes the "Sound" (Tone)
-    // One Shichen (2 hours) = 120 minutes.
-    // Logic: The static score defines the "Range", the minute defines the "Point".
-    // Formula: (StaticScore * 100) + (Minute * 10)
-    let rawBase = (staticScore * 100) + (input.minute * 10);
+    const staticScore = stemSum + branchSum;
 
-    // 5. Gender Impact (Yang Male / Yin Female logic)
+    // 5. PDF page 48: 基础数计算
+    // 公式: (四柱总和 × 刻分系数) + 分钟调整
+    // 刻分系数确保数值在有效范围内
+    const keIndex = Math.floor(input.minute / 15); // 0-3 刻
+    const minuteOffset = input.minute % 15; // 刻内偏移
+    
+    // 核心公式: 年月日时四柱之和 × 100 + 分钟调整
+    let rawBase = (yearValue + monthValue + dayValue + hourValue) * 100;
+    rawBase += keIndex * 25 + minuteOffset;
+
+    // 6. 性别调整 (阳男阴女)
     if (input.gender === 'female') {
-      rawBase += 500; // Shift for female charts
+      rawBase += 500;
     }
 
     return {
@@ -413,37 +457,47 @@ export const TiebanEngine = {
   },
 
   /**
-   * BAZI-ANCHORED ALGORITHM: Calculate Theoretical Base from BaZi
-   * This is the "Foundation" - pure mathematical calculation from birth data.
-   * Formula: (TaiXuanSum * 100) + (Minute * 10) + GenderShift
+   * PDF page 45-48: BAZI-ANCHORED ALGORITHM
+   * 理论基础数计算 - 基于四柱太玄数
+   * 
+   * 公式: (年柱值 + 月柱值 + 日柱值 + 时柱值) × 系数 + 刻分调整
    */
   calculateTheoreticalBase: (input: TiebanInput): number => {
     const solar = Solar.fromYmdHms(input.year, input.month, input.day, input.hour, input.minute, 0);
     const lunar = solar.getLunar();
-    const pillars = [
-      lunar.getYearInGanZhi(),
-      lunar.getMonthInGanZhi(),
-      lunar.getDayInGanZhi(),
-      lunar.getTimeInGanZhi()
-    ];
-
-    let score = 0;
-    pillars.forEach(p => {
-      if (p.length >= 2) {
-        score += (TAI_XUAN_MAP[p[0]] || 5) + (TAI_XUAN_MAP[p[1]] || 5);
-      }
-    });
-
-    // Formula: (TaiXuanSum * 100) + (Minute * 10)
-    // Creates a unique coordinate for this birth time
-    let base = (score * 100) + (input.minute * 10);
     
-    // Gender shift
+    const yearPillar = lunar.getYearInGanZhi();
+    const monthPillar = lunar.getMonthInGanZhi();
+    const dayPillar = lunar.getDayInGanZhi();
+    const hourPillar = lunar.getTimeInGanZhi();
+
+    // PDF page 45-46: 计算各柱数值
+    const yearValue = TiebanEngine.getPillarValue(yearPillar);
+    const monthValue = TiebanEngine.getPillarValue(monthPillar);
+    const dayValue = TiebanEngine.getPillarValue(dayPillar);
+    const hourValue = TiebanEngine.getPillarValue(hourPillar);
+
+    // PDF page 43: 获取时辰地支的爻数值
+    const hourBranch = hourPillar.charAt(1);
+    const yaoValue = TiebanEngine.getBranchYaoValue(hourBranch);
+
+    // PDF page 48: 核心公式
+    // 基础数 = (年+月+日+时)柱值之和 × 100 + 爻数调整
+    const pillarSum = yearValue + monthValue + dayValue + hourValue;
+    let base = pillarSum * 100 + yaoValue;
+    
+    // 刻分微调 (每15分钟一刻)
+    const keIndex = Math.floor(input.minute / 15);
+    const minuteOffset = input.minute % 15;
+    base += keIndex * 30 + minuteOffset * 2;
+    
+    // 性别调整
     if (input.gender === 'female') {
       base += 500;
     }
 
-    return base % BASE_MODULO;
+    // 确保在有效范围内
+    return ((base - 1) % BASE_MODULO + BASE_MODULO) % BASE_MODULO + 1;
   },
 
   /**
@@ -475,31 +529,40 @@ export const TiebanEngine = {
   },
 
   /**
-   * PROJECTION WITH OFFSET: Calculate destiny using BaZi base + calibrated offset
+   * PDF page 45-48: PROJECTION WITH OFFSET
+   * 终身总评推算 - 基于校正后的基础数计算各宫条文
    * 
-   * PDF page 27-30 核心算法:
-   * 1. 基础数 = 四柱太玄数之和 × 刻分系数
-   * 2. 各宫条文号 = (基础数 + 系统偏移 + 宫位偏移) 规范化到对应宫位范围
+   * 核心算法:
+   * 1. 基础值 = 理论基础数 + 系统偏移
+   * 2. 各宫条文号 = 宫位起始 + (基础值 mod 1000)
+   * 3. 确保每宫条文在其1000条范围内
    * 
-   * 关键修正：每个宫位的条文需要落在其对应的1000条范围内
+   * PDF关键: 条文号直接映射到各宫位的千位段
    */
   projectDestinyWithOffset: (theoreticalBase: number, systemOffset: number): DestinyProjection => {
     /**
-     * 精确计算各宫条文号
-     * 公式: clauseId = ((base + offset) % 1000) + palaceStart
-     * 确保每个宫位的条文在其正确范围内
+     * PDF page 48: 精确计算各宫条文号
+     * 
+     * 公式: clauseId = palaceStart + ((baseValue) % 1000)
+     * 
+     * 例如:
+     * - 命宫(FATE): 1001-2000, 起始=1000
+     * - 婚姻宫(MARRIAGE): 3001-4000, 起始=3000
      */
     const getClauseForPalace = (palaceOffset: number): number => {
-      // 计算基础值
-      const rawValue = theoreticalBase + systemOffset;
+      // 计算综合基础值
+      const baseValue = theoreticalBase + systemOffset;
       
-      // 对1000取模得到宫内偏移(0-999)
-      const inPalaceOffset = ((rawValue % 1000) + 1000) % 1000;
+      // PDF: 对1000取模得到宫内位置(0-999)
+      // 使用正确的模运算确保非负值
+      let inPalaceOffset = baseValue % 1000;
+      if (inPalaceOffset < 0) inPalaceOffset += 1000;
       
-      // 宫位起始点 + 宫内偏移 + 1 (条文从1开始)
+      // 条文号 = 宫位起始 + 宫内位置 + 1
+      // +1 因为条文从1开始而非0
       let clauseId = palaceOffset + inPalaceOffset + 1;
       
-      // 确保在有效范围内
+      // 边界检查
       if (clauseId < MIN_CLAUSE_ID) clauseId = MIN_CLAUSE_ID;
       if (clauseId > MAX_CLAUSE_ID) clauseId = MAX_CLAUSE_ID;
       
@@ -515,11 +578,12 @@ export const TiebanEngine = {
       children: getClauseForPalace(PALACE_OFFSETS.CHILDREN),
     };
 
-    console.log('[终身总评] 推算结果:', {
+    console.log('[终身总评] PDF算法推算:', {
       theoreticalBase,
       systemOffset,
-      rawValue: theoreticalBase + systemOffset,
-      result
+      baseValue: theoreticalBase + systemOffset,
+      inPalaceOffset: (theoreticalBase + systemOffset) % 1000,
+      结果: result
     });
 
     return result;
