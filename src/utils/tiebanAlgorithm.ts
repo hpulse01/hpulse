@@ -342,8 +342,10 @@ export const TiebanEngine = {
     // 5. PDF page 48: 基础数计算
     // 公式: (四柱总和 × 刻分系数) + 分钟调整
     // 刻分系数确保数值在有效范围内
-    const keIndex = Math.floor(input.minute / 15); // 0-3 刻
-    const minuteOffset = input.minute % 15; // 刻内偏移
+    // 使用时辰(两小时)内的刻分：8刻 × 15分钟
+    const minuteInShichen = (input.hour % 2) * 60 + input.minute;
+    const keIndex = Math.floor(minuteInShichen / 15); // 0-7 刻
+    const minuteOffset = minuteInShichen % 15; // 刻内偏移
     
     // 核心公式: 年月日时四柱之和 × 100 + 分钟调整
     let rawBase = (yearValue + monthValue + dayValue + hourValue) * 100;
@@ -487,8 +489,10 @@ export const TiebanEngine = {
     let base = pillarSum * 100 + yaoValue;
     
     // 刻分微调 (每15分钟一刻)
-    const keIndex = Math.floor(input.minute / 15);
-    const minuteOffset = input.minute % 15;
+    // 使用时辰(两小时)内的刻分：8刻 × 15分钟
+    const minuteInShichen = (input.hour % 2) * 60 + input.minute;
+    const keIndex = Math.floor(minuteInShichen / 15);
+    const minuteOffset = minuteInShichen % 15;
     base += keIndex * 30 + minuteOffset * 2;
     
     // 性别调整
