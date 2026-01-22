@@ -142,13 +142,13 @@ export default function AdminUsers() {
 
       if (error) throw error;
 
-      // Update local state
+      // Update local state - Level 3 gets 10 uses/week, Level 2 gets at least 1
       setUsers(users.map(u => 
         u.user_id === targetUserId 
           ? { 
               ...u, 
               level: newLevel, 
-              ai_uses_remaining: newLevel === 'level_3' ? 999 : newLevel === 'level_2' ? Math.max(u.ai_uses_remaining, 1) : u.ai_uses_remaining 
+              ai_uses_remaining: newLevel === 'level_3' ? 10 : newLevel === 'level_2' ? Math.max(u.ai_uses_remaining, 1) : u.ai_uses_remaining 
             }
           : u
       ));
