@@ -83,24 +83,50 @@ export default function AdminUsers() {
   }, [user?.id, authLoading]);
 
   // Fetch users if admin
+  const fetchUsers = async () => {
+    if (!isAdmin || !user?.id) return;
+
+    try {
+      const { data, error } = await (supabase as any).rpc('admin_get_all_users', {
+        p_admin_id: user.id,
+      });
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      toast.error('获取用户列表失败');
+    }
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      if (!isAdmin || !user?.id) return;
-
-      try {
-        const { data, error } = await (supabase as any).rpc('admin_get_all_users', {
-          p_admin_id: user.id,
-        });
-
-        if (error) throw error;
-        setUsers(data || []);
-      } catch (err) {
-        console.error('Error fetching users:', err);
-        toast.error('获取用户列表失败');
-      }
-    };
-
     fetchUsers();
+  }, [isAdmin, user?.id]);
+
+  // Real-time subscription for profiles changes
+  useEffect(() => {
+    if (!isAdmin || !user?.id) return;
+
+    const channel = supabase
+      .channel('admin-profiles-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+        },
+        (payload) => {
+          console.log('Profile change detected:', payload);
+          // Refresh the entire list to get updated data with email
+          fetchUsers();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [isAdmin, user?.id]);
 
   const handleUpdateLevel = async (targetUserId: string, newLevel: UserLevel) => {
@@ -194,18 +220,8 @@ export default function AdminUsers() {
     if (!user?.id) return;
     
     setIsLoading(true);
-    try {
-      const { data, error } = await (supabase as any).rpc('admin_get_all_users', {
-        p_admin_id: user.id,
-      });
-
-      if (error) throw error;
-      setUsers(data || []);
-      toast.success('用户列表已刷新');
-    } catch (err) {
-      console.error('Error fetching users:', err);
-      toast.error('获取用户列表失败');
-    }
+    await fetchUsers();
+    toast.success('用户列表已刷新');
     setIsLoading(false);
   };
 

@@ -23,6 +23,7 @@ export type Database = {
           display_name: string | null
           id: string
           level: Database["public"]["Enums"]["user_level"]
+          status: string
           total_calculations: number
           updated_at: string
           user_id: string
@@ -35,6 +36,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           level?: Database["public"]["Enums"]["user_level"]
+          status?: string
           total_calculations?: number
           updated_at?: string
           user_id: string
@@ -47,6 +49,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           level?: Database["public"]["Enums"]["user_level"]
+          status?: string
           total_calculations?: number
           updated_at?: string
           user_id?: string
@@ -127,6 +130,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_delete_user: {
+        Args: { p_admin_id: string; p_target_user_id: string }
+        Returns: boolean
+      }
       admin_get_all_users: {
         Args: { p_admin_id: string }
         Returns: {
@@ -149,6 +156,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      admin_update_user_status: {
+        Args: {
+          p_admin_id: string
+          p_new_status: string
+          p_target_user_id: string
+        }
+        Returns: boolean
+      }
       can_use_ai: { Args: { p_user_id: string }; Returns: boolean }
       cleanup_old_registration_ips: { Args: never; Returns: undefined }
       consume_ai_use: { Args: { p_user_id: string }; Returns: boolean }
@@ -164,6 +179,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "user"
