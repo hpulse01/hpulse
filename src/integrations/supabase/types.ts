@@ -17,6 +17,7 @@ export type Database = {
       profiles: {
         Row: {
           ai_uses_remaining: number
+          ai_week_start: string | null
           avatar_url: string | null
           created_at: string
           display_name: string | null
@@ -28,6 +29,7 @@ export type Database = {
         }
         Insert: {
           ai_uses_remaining?: number
+          ai_week_start?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
@@ -39,6 +41,7 @@ export type Database = {
         }
         Update: {
           ai_uses_remaining?: number
+          ai_week_start?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null

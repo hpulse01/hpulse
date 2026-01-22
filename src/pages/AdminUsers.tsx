@@ -418,8 +418,10 @@ export default function AdminUsers() {
                         <TableCell>{getLevelBadge(userData.level)}</TableCell>
                         <TableCell>{getStatusBadge(userData.status)}</TableCell>
                         <TableCell>
-                          {userData.level === 'level_4' || userData.level === 'level_3' ? (
+                          {userData.level === 'level_4' ? (
                             <span className="text-primary">无限</span>
+                          ) : userData.level === 'level_3' ? (
+                            <span className="text-primary">{userData.ai_uses_remaining}/周</span>
                           ) : (
                             userData.ai_uses_remaining
                           )}
