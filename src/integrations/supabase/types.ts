@@ -23,6 +23,7 @@ export type Database = {
           display_name: string | null
           id: string
           level: Database["public"]["Enums"]["user_level"]
+          registration_ip: string | null
           status: string
           temp_ai_expires_at: string | null
           temp_ai_uses: number
@@ -38,6 +39,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           level?: Database["public"]["Enums"]["user_level"]
+          registration_ip?: string | null
           status?: string
           temp_ai_expires_at?: string | null
           temp_ai_uses?: number
@@ -53,6 +55,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           level?: Database["public"]["Enums"]["user_level"]
+          registration_ip?: string | null
           status?: string
           temp_ai_expires_at?: string | null
           temp_ai_uses?: number
@@ -136,6 +139,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_batch_update_level: {
+        Args: {
+          p_admin_id: string
+          p_new_level: Database["public"]["Enums"]["user_level"]
+          p_user_ids: string[]
+        }
+        Returns: number
+      }
+      admin_batch_update_status: {
+        Args: { p_admin_id: string; p_new_status: string; p_user_ids: string[] }
+        Returns: number
+      }
       admin_delete_user: {
         Args: { p_admin_id: string; p_target_user_id: string }
         Returns: boolean
@@ -193,6 +208,10 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      save_registration_ip: {
+        Args: { p_ip: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "user"
