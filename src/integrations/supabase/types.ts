@@ -24,6 +24,8 @@ export type Database = {
           id: string
           level: Database["public"]["Enums"]["user_level"]
           status: string
+          temp_ai_expires_at: string | null
+          temp_ai_uses: number
           total_calculations: number
           updated_at: string
           user_id: string
@@ -37,6 +39,8 @@ export type Database = {
           id?: string
           level?: Database["public"]["Enums"]["user_level"]
           status?: string
+          temp_ai_expires_at?: string | null
+          temp_ai_uses?: number
           total_calculations?: number
           updated_at?: string
           user_id: string
@@ -50,6 +54,8 @@ export type Database = {
           id?: string
           level?: Database["public"]["Enums"]["user_level"]
           status?: string
+          temp_ai_expires_at?: string | null
+          temp_ai_uses?: number
           total_calculations?: number
           updated_at?: string
           user_id?: string
@@ -149,6 +155,10 @@ export type Database = {
           total_calculations: number
           user_id: string
         }[]
+      }
+      admin_grant_temp_ai_uses: {
+        Args: { p_admin_id: string; p_target_user_id: string; p_uses: number }
+        Returns: boolean
       }
       admin_update_user_level: {
         Args: {
