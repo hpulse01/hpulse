@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth, UserLevel } from '@/hooks/useAuth';
 import { Loader2, LogIn, UserPlus, Crown, Star, User, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { WelcomeDialog } from './WelcomeDialog';
 
 interface AuthModalProps {
   open: boolean;
@@ -58,6 +59,8 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [registeredName, setRegisteredName] = useState('');
   
   // Form states
   const [email, setEmail] = useState('');
@@ -111,12 +114,12 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         variant: 'destructive',
       });
     } else {
-      toast({
-        title: '注册成功',
-        description: '账户已创建，欢迎使用！',
-      });
+      // Close auth modal and show welcome dialog
+      setRegisteredName(displayName || email.split('@')[0]);
       onOpenChange(false);
       resetForm();
+      // Small delay to ensure auth modal closes first
+      setTimeout(() => setShowWelcome(true), 300);
     }
     
     setIsSubmitting(false);
@@ -129,6 +132,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange} modal>
       <DialogContent className="sm:max-w-md bg-card border-primary/20" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader className="text-center">
@@ -269,6 +273,14 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         </div>
       </DialogContent>
     </Dialog>
+    
+    {/* Welcome Dialog for new registrations */}
+    <WelcomeDialog 
+      open={showWelcome} 
+      onOpenChange={setShowWelcome}
+      displayName={registeredName}
+    />
+  </>
   );
 }
 
