@@ -24,7 +24,16 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Shield, Users, Crown, Star, ArrowLeft, RefreshCw, Ban, Power, Trash2, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Shield, Users, Crown, Star, ArrowLeft, RefreshCw, Ban, Power, Trash2, ShieldCheck, AlertTriangle, Gift, Clock } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 type UserStatus = 'active' | 'banned' | 'disabled';
 
@@ -38,6 +47,8 @@ interface UserData {
   total_calculations: number;
   created_at: string;
   is_protected: boolean;
+  temp_ai_uses: number;
+  temp_ai_expires_at: string | null;
 }
 
 export default function AdminUsers() {
@@ -50,6 +61,9 @@ export default function AdminUsers() {
   const [updatingUser, setUpdatingUser] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
+  const [grantAIDialogOpen, setGrantAIDialogOpen] = useState(false);
+  const [userToGrant, setUserToGrant] = useState<UserData | null>(null);
+  const [grantAmount, setGrantAmount] = useState<number>(5);
 
   // Check if current user is admin
   useEffect(() => {
@@ -214,6 +228,47 @@ export default function AdminUsers() {
     setUpdatingUser(null);
     setDeleteDialogOpen(false);
     setUserToDelete(null);
+  };
+
+  const handleGrantTempAI = async () => {
+    if (!user?.id || !userToGrant || grantAmount <= 0) return;
+
+    setUpdatingUser(userToGrant.user_id);
+    try {
+      const { error } = await (supabase as any).rpc('admin_grant_temp_ai_uses', {
+        p_admin_id: user.id,
+        p_target_user_id: userToGrant.user_id,
+        p_uses: grantAmount,
+      });
+
+      if (error) throw error;
+
+      // Calculate new expiration (3 days from now)
+      const newExpiration = new Date();
+      newExpiration.setDate(newExpiration.getDate() + 3);
+
+      // Update local state
+      setUsers(users.map(u => 
+        u.user_id === userToGrant.user_id 
+          ? { 
+              ...u, 
+              temp_ai_uses: (u.temp_ai_uses || 0) + grantAmount,
+              temp_ai_expires_at: u.temp_ai_expires_at && new Date(u.temp_ai_expires_at) > new Date() 
+                ? u.temp_ai_expires_at 
+                : newExpiration.toISOString()
+            }
+          : u
+      ));
+
+      toast.success(`已为 ${userToGrant.display_name || userToGrant.email} 增加 ${grantAmount} 次临时AI次数（3天有效期）`);
+    } catch (err: any) {
+      console.error('Error granting temp AI uses:', err);
+      toast.error(err.message || '增加临时AI次数失败');
+    }
+    setUpdatingUser(null);
+    setGrantAIDialogOpen(false);
+    setUserToGrant(null);
+    setGrantAmount(5);
   };
 
   const refreshUsers = async () => {
@@ -434,13 +489,26 @@ export default function AdminUsers() {
                         <TableCell>{getLevelBadge(userData.level)}</TableCell>
                         <TableCell>{getStatusBadge(userData.status)}</TableCell>
                         <TableCell>
-                          {userData.level === 'level_4' ? (
-                            <span className="text-primary">无限</span>
-                          ) : userData.level === 'level_3' ? (
-                            <span className="text-primary">{userData.ai_uses_remaining}/周</span>
-                          ) : (
-                            userData.ai_uses_remaining
-                          )}
+                          <div className="space-y-1">
+                            {userData.level === 'level_4' ? (
+                              <span className="text-primary">无限</span>
+                            ) : userData.level === 'level_3' ? (
+                              <span className="text-primary">{userData.ai_uses_remaining}/周</span>
+                            ) : (
+                              <span>{userData.ai_uses_remaining}</span>
+                            )}
+                            {/* Show temporary AI uses if active */}
+                            {userData.temp_ai_uses > 0 && userData.temp_ai_expires_at && (
+                              <div className="flex items-center gap-1 text-xs">
+                                <Gift className="w-3 h-3 text-primary" />
+                                <span className="text-primary">+{userData.temp_ai_uses}临时</span>
+                                <Clock className="w-3 h-3 text-muted-foreground ml-1" />
+                                <span className="text-muted-foreground">
+                                  {new Date(userData.temp_ai_expires_at).toLocaleDateString('zh-CN')}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {new Date(userData.created_at).toLocaleDateString('zh-CN')}
@@ -506,19 +574,34 @@ export default function AdminUsers() {
                                 </Button>
                               )}
                               {isSuperAdmin && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => {
-                                    setUserToDelete(userData);
-                                    setDeleteDialogOpen(true);
-                                  }}
-                                  disabled={updatingUser === userData.user_id}
-                                  title="删除用户"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                                    onClick={() => {
+                                      setUserToGrant(userData);
+                                      setGrantAIDialogOpen(true);
+                                    }}
+                                    disabled={updatingUser === userData.user_id}
+                                    title="增加临时AI次数"
+                                  >
+                                    <Gift className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => {
+                                      setUserToDelete(userData);
+                                      setDeleteDialogOpen(true);
+                                    }}
+                                    disabled={updatingUser === userData.user_id}
+                                    title="删除用户"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </>
                               )}
                             </div>
                           )}
@@ -557,6 +640,43 @@ export default function AdminUsers() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Grant Temporary AI Uses Dialog */}
+        <Dialog open={grantAIDialogOpen} onOpenChange={setGrantAIDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-primary">
+                <Gift className="w-5 h-5" />
+                增加临时AI次数
+              </DialogTitle>
+              <DialogDescription>
+                为用户 <strong>{userToGrant?.display_name || userToGrant?.email}</strong> 增加临时AI解读次数，有效期3天。
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <label className="text-sm font-medium mb-2 block">增加次数</label>
+              <Input
+                type="number"
+                min={1}
+                max={100}
+                value={grantAmount}
+                onChange={(e) => setGrantAmount(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                临时次数将优先于常规次数消耗，过期后自动清除
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setGrantAIDialogOpen(false)}>
+                取消
+              </Button>
+              <Button onClick={handleGrantTempAI} disabled={updatingUser === userToGrant?.user_id}>
+                确认增加
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

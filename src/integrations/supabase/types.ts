@@ -144,6 +144,8 @@ export type Database = {
           is_protected: boolean
           level: Database["public"]["Enums"]["user_level"]
           status: string
+          temp_ai_expires_at: string
+          temp_ai_uses: number
           total_calculations: number
           user_id: string
         }[]
