@@ -76,18 +76,21 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          created_at: string
           id: string
-          role: Database["public"]["Enums"]["user_level"]
+          role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          created_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["user_level"]
+          role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          created_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["user_level"]
+          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: []
@@ -97,14 +100,43 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_get_all_users: {
+        Args: { p_admin_id: string }
+        Returns: {
+          ai_uses_remaining: number
+          created_at: string
+          display_name: string
+          email: string
+          level: Database["public"]["Enums"]["user_level"]
+          total_calculations: number
+          user_id: string
+        }[]
+      }
+      admin_update_user_level: {
+        Args: {
+          p_admin_id: string
+          p_new_level: Database["public"]["Enums"]["user_level"]
+          p_target_user_id: string
+        }
+        Returns: boolean
+      }
       can_use_ai: { Args: { p_user_id: string }; Returns: boolean }
       consume_ai_use: { Args: { p_user_id: string }; Returns: boolean }
       get_user_level: {
         Args: { p_user_id: string }
         Returns: Database["public"]["Enums"]["user_level"]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
+      app_role: "super_admin" | "admin" | "user"
       user_level: "level_1" | "level_2" | "level_3"
     }
     CompositeTypes: {
@@ -233,6 +265,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["super_admin", "admin", "user"],
       user_level: ["level_1", "level_2", "level_3"],
     },
   },
