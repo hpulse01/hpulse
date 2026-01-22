@@ -2,6 +2,7 @@
  * AI Interpretation Component (Enhanced)
  * Provides AI-powered deep interpretation of destiny clauses
  * Integrates BaZi, Iron Plate, and Liu Yao for comprehensive analysis
+ * Supports continuation when response is incomplete
  */
 
 import { useState } from 'react';
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { Sparkles, ChevronDown, ChevronUp, Loader2, BookOpen, Zap, Clock, Gem } from 'lucide-react';
+import { Sparkles, ChevronDown, ChevronUp, Loader2, BookOpen, Zap, Clock, Gem, ArrowRight } from 'lucide-react';
 import type { BaZiProfile } from '@/utils/tiebanAlgorithm';
 import type { LiuYaoResult } from '@/utils/liuYaoAlgorithm';
 import { useAuth } from '@/hooks/useAuth';
@@ -84,6 +85,22 @@ function getHeaderIcon(text: string) {
   return <Sparkles className="w-4 h-4" />;
 }
 
+// Check if interpretation appears incomplete
+function isIncomplete(text: string): boolean {
+  const trimmed = text.trim();
+  // Check for incomplete endings
+  if (trimmed.endsWith('...') || trimmed.endsWith('：') || trimmed.endsWith(':')) return true;
+  // Check if it ends mid-sentence (no punctuation)
+  const lastChar = trimmed.slice(-1);
+  const endPunctuation = ['。', '！', '？', '.', '!', '?', '】', '）', ')'];
+  // Check for expected sections
+  const hasOpeningGuide = trimmed.includes('开运') || trimmed.includes('指南') || trimmed.includes('建议');
+  const hasConclusion = trimmed.includes('总结') || trimmed.includes('综上');
+  // If content is long but missing key sections, likely incomplete
+  if (trimmed.length > 500 && !hasOpeningGuide && !hasConclusion) return true;
+  return false;
+}
+
 export function AIInterpretation({
   clauseContent,
   aspectLabel,
@@ -97,8 +114,63 @@ export function AIInterpretation({
   const { consumeAIUse, profile } = useAuth();
   const [interpretation, setInterpretation] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isContinuing, setIsContinuing] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showContinue, setShowContinue] = useState(false);
+
+  const buildRequestBody = () => {
+    const requestBody: Record<string, unknown> = {
+      clauseContent,
+      aspectLabel,
+      pillarsDisplay,
+      currentAge,
+      daYunInfo,
+      allAspects,
+    };
+
+    // Enhanced BaZi profile with deep analysis data
+    if (baziProfile) {
+      requestBody.baziProfile = {
+        dayMaster: baziProfile.dayMaster,
+        dayMasterElement: baziProfile.dayMasterElement,
+        strength: baziProfile.strength,
+        favorableElements: baziProfile.favorableElements,
+        unfavorableElements: baziProfile.unfavorableElements,
+        pillars: baziProfile.pillars,
+        ...(baziProfile as any).tenGods && { tenGods: (baziProfile as any).tenGods },
+        ...(baziProfile as any).naYinAnalysis && { naYin: (baziProfile as any).naYinAnalysis },
+        ...(baziProfile as any).pattern && { pattern: (baziProfile as any).pattern },
+      };
+    }
+
+    // Enhanced hexagram data
+    if (hexagram) {
+      const movingRelatives = hexagram.mainHexagram.lines
+        .filter(l => l.isChanging)
+        .map(l => l.relative);
+      
+      const elementCounts: Record<string, number> = {};
+      hexagram.mainHexagram.lines.forEach(l => {
+        elementCounts[l.element] = (elementCounts[l.element] || 0) + 1;
+      });
+      const dominantElement = Object.entries(elementCounts)
+        .sort((a, b) => b[1] - a[1])[0]?.[0];
+
+      requestBody.hexagram = {
+        name: hexagram.mainHexagram.name,
+        symbol: hexagram.mainHexagram.symbol,
+        lines: hexagram.mainHexagram.lines.map(l => l.value),
+        changingLines: hexagram.mainHexagram.changingLines,
+        interpretation: hexagram.interpretation,
+        targetHexagramName: hexagram.mainHexagram.targetHexagram?.name,
+        dominantElement,
+        movingRelatives: movingRelatives.length > 0 ? [...new Set(movingRelatives)] : undefined,
+      };
+    }
+
+    return requestBody;
+  };
 
   const handleInterpret = async () => {
     if (interpretation) {
@@ -108,6 +180,7 @@ export function AIInterpretation({
 
     setIsLoading(true);
     setError(null);
+    setShowContinue(false);
 
     try {
       // Consume AI use if user is level_2
@@ -118,58 +191,7 @@ export function AIInterpretation({
         }
       }
 
-      // Build enhanced request body
-      const requestBody: Record<string, unknown> = {
-        clauseContent,
-        aspectLabel,
-        pillarsDisplay,
-        currentAge,
-        daYunInfo,
-        allAspects,
-      };
-
-      // Enhanced BaZi profile with deep analysis data
-      if (baziProfile) {
-        requestBody.baziProfile = {
-          dayMaster: baziProfile.dayMaster,
-          dayMasterElement: baziProfile.dayMasterElement,
-          strength: baziProfile.strength,
-          favorableElements: baziProfile.favorableElements,
-          unfavorableElements: baziProfile.unfavorableElements,
-          pillars: baziProfile.pillars,
-          // Additional deep analysis fields if available
-          ...(baziProfile as any).tenGods && { tenGods: (baziProfile as any).tenGods },
-          ...(baziProfile as any).naYinAnalysis && { naYin: (baziProfile as any).naYinAnalysis },
-          ...(baziProfile as any).pattern && { pattern: (baziProfile as any).pattern },
-        };
-      }
-
-      // Enhanced hexagram data
-      if (hexagram) {
-        // Get moving relatives from lines
-        const movingRelatives = hexagram.mainHexagram.lines
-          .filter(l => l.isChanging)
-          .map(l => l.relative);
-        
-        // Get dominant element
-        const elementCounts: Record<string, number> = {};
-        hexagram.mainHexagram.lines.forEach(l => {
-          elementCounts[l.element] = (elementCounts[l.element] || 0) + 1;
-        });
-        const dominantElement = Object.entries(elementCounts)
-          .sort((a, b) => b[1] - a[1])[0]?.[0];
-
-        requestBody.hexagram = {
-          name: hexagram.mainHexagram.name,
-          symbol: hexagram.mainHexagram.symbol,
-          lines: hexagram.mainHexagram.lines.map(l => l.value),
-          changingLines: hexagram.mainHexagram.changingLines,
-          interpretation: hexagram.interpretation,
-          targetHexagramName: hexagram.mainHexagram.targetHexagram?.name,
-          dominantElement,
-          movingRelatives: movingRelatives.length > 0 ? [...new Set(movingRelatives)] : undefined,
-        };
-      }
+      const requestBody = buildRequestBody();
 
       const { data, error: fnError } = await supabase.functions.invoke('ai-interpret', {
         body: requestBody,
@@ -177,13 +199,45 @@ export function AIInterpretation({
 
       if (fnError) throw fnError;
 
-      setInterpretation(data.interpretation);
+      const result = data.interpretation;
+      setInterpretation(result);
       setIsExpanded(true);
+      setShowContinue(isIncomplete(result));
     } catch (err: any) {
       console.error('AI interpretation error:', err);
       setError(err.message || '解读失败，请重试');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleContinue = async () => {
+    if (!interpretation) return;
+
+    setIsContinuing(true);
+    setError(null);
+
+    try {
+      const requestBody = buildRequestBody();
+      // Add previous content for continuation
+      requestBody.previousContent = interpretation;
+      requestBody.continueGeneration = true;
+
+      const { data, error: fnError } = await supabase.functions.invoke('ai-interpret', {
+        body: requestBody,
+      });
+
+      if (fnError) throw fnError;
+
+      const continued = data.interpretation;
+      const newInterpretation = interpretation + '\n\n' + continued;
+      setInterpretation(newInterpretation);
+      setShowContinue(isIncomplete(continued));
+    } catch (err: any) {
+      console.error('AI continue error:', err);
+      setError(err.message || '继续生成失败，请重试');
+    } finally {
+      setIsContinuing(false);
     }
   };
 
@@ -243,6 +297,31 @@ export function AIInterpretation({
           <div className="prose prose-sm prose-invert max-w-none space-y-1">
             {formatInterpretation(interpretation)}
           </div>
+          
+          {/* Continue Button */}
+          {(showContinue || isContinuing) && (
+            <div className="mt-4 pt-4 border-t border-primary/20">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleContinue}
+                disabled={isContinuing}
+                className="w-full border-primary/30 hover:bg-primary/10 hover:border-primary"
+              >
+                {isContinuing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    正在继续生成...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="w-4 h-4 mr-2" />
+                    继续生成
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>
