@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { BirthDataForm } from '@/components/BirthDataForm';
 import { SixRelationsVerification } from '@/components/SixRelationsVerification';
 import { DestinyDashboard } from '@/components/DestinyDashboard';
@@ -180,6 +181,11 @@ const Index = () => {
               <p className="text-muted-foreground text-xs md:text-sm tracking-wider">
                 Iron Plate Divine Number System
               </p>
+              <div className="mt-3 flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
+                <Link to="/ziwei" className="hover:text-primary transition-colors">
+                  紫微斗数命盘
+                </Link>
+              </div>
               {clauseCount !== null && clauseCount > 0 && (
                 <p className="text-muted-foreground/50 text-xs mt-2">
                   条文库: {clauseCount.toLocaleString()} 条

@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import AdminImport from "./pages/AdminImport";
 import AdminUsers from "./pages/AdminUsers";
 import NotFound from "./pages/NotFound";
+import Ziwei from "./pages/Ziwei";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/ziwei" element={<Ziwei />} />
             <Route path="/admin-import" element={<AdminImport />} />
             <Route path="/admin-users" element={<AdminUsers />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
