@@ -4,7 +4,7 @@ import { SixRelationsVerification } from '@/components/SixRelationsVerification'
 import { DestinyDashboard } from '@/components/DestinyDashboard';
 import { Footer } from '@/components/Footer';
 import { UserMenu } from '@/components/UserMenu';
-import { ZiweiPanel } from '@/components/ZiweiPanel';
+
 import { getClauseCount } from '@/services/SupabaseService';
 import { 
   TiebanEngine,
@@ -306,11 +306,6 @@ const Index = () => {
         </div>
       </main>
 
-      <section className="py-10 md:py-14 border-t border-border/30">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <ZiweiPanel />
-        </div>
-      </section>
 
       {/* Footer */}
       <Footer />
