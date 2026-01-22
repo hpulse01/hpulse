@@ -114,8 +114,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [fetchProfile]);
 
+  const checkRegistrationIP = useCallback(async (): Promise<{ allowed: boolean; message?: string }> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('check-registration-ip', {
+        body: { action: 'check' },
+      });
+      
+      if (error) {
+        console.error('IP check error:', error);
+        return { allowed: true }; // Allow on error to not block legitimate users
+      }
+      
+      return { allowed: data.allowed, message: data.message };
+    } catch (err) {
+      console.error('IP check failed:', err);
+      return { allowed: true }; // Allow on error
+    }
+  }, []);
+
+  const recordRegistrationIP = useCallback(async () => {
+    try {
+      await supabase.functions.invoke('check-registration-ip', {
+        body: { 
+          action: 'record',
+          userAgent: navigator.userAgent,
+        },
+      });
+    } catch (err) {
+      console.error('Failed to record IP:', err);
+    }
+  }, []);
+
   const signUp = useCallback(async (email: string, password: string, displayName?: string) => {
     try {
+      // Check IP restriction first
+      const ipCheck = await checkRegistrationIP();
+      if (!ipCheck.allowed) {
+        return { error: new Error(ipCheck.message || '注册受限，请稍后再试') };
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -126,11 +163,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           },
         },
       });
+      
+      // Record IP after successful signup
+      if (!error) {
+        await recordRegistrationIP();
+      }
+      
       return { error };
     } catch (err) {
       return { error: err as Error };
     }
-  }, []);
+  }, [checkRegistrationIP, recordRegistrationIP]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     try {
