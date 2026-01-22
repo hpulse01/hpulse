@@ -3,7 +3,8 @@
  * Shows user status, login button, or user dropdown
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -16,13 +17,33 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth, UserLevel } from '@/hooks/useAuth';
 import { AuthModal, UserLevelBadge } from '@/components/AuthModal';
+import { supabase } from '@/integrations/supabase/client';
 import { 
-  User, LogOut, Sparkles, Crown, Star, ChevronDown 
+  User, LogOut, Sparkles, Crown, Star, ChevronDown, Shield, Settings
 } from 'lucide-react';
 
 export function UserMenu() {
   const { user, profile, isAuthenticated, isLoading, signOut, canUseAI } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const navigate = useNavigate();
+
+  // Check admin status
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!user?.id) {
+        setIsAdmin(false);
+        return;
+      }
+      try {
+        const { data } = await (supabase as any).rpc('is_admin', { _user_id: user.id });
+        setIsAdmin(data === true);
+      } catch {
+        setIsAdmin(false);
+      }
+    };
+    checkAdmin();
+  }, [user?.id]);
 
   if (isLoading) {
     return (
@@ -55,7 +76,8 @@ export function UserMenu() {
           size="sm"
           className="border-primary/30 hover:border-primary hover:bg-primary/10"
         >
-          <User className="w-4 h-4 mr-2" />
+          {profile?.level === 'level_4' && <Shield className="w-4 h-4 mr-1 text-red-500" />}
+          {profile?.level !== 'level_4' && <User className="w-4 h-4 mr-2" />}
           {profile?.display_name || user?.email?.split('@')[0] || '用户'}
           <ChevronDown className="w-3 h-3 ml-1" />
         </Button>
@@ -90,6 +112,11 @@ export function UserMenu() {
             </div>
           )}
           {profile?.level === 'level_3' && (
+            <div className="text-muted-foreground">
+              本周剩余: {profile.ai_uses_remaining}/10
+            </div>
+          )}
+          {profile?.level === 'level_4' && (
             <div className="text-primary flex items-center gap-1">
               <Crown className="w-3 h-3" />
               无限使用
@@ -98,6 +125,19 @@ export function UserMenu() {
         </div>
         
         <DropdownMenuSeparator />
+        
+        {isAdmin && (
+          <>
+            <DropdownMenuItem 
+              onClick={() => navigate('/admin-users')}
+              className="cursor-pointer"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              用户管理
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         
         <DropdownMenuItem 
           onClick={() => signOut()}
