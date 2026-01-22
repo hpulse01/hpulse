@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { BirthDataForm } from '@/components/BirthDataForm';
 import { SixRelationsVerification } from '@/components/SixRelationsVerification';
 import { DestinyDashboard } from '@/components/DestinyDashboard';
 import { Footer } from '@/components/Footer';
+import { UserMenu } from '@/components/UserMenu';
 import { getClauseCount } from '@/services/SupabaseService';
 import { 
   TiebanEngine,
@@ -169,23 +170,31 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
       <header className="py-6 md:py-8 border-b border-border/30">
-        <div className="container max-w-2xl mx-auto px-4 text-center">
-          <h1 className="text-3xl md:text-5xl font-serif text-primary tracking-[0.2em] mb-2">
-            铁板神数
-          </h1>
-          <p className="text-muted-foreground text-xs md:text-sm tracking-wider">
-            Iron Plate Divine Number System
-          </p>
-          {clauseCount !== null && clauseCount > 0 && (
-            <p className="text-muted-foreground/50 text-xs mt-2">
-              条文库: {clauseCount.toLocaleString()} 条
-            </p>
-          )}
-          {clauseCount === 0 && (
-            <p className="text-accent/70 text-xs mt-2">
-              ⚠ 条文库为空，请先导入数据 → <a href="/admin-import" className="underline hover:text-accent">导入页面</a>
-            </p>
-          )}
+        <div className="container max-w-3xl mx-auto px-4">
+          <div className="flex items-center justify-between">
+            <div className="flex-1" />
+            <div className="text-center flex-1">
+              <h1 className="text-3xl md:text-5xl font-serif text-primary tracking-[0.2em] mb-2">
+                铁板神数
+              </h1>
+              <p className="text-muted-foreground text-xs md:text-sm tracking-wider">
+                Iron Plate Divine Number System
+              </p>
+              {clauseCount !== null && clauseCount > 0 && (
+                <p className="text-muted-foreground/50 text-xs mt-2">
+                  条文库: {clauseCount.toLocaleString()} 条
+                </p>
+              )}
+              {clauseCount === 0 && (
+                <p className="text-accent/70 text-xs mt-2">
+                  ⚠ 条文库为空，请先导入数据 → <a href="/admin-import" className="underline hover:text-accent">导入页面</a>
+                </p>
+              )}
+            </div>
+            <div className="flex-1 flex justify-end">
+              <UserMenu />
+            </div>
+          </div>
         </div>
       </header>
 
