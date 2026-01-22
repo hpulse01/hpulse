@@ -259,6 +259,32 @@ export function DestinyDashboard({
     return now.getFullYear() - birthYear;
   }, [birthYear]);
 
+  // Calculate Ziwei profile for AI interpretation
+  const ziweiProfile = useMemo(() => {
+    const { ZiweiEngine } = require('@/utils/ziweiAlgorithm');
+    const report = ZiweiEngine.generateReport({
+      year: birthData.year,
+      month: birthData.month,
+      day: birthData.day,
+      hour: birthData.hour,
+      gender: birthData.gender,
+    });
+    
+    // Branch element mapping
+    const branchElements: Record<string, string> = {
+      '子': '水', '丑': '土', '寅': '木', '卯': '木', '辰': '土', '巳': '火',
+      '午': '火', '未': '土', '申': '金', '酉': '金', '戌': '土', '亥': '水',
+    };
+    
+    return {
+      mingGong: report.mingGong,
+      shenGong: report.shenGong,
+      mingElement: branchElements[report.mingGong] || '',
+      shenElement: branchElements[report.shenGong] || '',
+      palaces: report.palaces.map((p: any) => ({ name: p.name, branch: p.branch })),
+    };
+  }, [birthData]);
+
   // Load destiny aspects on mount
   useEffect(() => {
     const loadAspects = async () => {
@@ -470,6 +496,7 @@ export function DestinyDashboard({
                     pillarsDisplay={pillarsDisplay}
                     baziProfile={report.baziProfile}
                     hexagram={hexagramResult}
+                    ziweiProfile={ziweiProfile}
                   />
                 ) : (
                   <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/30 text-xs sm:text-sm text-muted-foreground flex items-center gap-1 sm:gap-2">
@@ -554,6 +581,7 @@ export function DestinyDashboard({
                 pillarsDisplay={pillarsDisplay}
                 baziProfile={report.baziProfile}
                 hexagram={hexagramResult}
+                ziweiProfile={ziweiProfile}
                 allAspects={loadedAspects.map(a => ({ label: a.label, content: a.content }))}
               />
             </div>
@@ -598,6 +626,7 @@ export function DestinyDashboard({
                           pillarsDisplay={pillarsDisplay}
                           baziProfile={report.baziProfile}
                           hexagram={hexagramResult}
+                          ziweiProfile={ziweiProfile}
                           allAspects={loadedAspects.map(a => ({ label: a.label, content: a.content }))}
                         />
                       ) : (
