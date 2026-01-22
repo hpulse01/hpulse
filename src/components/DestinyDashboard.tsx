@@ -25,6 +25,7 @@ import { LiuYaoDeepAnalysis } from '@/components/LiuYaoDeepAnalysis';
 import { ZiweiDisplay } from '@/components/ZiweiDisplay';
 import { useAuth } from '@/hooks/useAuth';
 import { calculateLiuYaoHexagram } from '@/utils/liuYaoAlgorithm';
+import { ZiweiEngine } from '@/utils/ziweiAlgorithm';
 import { 
   RotateCcw, Scroll, Sparkles, Heart, Coins, Briefcase, 
   Activity, Baby, Calendar, Zap, Mountain, Flame, Droplet, 
@@ -268,8 +269,7 @@ export function DestinyDashboard({
 
   // Calculate Ziwei profile for AI interpretation
   const ziweiProfile = useMemo(() => {
-    const { ZiweiEngine } = require('@/utils/ziweiAlgorithm');
-    const report = ZiweiEngine.generateReport({
+    const ziweiReport = ZiweiEngine.generateReport({
       year: birthData.year,
       month: birthData.month,
       day: birthData.day,
@@ -284,11 +284,11 @@ export function DestinyDashboard({
     };
     
     return {
-      mingGong: report.mingGong,
-      shenGong: report.shenGong,
-      mingElement: branchElements[report.mingGong] || '',
-      shenElement: branchElements[report.shenGong] || '',
-      palaces: report.palaces.map((p: any) => ({ name: p.name, branch: p.branch })),
+      mingGong: ziweiReport.mingGong,
+      shenGong: ziweiReport.shenGong,
+      mingElement: branchElements[ziweiReport.mingGong] || '',
+      shenElement: branchElements[ziweiReport.shenGong] || '',
+      palaces: ziweiReport.palaces.map((p: any) => ({ name: p.name, branch: p.branch })),
     };
   }, [birthData]);
 
