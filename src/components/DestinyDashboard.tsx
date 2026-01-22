@@ -142,6 +142,177 @@ function DaYunItem({
   );
 }
 
+// Da Yun Expanded Panel with 10 Flow Years
+function DaYunExpandedPanel({
+  daYun,
+  daYunIndex,
+  flowYears,
+  baziProfile,
+  pillarsDisplay,
+  hexagramResult,
+  ziweiProfile,
+  canUseAI,
+  isAuthenticated,
+  birthYear,
+}: {
+  daYun: { startAge: number; endAge: number; ganZhi: string; element: string; startYear: number };
+  daYunIndex: number;
+  flowYears: FlowYearClause[];
+  baziProfile: any;
+  pillarsDisplay: string;
+  hexagramResult: any;
+  ziweiProfile: any;
+  canUseAI: boolean;
+  isAuthenticated: boolean;
+  birthYear: number;
+}) {
+  const [loadedContents, setLoadedContents] = useState<Map<number, string>>(new Map());
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Get flow years for this Da Yun period
+  const daYunFlowYears = useMemo(() => {
+    return flowYears.filter(fy => fy.age >= daYun.startAge && fy.age <= daYun.endAge);
+  }, [flowYears, daYun]);
+
+  // Load clause contents
+  useEffect(() => {
+    const loadContents = async () => {
+      setIsLoading(true);
+      const clauseNumbers = daYunFlowYears.map(fy => fy.clauseNumber);
+      const clauses = await fetchClausesByNumbers(clauseNumbers);
+      
+      const contentMap = new Map<number, string>();
+      clauses.forEach(clause => {
+        contentMap.set(clause.clause_number, clause.content);
+      });
+      setLoadedContents(contentMap);
+      setIsLoading(false);
+    };
+    
+    loadContents();
+  }, [daYunFlowYears]);
+
+  const colorClass = ELEMENT_COLORS[daYun.element] || 'text-gray-400 bg-gray-500/20 border-gray-500/30';
+
+  return (
+    <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-primary/10 border border-primary/30 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
+      {/* Da Yun Header */}
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2 sm:mb-3">
+        <h4 className="font-serif text-primary text-base sm:text-lg">
+          第{daYunIndex + 1}步大运 · {daYun.ganZhi}
+        </h4>
+        <Badge variant="outline" className={colorClass}>
+          {daYun.element}运
+        </Badge>
+      </div>
+      
+      {/* Da Yun Info Grid */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
+        <div>
+          <span className="text-muted-foreground">起运年龄:</span>
+          <span className="ml-1 sm:ml-2 text-foreground">{daYun.startAge}岁</span>
+        </div>
+        <div>
+          <span className="text-muted-foreground">结束年龄:</span>
+          <span className="ml-1 sm:ml-2 text-foreground">{daYun.endAge}岁</span>
+        </div>
+        <div>
+          <span className="text-muted-foreground">起运年份:</span>
+          <span className="ml-1 sm:ml-2 text-foreground">{daYun.startYear}年</span>
+        </div>
+        <div>
+          <span className="text-muted-foreground">运势五行:</span>
+          <span className="ml-1 sm:ml-2 text-foreground">{daYun.element}</span>
+        </div>
+      </div>
+      
+      <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground">
+        此运{daYun.element}气当令，
+        {baziProfile.favorableElements.includes(daYun.element) 
+          ? '与命局喜用相合，运势较佳。' 
+          : baziProfile.unfavorableElements.includes(daYun.element)
+            ? '与命局忌神相冲，宜谨慎行事。'
+            : '运势平稳，顺其自然。'}
+      </p>
+      
+      {/* AI Interpretation for Da Yun */}
+      {canUseAI ? (
+        <AIInterpretation
+          clauseContent={`${daYun.ganZhi}大运，${daYun.startAge}-${daYun.endAge}岁，${daYun.element}气当令。${baziProfile.favorableElements.includes(daYun.element) ? '喜用神得力。' : baziProfile.unfavorableElements.includes(daYun.element) ? '忌神临运。' : ''}`}
+          aspectLabel={`第${daYunIndex + 1}步大运 (${daYun.startAge}-${daYun.endAge}岁)`}
+          pillarsDisplay={pillarsDisplay}
+          baziProfile={baziProfile}
+          hexagram={hexagramResult}
+          ziweiProfile={ziweiProfile}
+        />
+      ) : (
+        <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/30 text-xs sm:text-sm text-muted-foreground flex items-center gap-1 sm:gap-2">
+          <Lock className="w-3 h-3 sm:w-4 sm:h-4" />
+          {isAuthenticated ? '升级会员解锁AI解读' : '登录并升级会员解锁AI解读'}
+        </div>
+      )}
+
+      {/* 10 Flow Years within this Da Yun */}
+      <div className="mt-4 pt-4 border-t border-primary/20">
+        <h5 className="text-sm font-serif text-primary mb-3 flex items-center gap-2">
+          <Calendar className="w-4 h-4" />
+          本运流年 ({daYun.startAge}-{daYun.endAge}岁)
+        </h5>
+        
+        {isLoading ? (
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full bg-muted/30" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+            {daYunFlowYears.map(fy => {
+              const content = loadedContents.get(fy.clauseNumber);
+              const hasAgeMatch = content?.includes(`(${fy.age})`) || content?.includes(`${fy.age}岁`);
+              
+              return (
+                <div 
+                  key={fy.age}
+                  className={`
+                    flex gap-3 p-2 sm:p-3 rounded-lg border transition-all
+                    ${hasAgeMatch 
+                      ? 'bg-primary/20 border-primary/50' 
+                      : 'bg-card/30 border-border/30 hover:border-primary/20'}
+                  `}
+                >
+                  {/* Age/Year */}
+                  <div className="flex flex-col items-center min-w-[50px] text-center">
+                    <span className={`text-lg font-serif ${hasAgeMatch ? 'text-primary' : 'text-foreground'}`}>
+                      {fy.age}岁
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">{fy.year}年</span>
+                    <span className="text-[10px] text-primary/60">{fy.ganZhi}</span>
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs leading-relaxed ${hasAgeMatch ? 'text-primary' : 'text-foreground/70'}`}>
+                      {content || '条文加载中...'}
+                    </p>
+                    <span className="text-[10px] text-muted-foreground">#{fy.clauseNumber}</span>
+                  </div>
+                  
+                  {hasAgeMatch && (
+                    <Badge className="shrink-0 bg-primary/80 text-primary-foreground text-[10px] h-5">
+                      应验
+                    </Badge>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Flow Year Timeline Item with AI
 function FlowYearItem({ 
   flowYear, 
@@ -459,59 +630,18 @@ export function DestinyDashboard({
             
             {/* Selected Da Yun Details with AI */}
             {selectedDaYunIndex !== null && selectedDaYun && (
-              <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-primary/10 border border-primary/30 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-2 sm:mb-3">
-                  <h4 className="font-serif text-primary text-base sm:text-lg">
-                    第{selectedDaYunIndex + 1}步大运 · {selectedDaYun.ganZhi}
-                  </h4>
-                  <Badge variant="outline" className={ELEMENT_COLORS[selectedDaYun.element]}>
-                    {selectedDaYun.element}运
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
-                  <div>
-                    <span className="text-muted-foreground">起运年龄:</span>
-                    <span className="ml-1 sm:ml-2 text-foreground">{selectedDaYun.startAge}岁</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">结束年龄:</span>
-                    <span className="ml-1 sm:ml-2 text-foreground">{selectedDaYun.endAge}岁</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">起运年份:</span>
-                    <span className="ml-1 sm:ml-2 text-foreground">{selectedDaYun.startYear}年</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">运势五行:</span>
-                    <span className="ml-1 sm:ml-2 text-foreground">{selectedDaYun.element}</span>
-                  </div>
-                </div>
-                <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground">
-                  此运{selectedDaYun.element}气当令，
-                  {report.baziProfile.favorableElements.includes(selectedDaYun.element) 
-                    ? '与命局喜用相合，运势较佳。' 
-                    : report.baziProfile.unfavorableElements.includes(selectedDaYun.element)
-                      ? '与命局忌神相冲，宜谨慎行事。'
-                      : '运势平稳，顺其自然。'}
-                </p>
-                
-                {/* AI Interpretation for Da Yun */}
-                {canUseAI ? (
-                  <AIInterpretation
-                    clauseContent={`${selectedDaYun.ganZhi}大运，${selectedDaYun.startAge}-${selectedDaYun.endAge}岁，${selectedDaYun.element}气当令。${report.baziProfile.favorableElements.includes(selectedDaYun.element) ? '喜用神得力。' : report.baziProfile.unfavorableElements.includes(selectedDaYun.element) ? '忌神临运。' : ''}`}
-                    aspectLabel={`第${selectedDaYunIndex + 1}步大运 (${selectedDaYun.startAge}-${selectedDaYun.endAge}岁)`}
-                    pillarsDisplay={pillarsDisplay}
-                    baziProfile={report.baziProfile}
-                    hexagram={hexagramResult}
-                    ziweiProfile={ziweiProfile}
-                  />
-                ) : (
-                  <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/30 text-xs sm:text-sm text-muted-foreground flex items-center gap-1 sm:gap-2">
-                    <Lock className="w-3 h-3 sm:w-4 sm:h-4" />
-                    {isAuthenticated ? '升级会员解锁AI解读' : '登录并升级会员解锁AI解读'}
-                  </div>
-                )}
-              </div>
+              <DaYunExpandedPanel
+                daYun={selectedDaYun}
+                daYunIndex={selectedDaYunIndex}
+                flowYears={report.flowYears}
+                baziProfile={report.baziProfile}
+                pillarsDisplay={pillarsDisplay}
+                hexagramResult={hexagramResult}
+                ziweiProfile={ziweiProfile}
+                canUseAI={canUseAI}
+                isAuthenticated={isAuthenticated}
+                birthYear={birthYear}
+              />
             )}
           </div>
         </TabsContent>
