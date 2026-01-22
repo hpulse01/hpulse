@@ -52,6 +52,15 @@ interface InterpretRequest {
     movingRelatives?: string[];
   };
   
+  // Ziwei Doushu context
+  ziweiProfile?: {
+    mingGong: string;
+    shenGong: string;
+    mingElement: string;
+    shenElement: string;
+    palaces: { name: string; branch: string }[];
+  };
+  
   // All aspects for comprehensive analysis
   allAspects?: {
     label: string;
@@ -66,8 +75,9 @@ interface InterpretRequest {
   previousContent?: string;
   continueGeneration?: boolean;
   
-  // Ziwei analysis mode
+  // Analysis mode flags
   isZiweiAnalysis?: boolean;
+  isComprehensiveMode?: boolean;
 }
 
 // 铁板神数宫位体系
@@ -121,13 +131,25 @@ serve(async (req) => {
       pillarsDisplay, 
       baziProfile,
       hexagram,
+      ziweiProfile,
       allAspects,
       currentAge,
       daYunInfo,
       previousContent,
       continueGeneration,
-      isZiweiAnalysis
+      isZiweiAnalysis,
+      isComprehensiveMode
     } = body;
+    
+    // Calculate dynamic weights based on available data
+    const availableSystems: string[] = [];
+    if (baziProfile) availableSystems.push('八字');
+    if (hexagram) availableSystems.push('六爻');
+    if (ziweiProfile) availableSystems.push('紫微');
+    if (allAspects && allAspects.length > 0) availableSystems.push('铁板');
+    
+    const systemCount = availableSystems.length;
+    const isMultiSystem = systemCount >= 2;
 
     // =====================
     // 构建深度命理上下文
@@ -245,7 +267,36 @@ serve(async (req) => {
       contextParts.push(hexContext);
     }
 
-    // 3. 当前运程信息
+    // 3. 紫微斗数命盘分析
+    if (ziweiProfile) {
+      let ziweiContext = `【紫微斗数·命盘格局】
+┌─────────────────────────────────────────┐
+│ 命宫: ${ziweiProfile.mingGong}宫 (${ziweiProfile.mingElement || ''}气)
+│ 身宫: ${ziweiProfile.shenGong}宫 (${ziweiProfile.shenElement || ''}气)
+├─────────────────────────────────────────┤
+│ 命身关系: ${ziweiProfile.mingGong === ziweiProfile.shenGong ? '命身同宫，先后天合一' : '命身分离，先后天各有侧重'}`;
+
+      if (ziweiProfile.palaces && ziweiProfile.palaces.length > 0) {
+        const keyPalaces = ziweiProfile.palaces.filter(p => 
+          ['官禄', '财帛', '夫妻', '子女'].includes(p.name)
+        );
+        if (keyPalaces.length > 0) {
+          ziweiContext += `
+├─────────────────────────────────────────┤
+│ 关键宫位:`;
+          keyPalaces.forEach(p => {
+            ziweiContext += `
+│   ${p.name}宫在${p.branch}`;
+          });
+        }
+      }
+
+      ziweiContext += `
+└─────────────────────────────────────────┘`;
+      contextParts.push(ziweiContext);
+    }
+
+    // 4. 当前运程信息
     if (currentAge || daYunInfo) {
       let periodContext = `【当前运程】`;
       if (currentAge) {
@@ -365,21 +416,27 @@ ${otherAspects.slice(0, 3).map(a => `${a.label}: ${a.content.substring(0, 50)}..
 
 请简洁解读此年运势，重点分析吉凶和具体月份应期。`;
     } else {
-      // 标准宫位深度解读模式
-      systemPrompt = `你是一位集铁板神数、子平八字、六爻占卜三术于一身的命理宗师，深研《滴天髓》《穷通宝鉴》《铁板神数条辞》《增删卜易》等经典。
+      // 标准宫位深度解读模式 - 四术合参
+      const systemsInUse = availableSystems.join('、') || '命理';
+      
+      systemPrompt = `你是一位集铁板神数、子平八字、六爻占卜、紫微斗数四术于一身的命理宗师，深研《滴天髓》《穷通宝鉴》《铁板神数条辞》《增删卜易》《紫微斗数全书》等经典。
 
 【你的专业背景】
 - 精通铁板神数12000条辞的释义与应用
 - 深谙四柱八字的十神、格局、大运流年推断
 - 通晓六爻卦象的六亲、用神、动静变化之理
-- 善于将三大体系融会贯通，相互印证
+- 精研紫微斗数的星曜格局、命身宫位分析
+- 善于将多体系融会贯通，求同存异，相互印证
+
+【当前可用体系】${systemsInUse}
 
 【解读原则】
-1. 【三术合参】铁板条辞为骨，八字为脉，卦象为应。三者须相互印证，不可偏废。
+1. 【多术合参】以铁板条辞为骨，八字为脉，卦象为机，紫微为辅。多体系须相互印证，求同存异。
 2. 【以日主为本】所有分析必须回归日主的喜忌旺衰，切勿脱离命局空谈。
-3. 【动静结合】八字为先天定数，卦象为后天机变，条辞为数理显化。
+3. 【动静结合】八字为先天定数，卦象为后天机变，条辞为数理显化，紫微为格局参照。
 4. 【应期推断】结合大运流年、卦爻动静，推断吉凶应验之期。
 5. 【趋避有方】不只是预测，更要给出切实可行的趋吉避凶之道。
+6. 【共识优先】多体系共同指向的结论可信度最高，应重点阐述。
 
 【语言风格】
 - 专业严谨但不失温度
@@ -393,10 +450,11 @@ ${otherAspects.slice(0, 3).map(a => `${a.label}: ${a.content.substring(0, 50)}..
 ## 📜 条辞解密
 深入剖析铁板条辞的字面含义、隐喻象征、在该宫位的具体指向。
 
-## 🔮 三术合参
+## 🔮 多术合参
 1. **八字印证**: 此条辞与命主八字的日主、十神、喜忌如何呼应？
 2. **卦象启示**: （若有卦象）卦象的本卦、变卦、动爻如何印证或补充条辞？
-3. **综合论断**: 三者结合，对命主此方面运势的核心判断。
+3. **紫微参照**: （若有紫微）命身宫位与此领域的关联分析
+4. **综合论断**: 多术结合，对命主此方面运势的核心判断（标注共识度）
 
 ## ⏰ 应期推测
 根据大运流年、卦爻动静，推测此条辞可能应验的时间段或人生阶段。
@@ -418,23 +476,71 @@ ${contextParts.join('\n\n')}
 2. 喜用神为${baziProfile?.favorableElements?.join('、') || '待定'}，分析时注意五行生克关系
 3. 条辞中的关键词要逐一解读，不可遗漏
 4. ${hexagram ? `结合${hexagram.name}卦象和${hexagram.changingLines?.length || 0}个动爻进行印证` : '此次无卦象参考，以八字和条辞为主'}
-5. 应期推断要具体到年龄段或年份范围
-6. 开运建议要切实可行，避免笼统空泛`;
+5. ${ziweiProfile ? `参考紫微命盘：命宫在${ziweiProfile.mingGong}、身宫在${ziweiProfile.shenGong}` : ''}
+6. 应期推断要具体到年龄段或年份范围
+7. 开运建议要切实可行，避免笼统空泛
+8. 【重要】若多体系对同一结论有共识，请标注"（多术共识）"以示可信度高`;
 
-      // 综合解读模式的特殊提示
+      // 综合解读模式的特殊提示 - 动态权重多术合参
       if (aspectLabel === '终身总评全览') {
+        // Build dynamic system weight description
+        const systemWeights: string[] = [];
+        if (baziProfile) systemWeights.push('八字命理（先天格局、十神配置、喜忌分析）权重35%');
+        if (allAspects && allAspects.length > 0) systemWeights.push('铁板神数（太玄数理、宫位条辞）权重30%');
+        if (hexagram) systemWeights.push('六爻卦象（时运机变、动爻启示）权重20%');
+        if (ziweiProfile) systemWeights.push('紫微斗数（命身宫位、星曜格局）权重15%');
+        
+        const dynamicWeightDesc = systemWeights.length > 0 
+          ? `\n【动态权重分配】（基于可用数据自动调整）\n${systemWeights.join('\n')}`
+          : '';
+
         userPrompt = `请为此命主进行【终身命格总评】的全面深度解读。
 
 ${contextParts.join('\n\n')}
+${dynamicWeightDesc}
 
-【综合解读要求】
-1. 这是一份完整的命理报告，需要综合分析六大宫位的条辞
-2. 找出各宫位之间的内在联系和共同主题
-3. 分析命主一生的主要运势走向和人生格局
-4. 指出人生中的关键转折点和需要特别注意的时期
-5. 给出一份完整的人生开运建议
+【四术合参·求同存异分析法】
 
-请以"终身总评"的高度来撰写，不是简单罗列各宫位内容，而是提炼出命主人生的核心主线和关键命题。`;
+**核心原则**: 多体系交叉验证，找出共识性结论，标注分歧点
+
+1. **求同分析（高权重）**: 
+   - 找出各体系对同一命题的共同指向（如：八字官星旺+铁板事业宫吉+紫微官禄宫佳 → 事业高度共识）
+   - 多体系共识的结论可信度最高，应作为核心论断
+
+2. **存异分析（需说明）**:
+   - 若体系间存在分歧（如：八字财星弱但铁板财运宫旺），需分析原因
+   - 可能是先天vs后天、早年vs晚年、主动vs被动等维度差异
+   - 标注分歧但不强行统一，给出分层解读
+
+3. **五行贯穿法**:
+   - 以命主的喜用五行为主线，串联各体系分析
+   - 八字喜用 → 铁板条辞五行暗示 → 卦象旺气 → 紫微宫位五行
+   - 五行一致则强化，五行相克则需调和
+
+4. **时空定位法**:
+   - 八字定格局高低（空间维度）
+   - 大运流年定时机（时间维度）
+   - 卦象定当下机变（即时维度）
+   - 紫微定后天发展（发展维度）
+
+【输出结构】
+
+## 🎯 命格核心（多术共识）
+提炼各体系对命主根本格局的共同认知，这是可信度最高的结论
+
+## 📊 六宫综述（分项分析）
+对六大人生领域逐一分析，每项标注各体系观点的一致性或分歧
+
+## 🔄 运势周期（时空定位）
+结合大运流年和卦象，划分人生主要阶段和关键转折点
+
+## ⚖️ 存异说明（分歧解读）
+如有体系间分歧，此处专门解释原因和分层理解
+
+## 💎 综合开运（全局建议）
+基于多术共识，给出五行调理、方位选择、行业建议、关键年份提示
+
+请以"命理大宗师"的高度进行多体系融合分析，追求最高可信度的综合结论。`;
       }
     }
 

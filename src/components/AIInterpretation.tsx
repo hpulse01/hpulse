@@ -15,12 +15,21 @@ import type { BaZiProfile } from '@/utils/tiebanAlgorithm';
 import type { LiuYaoResult } from '@/utils/liuYaoAlgorithm';
 import { useAuth } from '@/hooks/useAuth';
 
+interface ZiweiProfile {
+  mingGong: string;
+  shenGong: string;
+  mingElement?: string;
+  shenElement?: string;
+  palaces?: { name: string; branch: string }[];
+}
+
 interface AIInterpretationProps {
   clauseContent: string;
   aspectLabel: string;
   pillarsDisplay: string;
   baziProfile?: BaZiProfile;
   hexagram?: LiuYaoResult;
+  ziweiProfile?: ZiweiProfile;
   allAspects?: { label: string; content: string }[];
   currentAge?: number;
   daYunInfo?: string;
@@ -107,6 +116,7 @@ export function AIInterpretation({
   pillarsDisplay,
   baziProfile,
   hexagram,
+  ziweiProfile,
   allAspects,
   currentAge,
   daYunInfo,
@@ -166,6 +176,17 @@ export function AIInterpretation({
         targetHexagramName: hexagram.mainHexagram.targetHexagram?.name,
         dominantElement,
         movingRelatives: movingRelatives.length > 0 ? [...new Set(movingRelatives)] : undefined,
+      };
+    }
+
+    // Ziwei profile data
+    if (ziweiProfile) {
+      requestBody.ziweiProfile = {
+        mingGong: ziweiProfile.mingGong,
+        shenGong: ziweiProfile.shenGong,
+        mingElement: ziweiProfile.mingElement,
+        shenElement: ziweiProfile.shenElement,
+        palaces: ziweiProfile.palaces,
       };
     }
 
