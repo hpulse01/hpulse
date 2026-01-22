@@ -87,16 +87,16 @@ export default function AdminUsers() {
   const [batchAction, setBatchAction] = useState<{ type: 'level' | 'status'; value: string } | null>(null);
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
 
-  // Filter users based on search query
+  // Filter users based on search query (Super Admin only feature)
   const filteredUsers = useMemo(() => {
-    if (!searchQuery.trim()) return users;
+    if (!isSuperAdmin || !searchQuery.trim()) return users;
     const query = searchQuery.toLowerCase().trim();
     return users.filter(u => 
       (u.email?.toLowerCase().includes(query)) ||
       (u.display_name?.toLowerCase().includes(query)) ||
       (u.registration_ip?.includes(query))
     );
-  }, [users, searchQuery]);
+  }, [users, searchQuery, isSuperAdmin]);
 
   // Get selectable users (non-protected)
   const selectableUsers = useMemo(() => 
@@ -540,94 +540,96 @@ export default function AdminUsers() {
           </Card>
         </div>
 
-        {/* Search and Batch Operations */}
-        <Card className="mb-4">
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-              {/* Search */}
-              <div className="relative w-full md:w-96">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="搜索用户名、邮箱或IP地址..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              {/* Batch Actions - Only for Super Admin */}
-              {isSuperAdmin && selectedUsers.size > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    已选择 {selectedUsers.size} 个用户
-                  </span>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <CheckSquare className="w-4 h-4 mr-2" />
-                        批量操作
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>修改等级</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => {
-                        setBatchAction({ type: 'level', value: 'level_1' });
-                        setBatchActionDialogOpen(true);
-                      }}>
-                        <Users className="w-4 h-4 mr-2" />
-                        设为普通用户
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => {
-                        setBatchAction({ type: 'level', value: 'level_2' });
-                        setBatchActionDialogOpen(true);
-                      }}>
-                        <Star className="w-4 h-4 mr-2 text-yellow-500" />
-                        设为高级会员
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => {
-                        setBatchAction({ type: 'level', value: 'level_3' });
-                        setBatchActionDialogOpen(true);
-                      }}>
-                        <Crown className="w-4 h-4 mr-2 text-primary" />
-                        设为尊享会员
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel>修改状态</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => {
-                        setBatchAction({ type: 'status', value: 'active' });
-                        setBatchActionDialogOpen(true);
-                      }}>
-                        <UserCheck className="w-4 h-4 mr-2 text-green-500" />
-                        批量激活
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => {
-                        setBatchAction({ type: 'status', value: 'disabled' });
-                        setBatchActionDialogOpen(true);
-                      }}>
-                        <Power className="w-4 h-4 mr-2 text-orange-500" />
-                        批量停用
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => {
-                        setBatchAction({ type: 'status', value: 'banned' });
-                        setBatchActionDialogOpen(true);
-                      }}>
-                        <UserX className="w-4 h-4 mr-2 text-destructive" />
-                        批量封禁
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setSelectedUsers(new Set())}
-                  >
-                    取消选择
-                  </Button>
+        {/* Search and Batch Operations - Super Admin Only */}
+        {isSuperAdmin && (
+          <Card className="mb-4">
+            <CardContent className="pt-6">
+              <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                {/* Search */}
+                <div className="relative w-full md:w-96">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="搜索用户名、邮箱或IP地址..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+
+                {/* Batch Actions */}
+                {selectedUsers.size > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      已选择 {selectedUsers.size} 个用户
+                    </span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <CheckSquare className="w-4 h-4 mr-2" />
+                          批量操作
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>修改等级</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => {
+                          setBatchAction({ type: 'level', value: 'level_1' });
+                          setBatchActionDialogOpen(true);
+                        }}>
+                          <Users className="w-4 h-4 mr-2" />
+                          设为普通用户
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setBatchAction({ type: 'level', value: 'level_2' });
+                          setBatchActionDialogOpen(true);
+                        }}>
+                          <Star className="w-4 h-4 mr-2 text-yellow-500" />
+                          设为高级会员
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setBatchAction({ type: 'level', value: 'level_3' });
+                          setBatchActionDialogOpen(true);
+                        }}>
+                          <Crown className="w-4 h-4 mr-2 text-primary" />
+                          设为尊享会员
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>修改状态</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => {
+                          setBatchAction({ type: 'status', value: 'active' });
+                          setBatchActionDialogOpen(true);
+                        }}>
+                          <UserCheck className="w-4 h-4 mr-2 text-green-500" />
+                          批量激活
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setBatchAction({ type: 'status', value: 'disabled' });
+                          setBatchActionDialogOpen(true);
+                        }}>
+                          <Power className="w-4 h-4 mr-2 text-orange-500" />
+                          批量停用
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setBatchAction({ type: 'status', value: 'banned' });
+                          setBatchActionDialogOpen(true);
+                        }}>
+                          <UserX className="w-4 h-4 mr-2 text-destructive" />
+                          批量封禁
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setSelectedUsers(new Set())}
+                    >
+                      取消选择
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Users Table */}
         <Card>
