@@ -274,7 +274,48 @@ ${otherAspects.slice(0, 3).map(a => `${a.label}: ${a.content.substring(0, 50)}..
     // 构建专业提示词
     // =====================
     
-    const systemPrompt = `你是一位集铁板神数、子平八字、六爻占卜三术于一身的命理宗师，深研《滴天髓》《穷通宝鉴》《铁板神数条辞》《增删卜易》等经典。
+    // 检测是否为流年解读模式
+    const isFlowYearMode = aspectLabel.includes('流年');
+    
+    let systemPrompt: string;
+    let userPrompt: string;
+    
+    if (isFlowYearMode) {
+      // 流年简化解读模式
+      systemPrompt = `你是一位精通铁板神数的命理师，擅长解读流年条辞。
+
+【解读原则】
+- 简明扼要，直指核心
+- 结合八字日主喜忌分析
+- 给出实用的趋避建议
+
+【输出格式】（严格按此格式，每部分2-3句话即可）
+
+## 📅 流年主题
+一句话概括此年运势主题
+
+## 🔍 运势解析
+**吉象**: xxx
+**忌象**: xxx
+**应期**: 具体到月份或季节
+
+## 💡 趋避建议
+- 宜: xxx
+- 忌: xxx
+- 注意: xxx`;
+
+      userPrompt = `请解读此流年条辞：
+
+【${aspectLabel}】
+条辞: ${clauseContent}
+八字: ${pillarsDisplay}
+日主: ${baziProfile?.dayMaster || ''}（${baziProfile?.dayMasterElement || ''}）
+喜用: ${baziProfile?.favorableElements?.join('、') || '待定'}
+
+请简洁解读此年运势，重点分析吉凶和具体月份应期。`;
+    } else {
+      // 标准宫位深度解读模式
+      systemPrompt = `你是一位集铁板神数、子平八字、六爻占卜三术于一身的命理宗师，深研《滴天髓》《穷通宝鉴》《铁板神数条辞》《增删卜易》等经典。
 
 【你的专业背景】
 - 精通铁板神数12000条辞的释义与应用
@@ -317,7 +358,7 @@ ${otherAspects.slice(0, 3).map(a => `${a.label}: ${a.content.substring(0, 50)}..
 - 时机把握要点
 - 需特别注意的事项`;
 
-    let userPrompt = `请为此命主进行【${aspectLabel}】的深度解读。
+      userPrompt = `请为此命主进行【${aspectLabel}】的深度解读。
 
 ${contextParts.join('\n\n')}
 
@@ -329,9 +370,9 @@ ${contextParts.join('\n\n')}
 5. 应期推断要具体到年龄段或年份范围
 6. 开运建议要切实可行，避免笼统空泛`;
 
-    // 综合解读模式的特殊提示
-    if (aspectLabel === '终身总评全览') {
-      userPrompt = `请为此命主进行【终身命格总评】的全面深度解读。
+      // 综合解读模式的特殊提示
+      if (aspectLabel === '终身总评全览') {
+        userPrompt = `请为此命主进行【终身命格总评】的全面深度解读。
 
 ${contextParts.join('\n\n')}
 
@@ -343,6 +384,7 @@ ${contextParts.join('\n\n')}
 5. 给出一份完整的人生开运建议
 
 请以"终身总评"的高度来撰写，不是简单罗列各宫位内容，而是提炼出命主人生的核心主线和关键命题。`;
+      }
     }
 
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -352,13 +394,13 @@ ${contextParts.join('\n\n')}
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'sonar-pro', // 升级到更强模型
+        model: isFlowYearMode ? 'sonar' : 'sonar-pro', // 流年用快速模型，宫位用深度模型
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 2500, // 增加输出长度
-        temperature: 0.6, // 略降低以提高准确性
+        max_tokens: isFlowYearMode ? 800 : 2500, // 流年简短，宫位详细
+        temperature: 0.5,
       }),
     });
 
