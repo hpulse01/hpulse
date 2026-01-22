@@ -132,12 +132,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const recordRegistrationIP = useCallback(async () => {
+  const recordRegistrationIP = useCallback(async (userId?: string) => {
     try {
       await supabase.functions.invoke('check-registration-ip', {
         body: { 
           action: 'record',
           userAgent: navigator.userAgent,
+          userId: userId,
         },
       });
     } catch (err) {
@@ -153,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: new Error(ipCheck.message || '注册受限，请稍后再试') };
       }
 
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -164,9 +165,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       });
       
-      // Record IP after successful signup
-      if (!error) {
-        await recordRegistrationIP();
+      // Record IP after successful signup with user ID
+      if (!error && data?.user?.id) {
+        await recordRegistrationIP(data.user.id);
       }
       
       return { error };

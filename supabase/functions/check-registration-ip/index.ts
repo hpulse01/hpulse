@@ -80,6 +80,8 @@ serve(async (req) => {
 
     } else if (action === 'record') {
       // Record the IP after successful registration
+      const { userId } = body;
+      
       const { error: insertError } = await supabase
         .from('registration_ips')
         .insert({
@@ -93,6 +95,18 @@ serve(async (req) => {
         // Don't fail the registration, just log the error
       }
 
+      // Save registration IP to user profile if userId is provided
+      if (userId && clientIp !== 'unknown') {
+        try {
+          await supabase.rpc('save_registration_ip', {
+            p_user_id: userId,
+            p_ip: clientIp,
+          });
+        } catch (err) {
+          console.error('Error saving registration IP to profile:', err);
+        }
+      }
+
       // Also cleanup old records periodically (1% chance to avoid overhead)
       if (Math.random() < 0.01) {
         await supabase.rpc('cleanup_old_registration_ips');
@@ -101,6 +115,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         message: 'IP recorded',
+        ip: clientIp,
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
