@@ -107,7 +107,9 @@ export type Database = {
           created_at: string
           display_name: string
           email: string
+          is_protected: boolean
           level: Database["public"]["Enums"]["user_level"]
+          status: string
           total_calculations: number
           user_id: string
         }[]
