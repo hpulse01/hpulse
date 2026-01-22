@@ -123,8 +123,8 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-card border-primary/20">
+    <Dialog open={open} onOpenChange={onOpenChange} modal>
+      <DialogContent className="sm:max-w-md bg-card border-primary/20" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader className="text-center">
           <DialogTitle className="text-2xl font-serif text-primary tracking-wider">
             铁板神数
