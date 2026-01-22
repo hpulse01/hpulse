@@ -24,7 +24,7 @@ interface WelcomeDialogProps {
 export function WelcomeDialog({ open, onOpenChange, displayName }: WelcomeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-gradient-to-b from-card to-card/95 border-primary/30">
+      <DialogContent className="sm:max-w-md bg-gradient-to-b from-card to-card/95 border-primary/30 z-50" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader className="text-center space-y-4">
           {/* Celebration Icon */}
           <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center animate-in zoom-in duration-300">

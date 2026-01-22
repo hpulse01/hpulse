@@ -113,16 +113,19 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         description: error.message || '请稍后重试',
         variant: 'destructive',
       });
+      setIsSubmitting(false);
     } else {
-      // Close auth modal and show welcome dialog
+      // Store name for welcome dialog
       setRegisteredName(displayName || email.split('@')[0]);
+      // Close auth modal first
       onOpenChange(false);
       resetForm();
-      // Small delay to ensure auth modal closes first
-      setTimeout(() => setShowWelcome(true), 300);
+      setIsSubmitting(false);
+      // Show welcome dialog after auth modal animation completes
+      setTimeout(() => {
+        setShowWelcome(true);
+      }, 400);
     }
-    
-    setIsSubmitting(false);
   };
 
   const resetForm = () => {
@@ -133,8 +136,8 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange} modal>
-      <DialogContent className="sm:max-w-md bg-card border-primary/20" onOpenAutoFocus={(e) => e.preventDefault()}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md bg-card border-primary/20 z-50" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader className="text-center">
           <DialogTitle className="text-2xl font-serif text-primary tracking-wider">
             铁板神数

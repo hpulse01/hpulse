@@ -9,13 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ZiweiEngine, type ZiweiReport, type ZiweiStar, type SihuaInfo } from '@/utils/ziweiAlgorithm';
+import { ZiweiEngine, type ZiweiReport, type ZiweiStar, type SihuaInfo, type DaxianInfo } from '@/utils/ziweiAlgorithm';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   Star, Home, Users, Heart, Baby, Coins, Activity, 
   Plane, UserCheck, Briefcase, Building, Smile, UserPlus,
-  Sparkles, ChevronDown, ChevronUp, Loader2, Lock, Crown, Zap
+  Sparkles, ChevronDown, ChevronUp, Loader2, Lock, Crown, Zap, Calendar
 } from 'lucide-react';
 
 interface ZiweiDisplayProps {
@@ -416,6 +416,68 @@ ${palacesSummary}
             {auxiliaryStars.filter(s => ['擎羊', '陀罗', '火星', '铃星'].includes(s)).join(' ')}
           </span>
         </div>
+      </div>
+
+      {/* Da Xian (大限) - Major Luck Periods */}
+      <div className="mb-3 sm:mb-4">
+        <h5 className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
+          <Calendar className="w-3 h-3 text-amber-400" />
+          大限运程 <span className="text-[9px] text-primary/60">(起运{report.startDaxianAge}岁)</span>
+        </h5>
+        <div className="overflow-x-auto pb-2 -mx-2 px-2">
+          <div className="flex gap-1.5 sm:gap-2 min-w-max">
+            {report.daxian.map((dx, idx) => {
+              const majorStars = dx.stars.filter(s => s.type === 'major');
+              const hasGoodSihua = dx.stars.some(s => s.sihua === '禄' || s.sihua === '权' || s.sihua === '科');
+              const hasBadSihua = dx.stars.some(s => s.sihua === '忌');
+              const hasSha = dx.stars.some(s => s.type === 'sha');
+              
+              return (
+                <div
+                  key={idx}
+                  className={`
+                    flex flex-col items-center p-2 rounded-lg border min-w-[70px] sm:min-w-[85px] transition-all
+                    ${hasGoodSihua && !hasBadSihua 
+                      ? 'bg-emerald-500/10 border-emerald-500/30' 
+                      : hasBadSihua 
+                        ? 'bg-rose-500/10 border-rose-500/30' 
+                        : 'bg-card/30 border-border/30'}
+                  `}
+                >
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground">{dx.startAge}-{dx.endAge}岁</span>
+                  <span className="text-base sm:text-lg font-serif text-primary">{dx.branch}</span>
+                  <span className="text-[9px] text-muted-foreground">{dx.palaceName}</span>
+                  {majorStars.length > 0 && (
+                    <div className="flex flex-wrap gap-0.5 justify-center mt-1">
+                      {majorStars.slice(0, 2).map((star, sidx) => (
+                        <Badge 
+                          key={sidx} 
+                          variant="outline" 
+                          className={`text-[7px] sm:text-[8px] px-1 py-0 ${STAR_GROUP_COLORS[star.group] || ''}`}
+                        >
+                          {star.name}
+                          {star.sihua && <span className={`ml-0.5 ${
+                            star.sihua === '禄' ? 'text-emerald-400' :
+                            star.sihua === '权' ? 'text-amber-400' :
+                            star.sihua === '科' ? 'text-blue-400' :
+                            'text-rose-400'
+                          }`}>{star.sihua}</span>}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  {hasSha && (
+                    <span className="text-[8px] text-rose-400 mt-0.5">有煞</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <p className="text-[9px] text-muted-foreground mt-1">
+          <span className="text-emerald-400">绿底</span>=化禄权科 · 
+          <span className="text-rose-400 ml-1">红底</span>=化忌 · 左右滑动查看更多
+        </p>
       </div>
 
       {/* Twelve Palaces Grid with Stars */}
