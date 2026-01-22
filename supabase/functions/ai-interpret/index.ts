@@ -65,6 +65,9 @@ interface InterpretRequest {
   // Continuation support
   previousContent?: string;
   continueGeneration?: boolean;
+  
+  // Ziwei analysis mode
+  isZiweiAnalysis?: boolean;
 }
 
 // 铁板神数宫位体系
@@ -122,7 +125,8 @@ serve(async (req) => {
       currentAge,
       daYunInfo,
       previousContent,
-      continueGeneration
+      continueGeneration,
+      isZiweiAnalysis
     } = body;
 
     // =====================
@@ -283,10 +287,51 @@ ${otherAspects.slice(0, 3).map(a => `${a.label}: ${a.content.substring(0, 50)}..
     // 检测是否为流年解读模式
     const isFlowYearMode = aspectLabel.includes('流年');
     
+    // 检测是否为紫微斗数解读模式
+    const isZiweiMode = isZiweiAnalysis === true;
+    
     let systemPrompt: string;
     let userPrompt: string;
     
-    if (isFlowYearMode) {
+    if (isZiweiMode) {
+      // 紫微斗数命盘解读模式
+      systemPrompt = `你是一位精通紫微斗数的命理师，对十二宫位、十四主星、四化飞星有深入研究。
+
+【专业背景】
+- 深研紫微斗数传统理论，精通命盘格局分析
+- 擅长从宫位五行、生克关系推断命主性格与运势
+- 善于将紫微斗数与四柱八字相互印证
+
+【解读原则】
+1. 命宫为一生之根本，身宫为后天行运之所在
+2. 宫位五行生克影响格局高低
+3. 结合八字日主喜忌进行综合分析
+4. 给出实用的趋避建议
+
+【输出格式】（按此结构，每部分2-4句话）
+
+## 🌟 命盘格局
+分析命宫、身宫落宫的五行属性及其含义
+
+## 📊 性格特质
+根据命宫宫位推断命主的基本性格和处事风格
+
+## 💼 事业财运
+分析官禄宫、财帛宫对事业财运的影响
+
+## 💝 感情婚姻
+分析夫妻宫、子女宫对感情家庭的指示
+
+## 🔮 运势提示
+结合身宫分析后天运势走向
+
+## 💡 开运建议
+根据宫位五行给出具体的趋吉避凶建议`;
+
+      userPrompt = `${clauseContent}
+
+请根据以上紫微命盘信息，分析命主的命格特点和人生运势。`;
+    } else if (isFlowYearMode) {
       // 流年简化解读模式
       systemPrompt = `你是一位精通铁板神数的命理师，擅长解读流年条辞。
 
@@ -440,6 +485,10 @@ ${previousContent}
       });
     }
 
+    // Select model based on analysis type
+    const useQuickModel = isFlowYearMode || isZiweiMode;
+    const maxTokensForRequest = isFlowYearMode ? 800 : (isZiweiMode ? 1200 : 3000);
+
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
@@ -447,12 +496,12 @@ ${previousContent}
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: isFlowYearMode ? 'sonar' : 'sonar-pro', // 流年用快速模型，宫位用深度模型
+        model: useQuickModel ? 'sonar' : 'sonar-pro',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: isFlowYearMode ? 800 : 3000, // 增加max_tokens以减少截断
+        max_tokens: maxTokensForRequest,
         temperature: 0.5,
       }),
     });
@@ -469,7 +518,7 @@ ${previousContent}
     return new Response(JSON.stringify({ 
       interpretation,
       citations: data.citations || [],
-      model: isFlowYearMode ? 'sonar' : 'sonar-pro'
+      model: useQuickModel ? 'sonar' : 'sonar-pro'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
