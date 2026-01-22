@@ -19,6 +19,8 @@ import {
   type FlowYearClause,
   type DestinyProjection,
 } from '@/utils/tiebanAlgorithm';
+import { AIInterpretation } from '@/components/AIInterpretation';
+import { LiuYaoDisplay } from '@/components/LiuYaoDisplay';
 import { 
   RotateCcw, Scroll, Sparkles, Heart, Coins, Briefcase, 
   Activity, Baby, Calendar, Zap, Mountain, Flame, Droplet, 
@@ -378,8 +380,11 @@ export function DestinyDashboard({
                     </Badge>
                   ))}
                 </div>
-              </div>
             </div>
+          </div>
+
+          {/* Liu Yao Hexagram */}
+          <LiuYaoDisplay />
           </div>
 
           {/* Da Yun Timeline */}
@@ -532,6 +537,13 @@ export function DestinyDashboard({
                       <p className="font-serif text-foreground/90 leading-relaxed">
                         {aspect.content}
                       </p>
+                      <AIInterpretation
+                        clauseContent={aspect.content}
+                        aspectLabel={aspect.label}
+                        pillarsDisplay={pillarsDisplay}
+                        baziProfile={report.baziProfile}
+                        allAspects={loadedAspects.map(a => ({ label: a.label, content: a.content }))}
+                      />
                     </div>
                   </div>
                 );
