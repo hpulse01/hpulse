@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
+import { Solar } from 'lunar-typescript';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -142,11 +143,10 @@ function DaYunItem({
   );
 }
 
-// Da Yun Expanded Panel with 10 Flow Years
+// Da Yun Expanded Panel with BaZi Flow Years (八字流年)
 function DaYunExpandedPanel({
   daYun,
   daYunIndex,
-  flowYears,
   baziProfile,
   pillarsDisplay,
   hexagramResult,
@@ -157,7 +157,6 @@ function DaYunExpandedPanel({
 }: {
   daYun: { startAge: number; endAge: number; ganZhi: string; element: string; startYear: number };
   daYunIndex: number;
-  flowYears: FlowYearClause[];
   baziProfile: any;
   pillarsDisplay: string;
   hexagramResult: any;
@@ -166,33 +165,50 @@ function DaYunExpandedPanel({
   isAuthenticated: boolean;
   birthYear: number;
 }) {
-  const [loadedContents, setLoadedContents] = useState<Map<number, string>>(new Map());
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Get flow years for this Da Yun period
-  const daYunFlowYears = useMemo(() => {
-    return flowYears.filter(fy => fy.age >= daYun.startAge && fy.age <= daYun.endAge);
-  }, [flowYears, daYun]);
-
-  // Load clause contents
-  useEffect(() => {
-    const loadContents = async () => {
-      setIsLoading(true);
-      const clauseNumbers = daYunFlowYears.map(fy => fy.clauseNumber);
-      const clauses = await fetchClausesByNumbers(clauseNumbers);
-      
-      const contentMap = new Map<number, string>();
-      clauses.forEach(clause => {
-        contentMap.set(clause.clause_number, clause.content);
-      });
-      setLoadedContents(contentMap);
-      setIsLoading(false);
-    };
-    
-    loadContents();
-  }, [daYunFlowYears]);
-
   const colorClass = ELEMENT_COLORS[daYun.element] || 'text-gray-400 bg-gray-500/20 border-gray-500/30';
+
+  // Generate BaZi flow years for this Da Yun (not Iron Plate clauses)
+  const baziFlowYears = useMemo(() => {
+    const years = [];
+    for (let age = daYun.startAge; age <= daYun.endAge; age++) {
+      const year = birthYear + age;
+      // Calculate year's GanZhi using lunar-typescript (imported at top)
+      const yearSolar = Solar.fromYmdHms(year, 6, 15, 12, 0, 0);
+      const yearLunar = yearSolar.getLunar();
+      const yearGanZhi = yearLunar.getYearInGanZhi();
+      
+      // Get element from stem
+      const stemElements: Record<string, string> = {
+        '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土',
+        '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水'
+      };
+      const stem = yearGanZhi.charAt(0);
+      const element = stemElements[stem] || '';
+      
+      // Determine fortune based on favorable/unfavorable elements
+      let fortune: 'good' | 'neutral' | 'caution' = 'neutral';
+      if (baziProfile.favorableElements.includes(element)) {
+        fortune = 'good';
+      } else if (baziProfile.unfavorableElements.includes(element)) {
+        fortune = 'caution';
+      }
+      
+      years.push({ age, year, ganZhi: yearGanZhi, element, fortune });
+    }
+    return years;
+  }, [daYun, birthYear, baziProfile]);
+
+  const fortuneStyles = {
+    good: 'bg-green-500/20 border-green-500/30 text-green-400',
+    neutral: 'bg-card/30 border-border/30 text-foreground/70',
+    caution: 'bg-red-500/20 border-red-500/30 text-red-400',
+  };
+
+  const fortuneLabels = {
+    good: '吉',
+    neutral: '平',
+    caution: '慎',
+  };
 
   return (
     <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-primary/10 border border-primary/30 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
@@ -252,62 +268,44 @@ function DaYunExpandedPanel({
         </div>
       )}
 
-      {/* 10 Flow Years within this Da Yun */}
+      {/* BaZi Flow Years within this Da Yun */}
       <div className="mt-4 pt-4 border-t border-primary/20">
         <h5 className="text-sm font-serif text-primary mb-3 flex items-center gap-2">
           <Calendar className="w-4 h-4" />
-          本运流年 ({daYun.startAge}-{daYun.endAge}岁)
+          八字流年 ({daYun.startAge}-{daYun.endAge}岁)
         </h5>
         
-        {isLoading ? (
-          <div className="space-y-2">
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full bg-muted/30" />
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-            {daYunFlowYears.map(fy => {
-              const content = loadedContents.get(fy.clauseNumber);
-              const hasAgeMatch = content?.includes(`(${fy.age})`) || content?.includes(`${fy.age}岁`);
-              
-              return (
-                <div 
-                  key={fy.age}
-                  className={`
-                    flex gap-3 p-2 sm:p-3 rounded-lg border transition-all
-                    ${hasAgeMatch 
-                      ? 'bg-primary/20 border-primary/50' 
-                      : 'bg-card/30 border-border/30 hover:border-primary/20'}
-                  `}
-                >
-                  {/* Age/Year */}
-                  <div className="flex flex-col items-center min-w-[50px] text-center">
-                    <span className={`text-lg font-serif ${hasAgeMatch ? 'text-primary' : 'text-foreground'}`}>
-                      {fy.age}岁
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">{fy.year}年</span>
-                    <span className="text-[10px] text-primary/60">{fy.ganZhi}</span>
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs leading-relaxed ${hasAgeMatch ? 'text-primary' : 'text-foreground/70'}`}>
-                      {content || '条文加载中...'}
-                    </p>
-                    <span className="text-[10px] text-muted-foreground">#{fy.clauseNumber}</span>
-                  </div>
-                  
-                  {hasAgeMatch && (
-                    <Badge className="shrink-0 bg-primary/80 text-primary-foreground text-[10px] h-5">
-                      应验
-                    </Badge>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          {baziFlowYears.map(fy => (
+            <div 
+              key={fy.age}
+              className={`
+                flex flex-col items-center p-2 rounded-lg border transition-all
+                ${fortuneStyles[fy.fortune]}
+              `}
+            >
+              <span className="text-lg font-serif">{fy.ganZhi}</span>
+              <span className="text-[10px] text-muted-foreground">{fy.age}岁 · {fy.year}</span>
+              <div className="flex items-center gap-1 mt-1">
+                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${ELEMENT_COLORS[fy.element] || ''}`}>
+                  {fy.element}
+                </Badge>
+                <span className={`text-[10px] font-medium ${
+                  fy.fortune === 'good' ? 'text-green-400' : 
+                  fy.fortune === 'caution' ? 'text-red-400' : 'text-muted-foreground'
+                }`}>
+                  {fortuneLabels[fy.fortune]}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <p className="mt-3 text-[10px] sm:text-xs text-muted-foreground">
+          <span className="text-green-400">吉</span>=喜用神年 · 
+          <span className="text-red-400 ml-2">慎</span>=忌神年 · 
+          <span className="text-muted-foreground ml-2">平</span>=中性年
+        </p>
       </div>
     </div>
   );
@@ -424,7 +422,7 @@ export function DestinyDashboard({
   const [loadedFlowYears, setLoadedFlowYears] = useState<Map<number, string>>(new Map());
   const [isLoadingAspects, setIsLoadingAspects] = useState(true);
   const [isLoadingFlowYears, setIsLoadingFlowYears] = useState(false);
-  const [flowYearRange] = useState({ start: 1, end: 80 });
+  const [flowYearRange, setFlowYearRange] = useState({ start: 1, end: 20 });
   const [selectedDaYunIndex, setSelectedDaYunIndex] = useState<number | null>(null);
 
   // Calculate hexagram for the session
@@ -633,7 +631,6 @@ export function DestinyDashboard({
               <DaYunExpandedPanel
                 daYun={selectedDaYun}
                 daYunIndex={selectedDaYunIndex}
-                flowYears={report.flowYears}
                 baziProfile={report.baziProfile}
                 pillarsDisplay={pillarsDisplay}
                 hexagramResult={hexagramResult}
@@ -648,6 +645,29 @@ export function DestinyDashboard({
 
         {/* Tab 2: Iron Plate Timeline */}
         <TabsContent value="timeline" className="space-y-3 sm:space-y-4 mt-4 sm:mt-6">
+          {/* Range Selector */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-secondary/30 rounded-lg p-2 sm:p-3">
+            <span className="text-xs sm:text-sm text-muted-foreground">年龄范围</span>
+            <div className="grid grid-cols-4 gap-1 sm:flex sm:gap-2">
+              {[
+                { label: '1-20', start: 1, end: 20 },
+                { label: '21-40', start: 21, end: 40 },
+                { label: '41-60', start: 41, end: 60 },
+                { label: '61-80', start: 61, end: 80 },
+              ].map(range => (
+                <Button
+                  key={range.label}
+                  variant={flowYearRange.start === range.start ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFlowYearRange({ start: range.start, end: range.end })}
+                  className="text-[10px] sm:text-xs px-2 sm:px-3 h-7 sm:h-8"
+                >
+                  {range.label}岁
+                </Button>
+              ))}
+            </div>
+          </div>
+
           {/* Timeline */}
           <ScrollArea className="h-[400px] sm:h-[500px] pr-2 sm:pr-4">
             {isLoadingFlowYears ? (
