@@ -61,6 +61,10 @@ interface InterpretRequest {
   // Additional context
   currentAge?: number;
   daYunInfo?: string;
+  
+  // Continuation support
+  previousContent?: string;
+  continueGeneration?: boolean;
 }
 
 // 铁板神数宫位体系
@@ -116,7 +120,9 @@ serve(async (req) => {
       hexagram,
       allAspects,
       currentAge,
-      daYunInfo
+      daYunInfo,
+      previousContent,
+      continueGeneration
     } = body;
 
     // =====================
@@ -387,6 +393,53 @@ ${contextParts.join('\n\n')}
       }
     }
 
+    // Handle continuation mode
+    if (continueGeneration && previousContent) {
+      const continueSystemPrompt = `你是一位集铁板神数、子平八字、六爻占卜三术于一身的命理宗师。
+用户之前的解读被中断了，请根据之前的内容继续生成，保持风格一致。
+不要重复之前已经写过的内容，直接从中断处继续。
+如果之前的内容已经接近完成，请补充结论或总结。`;
+
+      const continueUserPrompt = `之前的解读内容（已生成部分）：
+${previousContent}
+
+请继续生成剩余的内容。如果开运指南或总结部分还没写完，请补充完整。`;
+
+      const continueResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'sonar',
+          messages: [
+            { role: 'system', content: continueSystemPrompt },
+            { role: 'user', content: continueUserPrompt }
+          ],
+          max_tokens: 1500,
+          temperature: 0.5,
+        }),
+      });
+
+      if (!continueResponse.ok) {
+        const error = await continueResponse.text();
+        console.error('Perplexity API error:', error);
+        throw new Error(`Perplexity API error: ${continueResponse.status}`);
+      }
+
+      const continueData = await continueResponse.json();
+      const continuation = continueData.choices?.[0]?.message?.content || '';
+
+      return new Response(JSON.stringify({ 
+        interpretation: continuation,
+        citations: continueData.citations || [],
+        model: 'sonar'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
@@ -399,7 +452,7 @@ ${contextParts.join('\n\n')}
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: isFlowYearMode ? 800 : 2500, // 流年简短，宫位详细
+        max_tokens: isFlowYearMode ? 800 : 3000, // 增加max_tokens以减少截断
         temperature: 0.5,
       }),
     });
@@ -416,7 +469,7 @@ ${contextParts.join('\n\n')}
     return new Response(JSON.stringify({ 
       interpretation,
       citations: data.citations || [],
-      model: 'sonar-pro'
+      model: isFlowYearMode ? 'sonar' : 'sonar-pro'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
