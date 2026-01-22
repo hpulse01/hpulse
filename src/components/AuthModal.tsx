@@ -42,7 +42,7 @@ const LEVEL_CONFIG: Record<UserLevel, { label: string; icon: typeof User; color:
     label: '三级用户', 
     icon: Crown, 
     color: 'text-primary border-primary/50',
-    description: 'AI解读无限' 
+    description: 'AI解读 10次/周' 
   },
   level_4: { 
     label: '超级管理员', 

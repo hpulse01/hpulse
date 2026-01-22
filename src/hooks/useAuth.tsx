@@ -169,7 +169,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, refreshProfile]);
 
-  const canUseAI = profile?.level === 'level_4' || profile?.level === 'level_3' || 
+  const canUseAI = profile?.level === 'level_4' || 
+    (profile?.level === 'level_3' && (profile?.ai_uses_remaining ?? 0) > 0) ||
     (profile?.level === 'level_2' && (profile?.ai_uses_remaining ?? 0) > 0);
 
   return (
