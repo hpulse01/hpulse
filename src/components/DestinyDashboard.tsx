@@ -424,7 +424,7 @@ export function DestinyDashboard({
   const [loadedFlowYears, setLoadedFlowYears] = useState<Map<number, string>>(new Map());
   const [isLoadingAspects, setIsLoadingAspects] = useState(true);
   const [isLoadingFlowYears, setIsLoadingFlowYears] = useState(false);
-  const [flowYearRange] = useState({ start: 1, end: 20 });
+  const [flowYearRange] = useState({ start: 1, end: 80 });
   const [selectedDaYunIndex, setSelectedDaYunIndex] = useState<number | null>(null);
 
   // Calculate hexagram for the session
