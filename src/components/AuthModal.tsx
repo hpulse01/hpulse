@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth, UserLevel } from '@/hooks/useAuth';
-import { Loader2, LogIn, UserPlus, Crown, Star, User } from 'lucide-react';
+import { Loader2, LogIn, UserPlus, Crown, Star, User, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthModalProps {
@@ -43,6 +43,12 @@ const LEVEL_CONFIG: Record<UserLevel, { label: string; icon: typeof User; color:
     icon: Crown, 
     color: 'text-primary border-primary/50',
     description: 'AI解读无限' 
+  },
+  level_4: { 
+    label: '超级管理员', 
+    icon: Shield, 
+    color: 'text-red-500 border-red-500/50',
+    description: '最高权限' 
   },
 };
 

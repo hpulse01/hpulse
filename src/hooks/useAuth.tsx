@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback, createContext, useContext, ReactNode 
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
-export type UserLevel = 'level_1' | 'level_2' | 'level_3';
+export type UserLevel = 'level_1' | 'level_2' | 'level_3' | 'level_4';
 
 export interface UserProfile {
   id: string;
@@ -169,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, refreshProfile]);
 
-  const canUseAI = profile?.level === 'level_3' || 
+  const canUseAI = profile?.level === 'level_4' || profile?.level === 'level_3' || 
     (profile?.level === 'level_2' && (profile?.ai_uses_remaining ?? 0) > 0);
 
   return (

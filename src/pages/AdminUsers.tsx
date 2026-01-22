@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Shield, Users, Crown, Star, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Shield, Users, Crown, Star, ArrowLeft, RefreshCw, Sparkles } from 'lucide-react';
 
 interface UserData {
   user_id: string;
@@ -131,6 +131,8 @@ export default function AdminUsers() {
 
   const getLevelBadge = (level: UserLevel) => {
     switch (level) {
+      case 'level_4':
+        return <Badge className="bg-red-500/20 text-red-500 border-red-500/30"><Shield className="w-3 h-3 mr-1" />超级管理员</Badge>;
       case 'level_3':
         return <Badge className="bg-primary/20 text-primary border-primary/30"><Crown className="w-3 h-3 mr-1" />尊享会员</Badge>;
       case 'level_2':
@@ -205,7 +207,7 @@ export default function AdminUsers() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
@@ -213,6 +215,17 @@ export default function AdminUsers() {
                 <div>
                   <p className="text-2xl font-bold">{users.length}</p>
                   <p className="text-sm text-muted-foreground">总用户数</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Shield className="w-8 h-8 text-red-500" />
+                <div>
+                  <p className="text-2xl font-bold">{users.filter(u => u.level === 'level_4').length}</p>
+                  <p className="text-sm text-muted-foreground">超级管理员</p>
                 </div>
               </div>
             </CardContent>
@@ -288,7 +301,7 @@ export default function AdminUsers() {
                         </TableCell>
                         <TableCell>{getLevelBadge(userData.level)}</TableCell>
                         <TableCell>
-                          {userData.level === 'level_3' ? (
+                          {userData.level === 'level_4' || userData.level === 'level_3' ? (
                             <span className="text-primary">无限</span>
                           ) : (
                             userData.ai_uses_remaining
