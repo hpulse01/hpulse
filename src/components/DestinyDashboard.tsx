@@ -167,41 +167,106 @@ function DaYunExpandedPanel({
 }) {
   const colorClass = ELEMENT_COLORS[daYun.element] || 'text-gray-400 bg-gray-500/20 border-gray-500/30';
 
-  // Generate BaZi flow years for this Da Yun (not Iron Plate clauses)
+  // 十神计算表
+  const TEN_GODS_TABLE: Record<string, Record<string, string>> = {
+    '木': { '木': '比肩', '火': '食神', '土': '偏财', '金': '七杀', '水': '正印' },
+    '火': { '木': '正印', '火': '比肩', '土': '食神', '金': '偏财', '水': '七杀' },
+    '土': { '木': '七杀', '火': '正印', '土': '比肩', '金': '食神', '水': '偏财' },
+    '金': { '木': '偏财', '火': '七杀', '土': '正印', '金': '比肩', '水': '食神' },
+    '水': { '木': '食神', '火': '偏财', '土': '七杀', '金': '正印', '水': '比肩' },
+  };
+  
+  // 阴阳区分后的完整十神
+  const getFullTenGod = (dayMasterStem: string, flowStem: string): string => {
+    const stemElements: Record<string, string> = {
+      '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土',
+      '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水'
+    };
+    const yangStems = ['甲', '丙', '戊', '庚', '壬'];
+    
+    const dmElement = stemElements[dayMasterStem];
+    const flowElement = stemElements[flowStem];
+    if (!dmElement || !flowElement) return '';
+    
+    const baseTenGod = TEN_GODS_TABLE[dmElement]?.[flowElement] || '';
+    const isSamePolarity = (yangStems.includes(dayMasterStem) && yangStems.includes(flowStem)) ||
+                          (!yangStems.includes(dayMasterStem) && !yangStems.includes(flowStem));
+    
+    // 根据阴阳同异确定正偏
+    const tenGodMapping: Record<string, { same: string; diff: string }> = {
+      '比肩': { same: '比肩', diff: '劫财' },
+      '食神': { same: '食神', diff: '伤官' },
+      '偏财': { same: '偏财', diff: '正财' },
+      '七杀': { same: '七杀', diff: '正官' },
+      '正印': { same: '偏印', diff: '正印' },
+    };
+    
+    return tenGodMapping[baseTenGod]?.[isSamePolarity ? 'same' : 'diff'] || baseTenGod;
+  };
+
+  // Generate BaZi flow years for this Da Yun with detailed analysis
   const baziFlowYears = useMemo(() => {
     const years = [];
+    const dayMasterStem = baziProfile.pillars?.day?.charAt(0) || baziProfile.dayMaster?.charAt(0) || '';
+    
     for (let age = daYun.startAge; age <= daYun.endAge; age++) {
       const year = birthYear + age;
-      // Calculate year's GanZhi using lunar-typescript (imported at top)
       const yearSolar = Solar.fromYmdHms(year, 6, 15, 12, 0, 0);
       const yearLunar = yearSolar.getLunar();
       const yearGanZhi = yearLunar.getYearInGanZhi();
       
-      // Get element from stem
       const stemElements: Record<string, string> = {
         '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土',
         '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水'
       };
       const stem = yearGanZhi.charAt(0);
-      const element = stemElements[stem] || '';
+      const branch = yearGanZhi.charAt(1);
+      const stemElement = stemElements[stem] || '';
       
-      // Determine fortune based on favorable/unfavorable elements
+      // 计算流年天干与日主的十神关系
+      const tenGod = getFullTenGod(dayMasterStem, stem);
+      
+      // 根据喜忌判断吉凶
       let fortune: 'good' | 'neutral' | 'caution' = 'neutral';
-      if (baziProfile.favorableElements.includes(element)) {
+      if (baziProfile.favorableElements.includes(stemElement)) {
         fortune = 'good';
-      } else if (baziProfile.unfavorableElements.includes(element)) {
+      } else if (baziProfile.unfavorableElements.includes(stemElement)) {
         fortune = 'caution';
       }
       
-      years.push({ age, year, ganZhi: yearGanZhi, element, fortune });
+      // 十神吉凶简评
+      const tenGodMeaning: Record<string, string> = {
+        '比肩': '同辈助力',
+        '劫财': '竞争破财',
+        '食神': '才华发挥',
+        '伤官': '叛逆创新',
+        '偏财': '意外财运',
+        '正财': '稳定收入',
+        '七杀': '压力挑战',
+        '正官': '贵人升迁',
+        '偏印': '偏门机遇',
+        '正印': '学业贵人',
+      };
+      
+      years.push({ 
+        age, 
+        year, 
+        ganZhi: yearGanZhi, 
+        stem,
+        branch,
+        element: stemElement, 
+        tenGod,
+        tenGodMeaning: tenGodMeaning[tenGod] || '',
+        fortune 
+      });
     }
     return years;
   }, [daYun, birthYear, baziProfile]);
 
   const fortuneStyles = {
-    good: 'bg-green-500/20 border-green-500/30 text-green-400',
-    neutral: 'bg-card/30 border-border/30 text-foreground/70',
-    caution: 'bg-red-500/20 border-red-500/30 text-red-400',
+    good: 'bg-emerald-500/15 border-emerald-500/30',
+    neutral: 'bg-card/30 border-border/30',
+    caution: 'bg-rose-500/15 border-rose-500/30',
   };
 
   const fortuneLabels = {
@@ -268,44 +333,79 @@ function DaYunExpandedPanel({
         </div>
       )}
 
-      {/* BaZi Flow Years within this Da Yun */}
+      {/* BaZi Flow Years with Ten Gods Analysis */}
       <div className="mt-4 pt-4 border-t border-primary/20">
         <h5 className="text-sm font-serif text-primary mb-3 flex items-center gap-2">
           <Calendar className="w-4 h-4" />
-          八字流年 ({daYun.startAge}-{daYun.endAge}岁)
+          八字流年详析 ({daYun.startAge}-{daYun.endAge}岁)
         </h5>
         
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <div className="space-y-2">
           {baziFlowYears.map(fy => (
             <div 
               key={fy.age}
               className={`
-                flex flex-col items-center p-2 rounded-lg border transition-all
+                flex items-center gap-3 p-2 sm:p-3 rounded-lg border transition-all
                 ${fortuneStyles[fy.fortune]}
               `}
             >
-              <span className="text-lg font-serif">{fy.ganZhi}</span>
-              <span className="text-[10px] text-muted-foreground">{fy.age}岁 · {fy.year}</span>
-              <div className="flex items-center gap-1 mt-1">
-                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${ELEMENT_COLORS[fy.element] || ''}`}>
+              {/* 年龄和年份 */}
+              <div className="flex flex-col items-center min-w-[45px] text-center">
+                <span className="text-lg font-serif text-foreground">{fy.age}岁</span>
+                <span className="text-[10px] text-muted-foreground">{fy.year}</span>
+              </div>
+              
+              {/* 干支 */}
+              <div className="flex flex-col items-center min-w-[40px]">
+                <span className="text-lg font-serif text-primary">{fy.ganZhi}</span>
+                <Badge variant="outline" className={`text-[10px] px-1 ${ELEMENT_COLORS[fy.element] || ''}`}>
                   {fy.element}
                 </Badge>
-                <span className={`text-[10px] font-medium ${
-                  fy.fortune === 'good' ? 'text-green-400' : 
-                  fy.fortune === 'caution' ? 'text-red-400' : 'text-muted-foreground'
-                }`}>
-                  {fortuneLabels[fy.fortune]}
-                </span>
               </div>
+              
+              {/* 十神关系 */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge 
+                    variant="secondary" 
+                    className={`text-xs ${
+                      ['正官', '正印', '正财', '食神'].includes(fy.tenGod) 
+                        ? 'bg-emerald-500/20 text-emerald-400' 
+                        : ['七杀', '劫财', '伤官'].includes(fy.tenGod)
+                          ? 'bg-rose-500/20 text-rose-400'
+                          : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {fy.tenGod || '—'}
+                  </Badge>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground">
+                    {fy.tenGodMeaning}
+                  </span>
+                </div>
+              </div>
+              
+              {/* 吉凶标记 */}
+              <Badge 
+                variant="outline"
+                className={`text-xs shrink-0 ${
+                  fy.fortune === 'good' ? 'border-emerald-500/50 text-emerald-400' : 
+                  fy.fortune === 'caution' ? 'border-rose-500/50 text-rose-400' : 
+                  'border-border text-muted-foreground'
+                }`}
+              >
+                {fortuneLabels[fy.fortune]}
+              </Badge>
             </div>
           ))}
         </div>
         
-        <p className="mt-3 text-[10px] sm:text-xs text-muted-foreground">
-          <span className="text-green-400">吉</span>=喜用神年 · 
-          <span className="text-red-400 ml-2">慎</span>=忌神年 · 
-          <span className="text-muted-foreground ml-2">平</span>=中性年
-        </p>
+        <div className="mt-3 p-2 bg-secondary/30 rounded text-[10px] sm:text-xs text-muted-foreground">
+          <p className="mb-1">
+            <span className="text-emerald-400">吉星</span>: 正官、正印、正财、食神 | 
+            <span className="text-rose-400 ml-2">凶星</span>: 七杀、劫财、伤官
+          </p>
+          <p>十神关系基于日主 <span className="text-primary">{baziProfile.pillars?.day?.charAt(0) || baziProfile.dayMaster?.charAt(0) || '?'}</span> 与流年天干的五行生克推算</p>
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 /**
  * Ziwei Doushu Display Component
- * Enhanced display with 14 main stars calculation
+ * Enhanced display with 14 main stars, auxiliary stars, and four transformations (四化)
  * Integrated into the BaZi Profile tab with AI interpretation
  */
 
@@ -9,13 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ZiweiEngine, type ZiweiReport, type ZiweiStar } from '@/utils/ziweiAlgorithm';
+import { ZiweiEngine, type ZiweiReport, type ZiweiStar, type SihuaInfo } from '@/utils/ziweiAlgorithm';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   Star, Home, Users, Heart, Baby, Coins, Activity, 
   Plane, UserCheck, Briefcase, Building, Smile, UserPlus,
-  Sparkles, ChevronDown, ChevronUp, Loader2, Lock, Crown, Sun, Moon
+  Sparkles, ChevronDown, ChevronUp, Loader2, Lock, Crown, Zap
 } from 'lucide-react';
 
 interface ZiweiDisplayProps {
@@ -62,6 +62,8 @@ const BRANCH_ELEMENTS: Record<string, { element: string; color: string }> = {
 const STAR_GROUP_COLORS: Record<string, string> = {
   'ziwei': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   'tianfu': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  'auxiliary': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+  'sha': 'bg-rose-500/20 text-rose-400 border-rose-500/30',
 };
 
 // Brightness colors
@@ -73,6 +75,14 @@ const BRIGHTNESS_COLORS: Record<string, string> = {
   '平': 'text-muted-foreground',
   '闲': 'text-orange-400',
   '陷': 'text-red-400',
+};
+
+// Sihua colors
+const SIHUA_COLORS: Record<string, string> = {
+  '禄': 'text-emerald-400 bg-emerald-500/20',
+  '权': 'text-amber-400 bg-amber-500/20',
+  '科': 'text-blue-400 bg-blue-500/20',
+  '忌': 'text-rose-400 bg-rose-500/20',
 };
 
 // Parse AI interpretation with markdown-like formatting
@@ -115,12 +125,14 @@ function formatInterpretation(text: string) {
   return elements;
 }
 
-// Star display component
+// Star display component with Sihua
 function StarBadge({ star }: { star: ZiweiStar }) {
   const groupColor = STAR_GROUP_COLORS[star.group] || '';
   const brightnessColor = BRIGHTNESS_COLORS[star.brightness] || 'text-muted-foreground';
   
   const isKeystar = ['紫微', '天府', '太阳', '太阴'].includes(star.name);
+  const isAuxiliary = star.type === 'auxiliary';
+  const isSha = star.type === 'sha';
   
   return (
     <Badge 
@@ -128,8 +140,56 @@ function StarBadge({ star }: { star: ZiweiStar }) {
       className={`text-[8px] sm:text-[10px] px-1 py-0 ${groupColor} ${isKeystar ? 'font-bold' : ''}`}
     >
       <span className={brightnessColor}>{star.name}</span>
-      <span className="ml-0.5 text-[7px] opacity-70">{star.brightness}</span>
+      {!isAuxiliary && !isSha && (
+        <span className="ml-0.5 text-[7px] opacity-70">{star.brightness}</span>
+      )}
+      {star.sihua && (
+        <span className={`ml-0.5 text-[7px] font-bold ${
+          star.sihua === '禄' ? 'text-emerald-400' :
+          star.sihua === '权' ? 'text-amber-400' :
+          star.sihua === '科' ? 'text-blue-400' :
+          'text-rose-400'
+        }`}>
+          化{star.sihua}
+        </span>
+      )}
     </Badge>
+  );
+}
+
+// Sihua summary component
+function SihuaSummary({ sihua }: { sihua: SihuaInfo[] }) {
+  return (
+    <div className="p-2 sm:p-3 bg-gradient-to-r from-purple-500/10 via-amber-500/10 to-blue-500/10 border border-primary/20 rounded-lg">
+      <h5 className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
+        <Zap className="w-3 h-3 text-amber-400" />
+        四化飞星
+      </h5>
+      <div className="grid grid-cols-4 gap-1 sm:gap-2">
+        {sihua.map((s) => (
+          <div 
+            key={s.transform}
+            className={`text-center p-1.5 sm:p-2 rounded-lg border ${
+              s.transform === '禄' ? 'bg-emerald-500/10 border-emerald-500/30' :
+              s.transform === '权' ? 'bg-amber-500/10 border-amber-500/30' :
+              s.transform === '科' ? 'bg-blue-500/10 border-blue-500/30' :
+              'bg-rose-500/10 border-rose-500/30'
+            }`}
+          >
+            <span className={`text-lg sm:text-xl font-serif ${
+              s.transform === '禄' ? 'text-emerald-400' :
+              s.transform === '权' ? 'text-amber-400' :
+              s.transform === '科' ? 'text-blue-400' :
+              'text-rose-400'
+            }`}>
+              {s.transform}
+            </span>
+            <p className="text-[9px] sm:text-xs text-foreground mt-0.5">{s.star}</p>
+            <p className="text-[8px] text-muted-foreground">{s.meaning}</p>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -150,8 +210,24 @@ export function ZiweiDisplay({ year, month, day, hour, gender }: ZiweiDisplayPro
     const shenPalace = report.palaces.find(p => p.isShen);
     
     return {
-      ming: mingPalace?.stars.filter(s => ['紫微', '天府', '太阳', '太阴', '贪狼', '破军', '七杀', '廉贞'].includes(s.name)) || [],
-      shen: shenPalace?.stars.filter(s => ['紫微', '天府', '太阳', '太阴', '贪狼', '破军', '七杀', '廉贞'].includes(s.name)) || [],
+      ming: mingPalace?.stars.filter(s => s.type === 'major') || [],
+      shen: shenPalace?.stars.filter(s => s.type === 'major') || [],
+    };
+  }, [report]);
+
+  // Separate auxiliary stars
+  const { mainStarsPalaces, auxiliaryStars } = useMemo(() => {
+    const auxiliary: string[] = [];
+    report.palaces.forEach(p => {
+      p.stars.forEach(s => {
+        if (s.type === 'auxiliary' || s.type === 'sha') {
+          if (!auxiliary.includes(s.name)) auxiliary.push(s.name);
+        }
+      });
+    });
+    return {
+      mainStarsPalaces: report.palaces,
+      auxiliaryStars: auxiliary,
     };
   }, [report]);
 
@@ -163,12 +239,27 @@ export function ZiweiDisplay({ year, month, day, hour, gender }: ZiweiDisplayPro
     const mingPalace = report.palaces.find(p => p.isMing);
     const shenPalace = report.palaces.find(p => p.isShen);
     
-    const starsInMing = mingPalace?.stars.map(s => `${s.name}(${s.brightness})`).join('、') || '无主星';
-    const starsInShen = shenPalace?.stars.map(s => `${s.name}(${s.brightness})`).join('、') || '无主星';
+    const starsInMing = mingPalace?.stars.map(s => {
+      let str = `${s.name}(${s.brightness})`;
+      if (s.sihua) str += `化${s.sihua}`;
+      return str;
+    }).join('、') || '无主星';
+    
+    const starsInShen = shenPalace?.stars.map(s => {
+      let str = `${s.name}(${s.brightness})`;
+      if (s.sihua) str += `化${s.sihua}`;
+      return str;
+    }).join('、') || '无主星';
+    
+    const sihuaSummary = report.sihua.map(s => `${s.star}化${s.transform}`).join('、');
     
     const palacesSummary = report.palaces
       .map(p => {
-        const stars = p.stars.map(s => s.name).join('、') || '空宫';
+        const stars = p.stars.map(s => {
+          let str = s.name;
+          if (s.sihua) str += `化${s.sihua}`;
+          return str;
+        }).join('、') || '空宫';
         return `${p.name}(${p.branch}): ${stars}`;
       })
       .join('\n');
@@ -184,7 +275,11 @@ export function ZiweiDisplay({ year, month, day, hour, gender }: ZiweiDisplayPro
 身宫落在${report.shenGong}宫（${shenElement?.element || ''}）
 身宫主星：${starsInShen}
 
+【四化飞星】${sihuaSummary}
+
 【五行局】${report.wuxingju.name}
+
+【辅星配置】${auxiliaryStars.join('、')}
 
 【基本资料】
 农历${report.lunarDate}，${report.hourBranch}时生
@@ -195,9 +290,10 @@ ${palacesSummary}
 
 请根据紫微斗数理论分析：
 1. 命宫主星配置的格局特点和人生倾向
-2. 身宫主星对后天运势的影响
-3. 重要宫位（财帛、官禄、夫妻）的主星组合含义
-4. 综合建议`,
+2. 四化飞星对命局的具体影响
+3. 辅星（左辅右弼、文昌文曲、魁钺）的作用
+4. 煞星（擎羊、陀罗、火铃）的影响和化解
+5. 综合建议`,
       aspectLabel: '紫微斗数命盘解读',
       pillarsDisplay: `${report.yearGanZhi} ${report.monthGanZhi} ${report.dayGanZhi}`,
       isZiweiAnalysis: true,
@@ -264,7 +360,7 @@ ${palacesSummary}
           </span>
           {keyStars.ming.length > 0 && (
             <div className="flex flex-wrap gap-0.5 justify-center">
-              {keyStars.ming.map((star, idx) => (
+              {keyStars.ming.slice(0, 4).map((star, idx) => (
                 <StarBadge key={idx} star={star} />
               ))}
             </div>
@@ -282,13 +378,20 @@ ${palacesSummary}
           </span>
           {keyStars.shen.length > 0 && (
             <div className="flex flex-wrap gap-0.5 justify-center">
-              {keyStars.shen.map((star, idx) => (
+              {keyStars.shen.slice(0, 4).map((star, idx) => (
                 <StarBadge key={idx} star={star} />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Four Transformations (四化飞星) */}
+      {report.sihua.length > 0 && (
+        <div className="mb-3 sm:mb-4">
+          <SihuaSummary sihua={report.sihua} />
+        </div>
+      )}
 
       {/* Lunar Date Info */}
       <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-secondary/30 rounded-lg">
@@ -302,23 +405,40 @@ ${palacesSummary}
             <span className="ml-1 text-foreground">{report.hourBranch}时</span>
           </div>
         </div>
+        {/* Auxiliary Stars Summary */}
+        <div className="mt-2 pt-2 border-t border-border/30">
+          <span className="text-[10px] text-muted-foreground">辅星: </span>
+          <span className="text-[10px] text-cyan-400">
+            {auxiliaryStars.filter(s => !['擎羊', '陀罗', '火星', '铃星'].includes(s)).join(' ')}
+          </span>
+          <span className="text-[10px] text-muted-foreground ml-2">煞星: </span>
+          <span className="text-[10px] text-rose-400">
+            {auxiliaryStars.filter(s => ['擎羊', '陀罗', '火星', '铃星'].includes(s)).join(' ')}
+          </span>
+        </div>
       </div>
 
       {/* Twelve Palaces Grid with Stars */}
       <div>
-        <h5 className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
-          十二宫位与主星
-          <span className="flex gap-1">
+        <h5 className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2 flex-wrap">
+          十二宫位与星曜
+          <span className="flex gap-1 flex-wrap">
             <Badge variant="outline" className="text-[8px] px-1 py-0 bg-purple-500/10 text-purple-400 border-purple-500/20">紫微系</Badge>
             <Badge variant="outline" className="text-[8px] px-1 py-0 bg-amber-500/10 text-amber-400 border-amber-500/20">天府系</Badge>
+            <Badge variant="outline" className="text-[8px] px-1 py-0 bg-cyan-500/10 text-cyan-400 border-cyan-500/20">辅星</Badge>
+            <Badge variant="outline" className="text-[8px] px-1 py-0 bg-rose-500/10 text-rose-400 border-rose-500/20">煞星</Badge>
           </span>
         </h5>
         <ScrollArea className="h-auto max-h-[300px] sm:max-h-[400px]">
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2">
-            {report.palaces.map((palace) => {
+            {mainStarsPalaces.map((palace) => {
               const Icon = PALACE_ICONS[palace.name] || Home;
               const branchInfo = BRANCH_ELEMENTS[palace.branch];
               const isMingOrShen = palace.isMing || palace.isShen;
+              
+              // Separate major stars and auxiliary/sha stars
+              const majorStars = palace.stars.filter(s => s.type === 'major');
+              const otherStars = palace.stars.filter(s => s.type !== 'major');
               
               return (
                 <div
@@ -342,10 +462,19 @@ ${palacesSummary}
                     {palace.branch}
                   </span>
                   
-                  {/* Stars in palace */}
-                  {palace.stars.length > 0 && (
+                  {/* Major Stars */}
+                  {majorStars.length > 0 && (
                     <div className="flex flex-wrap gap-0.5 justify-center mt-1">
-                      {palace.stars.map((star, idx) => (
+                      {majorStars.map((star, idx) => (
+                        <StarBadge key={idx} star={star} />
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Auxiliary/Sha Stars */}
+                  {otherStars.length > 0 && (
+                    <div className="flex flex-wrap gap-0.5 justify-center mt-0.5">
+                      {otherStars.map((star, idx) => (
                         <StarBadge key={idx} star={star} />
                       ))}
                     </div>
@@ -371,7 +500,7 @@ ${palacesSummary}
 
       {/* Footer Note */}
       <p className="text-[9px] sm:text-xs text-muted-foreground mt-2 sm:mt-3 text-center">
-        十四主星已排布 · 含亮度等级
+        含十四主星 · 辅星 · 煞星 · 四化飞星
       </p>
 
       {/* AI Interpretation Section */}
@@ -410,7 +539,7 @@ ${palacesSummary}
               <div className="mt-3 space-y-2 p-3 bg-purple-500/5 rounded-lg border border-purple-500/10">
                 <div className="flex items-center gap-2 text-[10px] sm:text-xs text-purple-400/70">
                   <Sparkles className="w-3 h-3 animate-pulse" />
-                  正在分析紫微命盘格局与主星配置...
+                  正在分析紫微命盘格局、四化飞星与辅星配置...
                 </div>
                 <Skeleton className="h-3 w-full bg-purple-500/10" />
                 <Skeleton className="h-3 w-5/6 bg-purple-500/10" />
