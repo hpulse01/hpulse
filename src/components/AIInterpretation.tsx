@@ -1,6 +1,7 @@
 /**
- * AI Interpretation Component
+ * AI Interpretation Component (Enhanced)
  * Provides AI-powered deep interpretation of destiny clauses
+ * Integrates BaZi, Iron Plate, and Liu Yao for comprehensive analysis
  */
 
 import { useState } from 'react';
@@ -8,9 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { Sparkles, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { Sparkles, ChevronDown, ChevronUp, Loader2, BookOpen, Zap, Clock, Gem } from 'lucide-react';
 import type { BaZiProfile } from '@/utils/tiebanAlgorithm';
 import type { LiuYaoResult } from '@/utils/liuYaoAlgorithm';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AIInterpretationProps {
   clauseContent: string;
@@ -19,6 +21,67 @@ interface AIInterpretationProps {
   baziProfile?: BaZiProfile;
   hexagram?: LiuYaoResult;
   allAspects?: { label: string; content: string }[];
+  currentAge?: number;
+  daYunInfo?: string;
+}
+
+// Parse markdown-like formatting
+function formatInterpretation(text: string) {
+  const lines = text.split('\n');
+  const elements: JSX.Element[] = [];
+  
+  lines.forEach((line, idx) => {
+    const trimmed = line.trim();
+    
+    // H2 headers
+    if (trimmed.startsWith('## ')) {
+      const headerText = trimmed.replace('## ', '');
+      const icon = getHeaderIcon(headerText);
+      elements.push(
+        <h3 key={idx} className="text-base font-medium text-primary flex items-center gap-2 mt-4 mb-2 first:mt-0">
+          {icon}
+          {headerText}
+        </h3>
+      );
+    }
+    // Bold text sections
+    else if (trimmed.startsWith('**') && trimmed.includes('**:')) {
+      const [label, ...rest] = trimmed.split('**:');
+      const cleanLabel = label.replace(/\*\*/g, '');
+      elements.push(
+        <p key={idx} className="text-sm text-foreground/90 leading-relaxed mb-2">
+          <span className="font-medium text-primary/80">{cleanLabel}:</span>
+          {rest.join('**:')}
+        </p>
+      );
+    }
+    // List items
+    else if (trimmed.startsWith('- ')) {
+      elements.push(
+        <li key={idx} className="text-sm text-foreground/80 leading-relaxed ml-4 list-disc">
+          {trimmed.substring(2)}
+        </li>
+      );
+    }
+    // Regular paragraphs
+    else if (trimmed) {
+      elements.push(
+        <p key={idx} className="text-sm text-foreground/90 leading-relaxed mb-2">
+          {trimmed}
+        </p>
+      );
+    }
+  });
+  
+  return elements;
+}
+
+function getHeaderIcon(text: string) {
+  if (text.includes('条辞') || text.includes('解密')) return <BookOpen className="w-4 h-4" />;
+  if (text.includes('合参') || text.includes('分析')) return <Zap className="w-4 h-4" />;
+  if (text.includes('应期') || text.includes('推测')) return <Clock className="w-4 h-4" />;
+  if (text.includes('开运') || text.includes('指南')) return <Gem className="w-4 h-4" />;
+  return <Sparkles className="w-4 h-4" />;
 }
 
 export function AIInterpretation({
@@ -28,7 +91,10 @@ export function AIInterpretation({
   baziProfile,
   hexagram,
   allAspects,
+  currentAge,
+  daYunInfo,
 }: AIInterpretationProps) {
+  const { consumeAIUse, profile } = useAuth();
   const [interpretation, setInterpretation] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -44,28 +110,69 @@ export function AIInterpretation({
     setError(null);
 
     try {
+      // Consume AI use if user is level_2
+      if (profile?.level === 'level_2') {
+        const success = await consumeAIUse();
+        if (!success) {
+          throw new Error('AI解读次数已用完，请升级会员');
+        }
+      }
+
+      // Build enhanced request body
+      const requestBody: Record<string, unknown> = {
+        clauseContent,
+        aspectLabel,
+        pillarsDisplay,
+        currentAge,
+        daYunInfo,
+        allAspects,
+      };
+
+      // Enhanced BaZi profile with deep analysis data
+      if (baziProfile) {
+        requestBody.baziProfile = {
+          dayMaster: baziProfile.dayMaster,
+          dayMasterElement: baziProfile.dayMasterElement,
+          strength: baziProfile.strength,
+          favorableElements: baziProfile.favorableElements,
+          unfavorableElements: baziProfile.unfavorableElements,
+          pillars: baziProfile.pillars,
+          // Additional deep analysis fields if available
+          ...(baziProfile as any).tenGods && { tenGods: (baziProfile as any).tenGods },
+          ...(baziProfile as any).naYinAnalysis && { naYin: (baziProfile as any).naYinAnalysis },
+          ...(baziProfile as any).pattern && { pattern: (baziProfile as any).pattern },
+        };
+      }
+
+      // Enhanced hexagram data
+      if (hexagram) {
+        // Get moving relatives from lines
+        const movingRelatives = hexagram.mainHexagram.lines
+          .filter(l => l.isChanging)
+          .map(l => l.relative);
+        
+        // Get dominant element
+        const elementCounts: Record<string, number> = {};
+        hexagram.mainHexagram.lines.forEach(l => {
+          elementCounts[l.element] = (elementCounts[l.element] || 0) + 1;
+        });
+        const dominantElement = Object.entries(elementCounts)
+          .sort((a, b) => b[1] - a[1])[0]?.[0];
+
+        requestBody.hexagram = {
+          name: hexagram.mainHexagram.name,
+          symbol: hexagram.mainHexagram.symbol,
+          lines: hexagram.mainHexagram.lines.map(l => l.value),
+          changingLines: hexagram.mainHexagram.changingLines,
+          interpretation: hexagram.interpretation,
+          targetHexagramName: hexagram.mainHexagram.targetHexagram?.name,
+          dominantElement,
+          movingRelatives: movingRelatives.length > 0 ? [...new Set(movingRelatives)] : undefined,
+        };
+      }
+
       const { data, error: fnError } = await supabase.functions.invoke('ai-interpret', {
-        body: {
-          clauseContent,
-          aspectLabel,
-          pillarsDisplay,
-          baziProfile: baziProfile ? {
-            dayMaster: baziProfile.dayMaster,
-            dayMasterElement: baziProfile.dayMasterElement,
-            strength: baziProfile.strength,
-            favorableElements: baziProfile.favorableElements,
-            unfavorableElements: baziProfile.unfavorableElements,
-            pillars: baziProfile.pillars,
-          } : undefined,
-          hexagram: hexagram ? {
-            name: hexagram.mainHexagram.name,
-            symbol: hexagram.mainHexagram.symbol,
-            lines: hexagram.mainHexagram.lines.map(l => l.value),
-            changingLines: hexagram.mainHexagram.changingLines,
-            interpretation: hexagram.interpretation,
-          } : undefined,
-          allAspects,
-        },
+        body: requestBody,
       });
 
       if (fnError) throw fnError;
@@ -95,7 +202,7 @@ export function AIInterpretation({
           ) : (
             <Sparkles className="w-4 h-4" />
           )}
-          {isLoading ? '正在解读...' : interpretation ? 'AI深度解读' : '获取AI解读'}
+          {isLoading ? '正在深度解读...' : interpretation ? '三术合参·深度解读' : '获取AI深度解读'}
         </span>
         {interpretation && (
           isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
@@ -103,34 +210,38 @@ export function AIInterpretation({
       </Button>
 
       {error && (
-        <div className="mt-2 p-2 bg-destructive/10 border border-destructive/30 rounded text-xs text-destructive">
+        <div className="mt-2 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive">
           {error}
         </div>
       )}
 
       {isLoading && (
-        <div className="mt-3 space-y-2">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-5/6" />
-          <Skeleton className="h-4 w-4/5" />
-          <Skeleton className="h-4 w-full" />
+        <div className="mt-4 space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/10">
+          <div className="flex items-center gap-2 text-xs text-primary/70">
+            <Sparkles className="w-3 h-3 animate-pulse" />
+            正在融合八字、铁板、卦象进行三术合参...
+          </div>
+          <Skeleton className="h-4 w-full bg-primary/10" />
+          <Skeleton className="h-4 w-5/6 bg-primary/10" />
+          <Skeleton className="h-4 w-4/5 bg-primary/10" />
+          <Skeleton className="h-4 w-full bg-primary/10" />
+          <Skeleton className="h-4 w-3/4 bg-primary/10" />
         </div>
       )}
 
       {interpretation && isExpanded && (
-        <div className="mt-3 p-4 bg-gradient-to-b from-primary/5 to-transparent border border-primary/20 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="mt-4 p-5 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center justify-between mb-4">
             <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
               <Sparkles className="w-3 h-3 mr-1" />
-              AI解读
+              三术合参·深度解读
             </Badge>
+            <span className="text-xs text-muted-foreground">
+              八字 + 铁板 + 卦象
+            </span>
           </div>
-          <div className="prose prose-sm prose-invert max-w-none">
-            {interpretation.split('\n').map((paragraph, idx) => (
-              <p key={idx} className="text-sm text-foreground/90 leading-relaxed mb-2 last:mb-0">
-                {paragraph}
-              </p>
-            ))}
+          <div className="prose prose-sm prose-invert max-w-none space-y-1">
+            {formatInterpretation(interpretation)}
           </div>
         </div>
       )}
