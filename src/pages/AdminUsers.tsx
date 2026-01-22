@@ -2,9 +2,10 @@
  * Admin Users Management Page
  * Allows super admins to view and modify user levels, ban, disable, delete users
  * Super admin is protected and cannot be modified by anyone
+ * Features: Search, Batch Operations, IP Display
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth, UserLevel } from '@/hooks/useAuth';
@@ -13,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +26,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Shield, Users, Crown, Star, ArrowLeft, RefreshCw, Ban, Power, Trash2, ShieldCheck, AlertTriangle, Gift, Clock } from 'lucide-react';
+import { 
+  Shield, Users, Crown, Star, ArrowLeft, RefreshCw, Ban, Power, Trash2, 
+  ShieldCheck, AlertTriangle, Gift, Clock, Search, Globe, CheckSquare,
+  UserX, UserCheck
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -34,6 +40,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type UserStatus = 'active' | 'banned' | 'disabled';
 
@@ -49,6 +63,7 @@ interface UserData {
   is_protected: boolean;
   temp_ai_uses: number;
   temp_ai_expires_at: string | null;
+  registration_ip: string | null;
 }
 
 export default function AdminUsers() {
@@ -64,6 +79,34 @@ export default function AdminUsers() {
   const [grantAIDialogOpen, setGrantAIDialogOpen] = useState(false);
   const [userToGrant, setUserToGrant] = useState<UserData | null>(null);
   const [grantAmount, setGrantAmount] = useState<number>(5);
+  
+  // Search and batch operations state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [batchActionDialogOpen, setBatchActionDialogOpen] = useState(false);
+  const [batchAction, setBatchAction] = useState<{ type: 'level' | 'status'; value: string } | null>(null);
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+
+  // Filter users based on search query
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return users;
+    const query = searchQuery.toLowerCase().trim();
+    return users.filter(u => 
+      (u.email?.toLowerCase().includes(query)) ||
+      (u.display_name?.toLowerCase().includes(query)) ||
+      (u.registration_ip?.includes(query))
+    );
+  }, [users, searchQuery]);
+
+  // Get selectable users (non-protected)
+  const selectableUsers = useMemo(() => 
+    filteredUsers.filter(u => !u.is_protected), 
+    [filteredUsers]
+  );
+
+  // Check if all selectable users are selected
+  const allSelected = selectableUsers.length > 0 && 
+    selectableUsers.every(u => selectedUsers.has(u.user_id));
 
   // Check if current user is admin
   useEffect(() => {
@@ -132,7 +175,6 @@ export default function AdminUsers() {
         },
         (payload) => {
           console.log('Profile change detected:', payload);
-          // Refresh the entire list to get updated data with email
           fetchUsers();
         }
       )
@@ -156,7 +198,6 @@ export default function AdminUsers() {
 
       if (error) throw error;
 
-      // Update local state - sync with database logic
       setUsers(users.map(u => 
         u.user_id === targetUserId 
           ? { 
@@ -188,7 +229,6 @@ export default function AdminUsers() {
 
       if (error) throw error;
 
-      // Update local state
       setUsers(users.map(u => 
         u.user_id === targetUserId ? { ...u, status: newStatus } : u
       ));
@@ -218,8 +258,12 @@ export default function AdminUsers() {
 
       if (error) throw error;
 
-      // Remove from local state
       setUsers(users.filter(u => u.user_id !== userToDelete.user_id));
+      setSelectedUsers(prev => {
+        const next = new Set(prev);
+        next.delete(userToDelete.user_id);
+        return next;
+      });
       toast.success('用户已删除');
     } catch (err: any) {
       console.error('Error deleting user:', err);
@@ -243,11 +287,9 @@ export default function AdminUsers() {
 
       if (error) throw error;
 
-      // Calculate new expiration (3 days from now)
       const newExpiration = new Date();
       newExpiration.setDate(newExpiration.getDate() + 3);
 
-      // Update local state
       setUsers(users.map(u => 
         u.user_id === userToGrant.user_id 
           ? { 
@@ -269,6 +311,63 @@ export default function AdminUsers() {
     setGrantAIDialogOpen(false);
     setUserToGrant(null);
     setGrantAmount(5);
+  };
+
+  // Batch operations
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedUsers(new Set(selectableUsers.map(u => u.user_id)));
+    } else {
+      setSelectedUsers(new Set());
+    }
+  };
+
+  const handleSelectUser = (userId: string, checked: boolean) => {
+    setSelectedUsers(prev => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(userId);
+      } else {
+        next.delete(userId);
+      }
+      return next;
+    });
+  };
+
+  const handleBatchAction = async () => {
+    if (!user?.id || !batchAction || selectedUsers.size === 0) return;
+
+    setIsBatchProcessing(true);
+    try {
+      const userIds = Array.from(selectedUsers);
+      
+      if (batchAction.type === 'level') {
+        const { data, error } = await (supabase as any).rpc('admin_batch_update_level', {
+          p_admin_id: user.id,
+          p_user_ids: userIds,
+          p_new_level: batchAction.value,
+        });
+        if (error) throw error;
+        toast.success(`已批量更新 ${data} 个用户的等级`);
+      } else if (batchAction.type === 'status') {
+        const { data, error } = await (supabase as any).rpc('admin_batch_update_status', {
+          p_admin_id: user.id,
+          p_user_ids: userIds,
+          p_new_status: batchAction.value,
+        });
+        if (error) throw error;
+        toast.success(`已批量更新 ${data} 个用户的状态`);
+      }
+
+      await fetchUsers();
+      setSelectedUsers(new Set());
+    } catch (err: any) {
+      console.error('Error batch updating:', err);
+      toast.error(err.message || '批量操作失败');
+    }
+    setIsBatchProcessing(false);
+    setBatchActionDialogOpen(false);
+    setBatchAction(null);
   };
 
   const refreshUsers = async () => {
@@ -441,13 +540,102 @@ export default function AdminUsers() {
           </Card>
         </div>
 
+        {/* Search and Batch Operations */}
+        <Card className="mb-4">
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+              {/* Search */}
+              <div className="relative w-full md:w-96">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="搜索用户名、邮箱或IP地址..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Batch Actions - Only for Super Admin */}
+              {isSuperAdmin && selectedUsers.size > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    已选择 {selectedUsers.size} 个用户
+                  </span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <CheckSquare className="w-4 h-4 mr-2" />
+                        批量操作
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>修改等级</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => {
+                        setBatchAction({ type: 'level', value: 'level_1' });
+                        setBatchActionDialogOpen(true);
+                      }}>
+                        <Users className="w-4 h-4 mr-2" />
+                        设为普通用户
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        setBatchAction({ type: 'level', value: 'level_2' });
+                        setBatchActionDialogOpen(true);
+                      }}>
+                        <Star className="w-4 h-4 mr-2 text-yellow-500" />
+                        设为高级会员
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        setBatchAction({ type: 'level', value: 'level_3' });
+                        setBatchActionDialogOpen(true);
+                      }}>
+                        <Crown className="w-4 h-4 mr-2 text-primary" />
+                        设为尊享会员
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>修改状态</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => {
+                        setBatchAction({ type: 'status', value: 'active' });
+                        setBatchActionDialogOpen(true);
+                      }}>
+                        <UserCheck className="w-4 h-4 mr-2 text-green-500" />
+                        批量激活
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        setBatchAction({ type: 'status', value: 'disabled' });
+                        setBatchActionDialogOpen(true);
+                      }}>
+                        <Power className="w-4 h-4 mr-2 text-orange-500" />
+                        批量停用
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        setBatchAction({ type: 'status', value: 'banned' });
+                        setBatchActionDialogOpen(true);
+                      }}>
+                        <UserX className="w-4 h-4 mr-2 text-destructive" />
+                        批量封禁
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setSelectedUsers(new Set())}
+                  >
+                    取消选择
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Users Table */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               用户列表
               <span className="text-sm font-normal text-muted-foreground">
-                (带 <Shield className="w-3 h-3 inline text-red-500" /> 标记的用户不可修改)
+                (显示 {filteredUsers.length} / {users.length} 用户)
               </span>
             </CardTitle>
           </CardHeader>
@@ -456,25 +644,46 @@ export default function AdminUsers() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    {isSuperAdmin && (
+                      <TableHead className="w-12">
+                        <Checkbox 
+                          checked={allSelected}
+                          onCheckedChange={handleSelectAll}
+                          aria-label="全选"
+                        />
+                      </TableHead>
+                    )}
                     <TableHead>用户</TableHead>
                     <TableHead>等级</TableHead>
                     <TableHead>状态</TableHead>
                     <TableHead>AI次数</TableHead>
+                    {isSuperAdmin && <TableHead>注册IP</TableHead>}
                     <TableHead>注册时间</TableHead>
                     <TableHead>修改等级</TableHead>
                     <TableHead>操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.length === 0 ? (
+                  {filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                        暂无用户数据
+                      <TableCell colSpan={isSuperAdmin ? 9 : 7} className="text-center text-muted-foreground py-8">
+                        {searchQuery ? '没有找到匹配的用户' : '暂无用户数据'}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    users.map((userData) => (
+                    filteredUsers.map((userData) => (
                       <TableRow key={userData.user_id} className={userData.is_protected ? 'bg-red-500/5' : ''}>
+                        {isSuperAdmin && (
+                          <TableCell>
+                            {!userData.is_protected && (
+                              <Checkbox 
+                                checked={selectedUsers.has(userData.user_id)}
+                                onCheckedChange={(checked) => handleSelectUser(userData.user_id, !!checked)}
+                                aria-label={`选择用户 ${userData.display_name || userData.email}`}
+                              />
+                            )}
+                          </TableCell>
+                        )}
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {userData.is_protected && (
@@ -497,7 +706,6 @@ export default function AdminUsers() {
                             ) : (
                               <span>{userData.ai_uses_remaining}</span>
                             )}
-                            {/* Show temporary AI uses if active */}
                             {userData.temp_ai_uses > 0 && userData.temp_ai_expires_at && (
                               <div className="flex items-center gap-1 text-xs">
                                 <Gift className="w-3 h-3 text-primary" />
@@ -510,6 +718,18 @@ export default function AdminUsers() {
                             )}
                           </div>
                         </TableCell>
+                        {isSuperAdmin && (
+                          <TableCell>
+                            {userData.registration_ip ? (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Globe className="w-3 h-3" />
+                                <span className="font-mono">{userData.registration_ip}</span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                        )}
                         <TableCell className="text-sm text-muted-foreground">
                           {new Date(userData.created_at).toLocaleDateString('zh-CN')}
                         </TableCell>
@@ -677,6 +897,43 @@ export default function AdminUsers() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Batch Action Confirmation Dialog */}
+        <AlertDialog open={batchActionDialogOpen} onOpenChange={setBatchActionDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <CheckSquare className="w-5 h-5" />
+                确认批量操作
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                您确定要对选中的 <strong>{selectedUsers.size}</strong> 个用户执行此操作吗？
+                <br />
+                {batchAction?.type === 'level' && (
+                  <>将所有选中用户的等级更改为：{
+                    batchAction.value === 'level_1' ? '普通用户' :
+                    batchAction.value === 'level_2' ? '高级会员' : '尊享会员'
+                  }</>
+                )}
+                {batchAction?.type === 'status' && (
+                  <>将所有选中用户的状态更改为：{
+                    batchAction.value === 'active' ? '激活' :
+                    batchAction.value === 'disabled' ? '停用' : '封禁'
+                  }</>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isBatchProcessing}>取消</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleBatchAction}
+                disabled={isBatchProcessing}
+              >
+                {isBatchProcessing ? '处理中...' : '确认执行'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

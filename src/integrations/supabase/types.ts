@@ -149,6 +149,7 @@ export type Database = {
           email: string
           is_protected: boolean
           level: Database["public"]["Enums"]["user_level"]
+          registration_ip: string
           status: string
           temp_ai_expires_at: string
           temp_ai_uses: number
