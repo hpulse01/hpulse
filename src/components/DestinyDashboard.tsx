@@ -148,12 +148,16 @@ function FlowYearItem({
   pillarsDisplay,
   baziProfile,
   canUseAI,
+  ziweiProfile,
+  hexagram,
 }: { 
   flowYear: FlowYearClause & { content?: string }; 
   currentAge: number;
   pillarsDisplay: string;
   baziProfile: any;
   canUseAI: boolean;
+  ziweiProfile?: any;
+  hexagram?: any;
 }) {
   const isCurrentAge = flowYear.age === currentAge;
   const isPast = flowYear.age < currentAge;
@@ -202,6 +206,9 @@ function FlowYearItem({
                 aspectLabel={`${flowYear.year}年 (${flowYear.age}岁) 流年`}
                 pillarsDisplay={pillarsDisplay}
                 baziProfile={baziProfile}
+                isFlowYear={true}
+                ziweiProfile={ziweiProfile}
+                hexagram={hexagram}
               />
             ) : (
               <div className="mt-2 text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
@@ -434,10 +441,10 @@ export function DestinyDashboard({
             <h3 className="text-base sm:text-lg font-serif text-primary mb-3 sm:mb-4 flex flex-wrap items-center gap-1 sm:gap-2">
               <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
               十年大运
-              <span className="text-[10px] sm:text-xs text-muted-foreground font-normal">(点击查看详情)</span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground font-normal">(点击查看详情，左右滑动查看更多)</span>
             </h3>
-            <ScrollArea className="w-full">
-              <div className="flex gap-1.5 sm:gap-3 pb-3 sm:pb-4">
+            <div className="overflow-x-auto pb-2 -mx-2 px-2">
+              <div className="flex gap-1.5 sm:gap-3 pb-3 sm:pb-4 min-w-max touch-pan-x">
                 {report.lifeCycles.slice(0, 8).map((cycle, index) => (
                   <DaYunItem 
                     key={index} 
@@ -448,7 +455,7 @@ export function DestinyDashboard({
                   />
                 ))}
               </div>
-            </ScrollArea>
+            </div>
             
             {/* Selected Da Yun Details with AI */}
             {selectedDaYunIndex !== null && selectedDaYun && (
@@ -512,26 +519,60 @@ export function DestinyDashboard({
         {/* Tab 2: Iron Plate Timeline */}
         <TabsContent value="timeline" className="space-y-3 sm:space-y-4 mt-4 sm:mt-6">
           {/* Range Selector */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-secondary/30 rounded-lg p-2 sm:p-3">
-            <span className="text-xs sm:text-sm text-muted-foreground">年龄范围</span>
-            <div className="grid grid-cols-4 gap-1 sm:flex sm:gap-2">
-              {[
-                { label: '1-20', mobileLabel: '1-20岁', start: 1, end: 20 },
-                { label: '20-40', mobileLabel: '20-40岁', start: 20, end: 40 },
-                { label: '40-60', mobileLabel: '40-60岁', start: 40, end: 60 },
-                { label: '60-80', mobileLabel: '60-80岁', start: 60, end: 80 },
-              ].map(range => (
-                <Button
-                  key={range.label}
-                  variant={flowYearRange.start === range.start ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFlowYearRange({ start: range.start, end: range.end })}
-                  className="text-[10px] sm:text-xs px-2 sm:px-3 h-7 sm:h-8"
+          <div className="flex flex-col gap-3 bg-secondary/30 rounded-lg p-2 sm:p-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <span className="text-xs sm:text-sm text-muted-foreground">年龄范围</span>
+              <div className="grid grid-cols-4 gap-1 sm:flex sm:gap-2">
+                {[
+                  { label: '1-20', mobileLabel: '1-20岁', start: 1, end: 20 },
+                  { label: '20-40', mobileLabel: '20-40岁', start: 20, end: 40 },
+                  { label: '40-60', mobileLabel: '40-60岁', start: 40, end: 60 },
+                  { label: '60-80', mobileLabel: '60-80岁', start: 60, end: 80 },
+                ].map(range => (
+                  <Button
+                    key={range.label}
+                    variant={flowYearRange.start === range.start ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFlowYearRange({ start: range.start, end: range.end })}
+                    className="text-[10px] sm:text-xs px-2 sm:px-3 h-7 sm:h-8"
+                  >
+                    <span className="sm:hidden">{range.label}</span>
+                    <span className="hidden sm:inline">{range.mobileLabel}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Specific Year Selector */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-2 border-t border-border/30">
+              <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">指定流年</span>
+              <div className="flex items-center gap-2 flex-1">
+                <select
+                  value={flowYearRange.start === flowYearRange.end ? flowYearRange.start : ''}
+                  onChange={(e) => {
+                    const age = parseInt(e.target.value);
+                    if (!isNaN(age)) {
+                      setFlowYearRange({ start: age, end: age });
+                    }
+                  }}
+                  className="flex-1 h-8 px-2 text-xs sm:text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
-                  <span className="sm:hidden">{range.label}</span>
-                  <span className="hidden sm:inline">{range.mobileLabel}</span>
-                </Button>
-              ))}
+                  <option value="">选择年龄...</option>
+                  {Array.from({ length: 80 }, (_, i) => i + 1).map(age => (
+                    <option key={age} value={age}>{age}岁 ({birthYear + age}年)</option>
+                  ))}
+                </select>
+                {flowYearRange.start === flowYearRange.end && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFlowYearRange({ start: 20, end: 40 })}
+                    className="text-[10px] sm:text-xs px-2 h-7"
+                  >
+                    清除
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -559,6 +600,8 @@ export function DestinyDashboard({
                     pillarsDisplay={pillarsDisplay}
                     baziProfile={report.baziProfile}
                     canUseAI={canUseAI}
+                    ziweiProfile={ziweiProfile}
+                    hexagram={hexagramResult}
                   />
                 ))}
               </div>

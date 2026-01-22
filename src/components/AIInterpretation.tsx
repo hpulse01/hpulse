@@ -23,7 +23,7 @@ interface ZiweiProfile {
   palaces?: { name: string; branch: string }[];
 }
 
-interface AIInterpretationProps {
+export interface AIInterpretationProps {
   clauseContent: string;
   aspectLabel: string;
   pillarsDisplay: string;
@@ -33,6 +33,7 @@ interface AIInterpretationProps {
   allAspects?: { label: string; content: string }[];
   currentAge?: number;
   daYunInfo?: string;
+  isFlowYear?: boolean;
 }
 
 // Parse markdown-like formatting
