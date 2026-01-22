@@ -31,6 +31,15 @@ export interface ZiweiPalace {
   stars: ZiweiStar[];
 }
 
+// 大限信息
+export interface DaxianInfo {
+  startAge: number;
+  endAge: number;
+  palaceName: string;
+  branch: string;
+  stars: ZiweiStar[];
+}
+
 export interface ZiweiReport {
   solarDate: string;
   lunarDate: string;
@@ -49,6 +58,8 @@ export interface ZiweiReport {
   tianfuPosition: number;
   sihua: SihuaInfo[];
   auxiliaryStars: string[];
+  daxian: DaxianInfo[]; // 大限列表
+  startDaxianAge: number; // 起运年龄
 }
 
 const PALACE_ORDER = [
@@ -467,6 +478,36 @@ export const ZiweiEngine = {
       };
     });
 
+    // 计算大限 (Major Luck Periods)
+    // 起运年龄根据五行局数确定
+    const startDaxianAge = wuxingju.number;
+    
+    // 大限顺逆行：阳男阴女顺行，阴男阳女逆行
+    const yearGanIndex = HEAVENLY_STEMS.indexOf(yearGan);
+    const isYangYear = yearGanIndex % 2 === 0;
+    const isMale = input.gender === 'male';
+    const isClockwise = (isYangYear && isMale) || (!isYangYear && !isMale);
+    
+    // 生成8个大限（每个10年）
+    const daxian: DaxianInfo[] = [];
+    for (let i = 0; i < 8; i++) {
+      const startAge = startDaxianAge + i * 10;
+      const endAge = startAge + 9;
+      
+      // 从命宫开始，顺/逆行
+      const palaceOffset = isClockwise ? i : -i;
+      const palaceIndex = ((mingIndex + palaceOffset) % 12 + 12) % 12;
+      const daxianPalace = palaces.find(p => p.index === palaceIndex);
+      
+      daxian.push({
+        startAge,
+        endAge,
+        palaceName: daxianPalace?.name || PALACE_ORDER[i % 12],
+        branch: PALACE_BRANCH_ORDER[palaceIndex],
+        stars: palaceStars[palaceIndex] || [],
+      });
+    }
+
     return {
       solarDate: `${input.year}年${input.month}月${input.day}日`,
       lunarDate: `${lunar.getYear()}年${isLeapMonth ? '闰' : ''}${lunarMonth}月${lunarDay}日`,
@@ -485,6 +526,8 @@ export const ZiweiEngine = {
       tianfuPosition,
       sihua: sihuaList,
       auxiliaryStars: auxiliaryPositions.map(p => p.name),
+      daxian,
+      startDaxianAge,
     };
   },
 };
