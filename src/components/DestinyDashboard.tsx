@@ -90,14 +90,14 @@ function PillarCard({ title, ganZhi, subtitle }: { title: string; ganZhi: string
   const zhi = ganZhi.charAt(1);
   
   return (
-    <div className="flex flex-col items-center p-4 bg-gradient-to-b from-card to-secondary/30 border border-primary/20 rounded-lg">
-      <span className="text-xs text-muted-foreground mb-2">{title}</span>
-      <div className="flex flex-col items-center gap-1">
-        <span className="text-2xl font-serif text-primary">{gan}</span>
-        <div className="w-8 h-px bg-primary/30" />
-        <span className="text-2xl font-serif text-foreground">{zhi}</span>
+    <div className="flex flex-col items-center p-2 sm:p-4 bg-gradient-to-b from-card to-secondary/30 border border-primary/20 rounded-lg">
+      <span className="text-[10px] sm:text-xs text-muted-foreground mb-1 sm:mb-2">{title}</span>
+      <div className="flex flex-col items-center gap-0.5 sm:gap-1">
+        <span className="text-lg sm:text-2xl font-serif text-primary">{gan}</span>
+        <div className="w-6 sm:w-8 h-px bg-primary/30" />
+        <span className="text-lg sm:text-2xl font-serif text-foreground">{zhi}</span>
       </div>
-      <span className="text-xs text-muted-foreground mt-2">{subtitle}</span>
+      <span className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2">{subtitle}</span>
     </div>
   );
 }
@@ -121,7 +121,7 @@ function DaYunItem({
     <button
       onClick={onClick}
       className={`
-        flex flex-col items-center p-3 rounded-lg border transition-all cursor-pointer
+        flex flex-col items-center p-2 sm:p-3 rounded-lg border transition-all cursor-pointer min-w-[70px] sm:min-w-[90px]
         ${isSelected
           ? 'bg-primary/30 border-primary ring-2 ring-primary/50 shadow-lg shadow-primary/20'
           : isActive 
@@ -129,13 +129,13 @@ function DaYunItem({
             : 'bg-card/50 border-border/50 hover:border-primary/30 hover:bg-primary/10'}
       `}
     >
-      <span className="text-xs text-muted-foreground">{cycle.startAge}-{cycle.endAge}岁</span>
-      <span className="text-lg font-serif text-primary my-1">{cycle.ganZhi}</span>
-      <Badge variant="outline" className={`text-xs ${colorClass}`}>
-        <ElementIcon className="w-3 h-3 mr-1" />
+      <span className="text-[10px] sm:text-xs text-muted-foreground">{cycle.startAge}-{cycle.endAge}岁</span>
+      <span className="text-base sm:text-lg font-serif text-primary my-0.5 sm:my-1">{cycle.ganZhi}</span>
+      <Badge variant="outline" className={`text-[10px] sm:text-xs ${colorClass}`}>
+        <ElementIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
         {cycle.element}
       </Badge>
-      <span className="text-xs text-muted-foreground mt-1">{cycle.startYear}年起</span>
+      <span className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">{cycle.startYear}年</span>
     </button>
   );
 }
@@ -163,7 +163,7 @@ function FlowYearItem({
   
   return (
     <div className={`
-      relative flex gap-4 p-4 rounded-lg border transition-all
+      relative flex gap-2 sm:gap-4 p-3 sm:p-4 rounded-lg border transition-all
       ${isCurrentAge 
         ? 'bg-primary/20 border-primary shadow-lg' 
         : isPast 
@@ -171,24 +171,24 @@ function FlowYearItem({
           : 'bg-card/50 border-border/50 hover:border-primary/30'}
     `}>
       {/* Timeline connector */}
-      <div className="absolute left-8 top-0 bottom-0 w-px bg-border/50 -z-10" />
+      <div className="absolute left-6 sm:left-8 top-0 bottom-0 w-px bg-border/50 -z-10" />
       
       {/* Age/Year Column */}
-      <div className="flex flex-col items-center min-w-[60px]">
-        <span className={`text-2xl font-serif ${isCurrentAge ? 'text-primary' : 'text-foreground'}`}>
+      <div className="flex flex-col items-center min-w-[45px] sm:min-w-[60px]">
+        <span className={`text-xl sm:text-2xl font-serif ${isCurrentAge ? 'text-primary' : 'text-foreground'}`}>
           {flowYear.age}
         </span>
-        <span className="text-xs text-muted-foreground">岁</span>
-        <span className="text-xs text-primary/60 mt-1">{flowYear.year}</span>
-        <span className="text-xs text-muted-foreground">{flowYear.ganZhi}</span>
+        <span className="text-[10px] sm:text-xs text-muted-foreground">岁</span>
+        <span className="text-[10px] sm:text-xs text-primary/60 mt-0.5 sm:mt-1">{flowYear.year}</span>
+        <span className="text-[10px] sm:text-xs text-muted-foreground">{flowYear.ganZhi}</span>
       </div>
       
       {/* Content Column */}
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         {flowYear.content ? (
           <>
             <p className={`
-              font-serif text-sm leading-relaxed
+              font-serif text-xs sm:text-sm leading-relaxed break-words
               ${hasAgeMatch ? 'text-primary' : 'text-foreground/80'}
             `}>
               {flowYear.content}
@@ -203,7 +203,7 @@ function FlowYearItem({
                 baziProfile={baziProfile}
               />
             ) : (
-              <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
+              <div className="mt-2 text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
                 <Lock className="w-3 h-3" />
                 AI解读需升级会员
               </div>
@@ -212,15 +212,15 @@ function FlowYearItem({
         ) : (
           <Skeleton className="h-4 w-full bg-muted/30" />
         )}
-        <span className="text-xs text-muted-foreground mt-2 block">
+        <span className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2 block">
           条文 #{flowYear.clauseNumber}
         </span>
       </div>
       
       {/* Highlight badge for age match */}
       {hasAgeMatch && (
-        <Badge className="absolute top-2 right-2 bg-primary/80 text-primary-foreground text-xs">
-          流年应验
+        <Badge className="absolute top-1 sm:top-2 right-1 sm:right-2 bg-primary/80 text-primary-foreground text-[10px] sm:text-xs px-1.5 sm:px-2">
+          应验
         </Badge>
       )}
     </div>
@@ -337,20 +337,20 @@ export function DestinyDashboard({
   const selectedDaYun = selectedDaYunIndex !== null ? report.lifeCycles[selectedDaYunIndex] : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="text-center space-y-3 pb-4 border-b border-primary/20">
+      <div className="text-center space-y-2 sm:space-y-3 pb-3 sm:pb-4 border-b border-primary/20">
         <div className="relative inline-block">
-          <h2 className="text-3xl font-serif text-primary tracking-[0.2em]">
+          <h2 className="text-2xl sm:text-3xl font-serif text-primary tracking-[0.15em] sm:tracking-[0.2em]">
             天命总览
           </h2>
           <div className="absolute -inset-4 bg-primary/5 blur-xl rounded-full -z-10" />
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs sm:text-sm text-muted-foreground">
           Grand Destiny Dashboard
         </p>
-        <div className="inline-block px-4 py-2 bg-secondary/50 rounded border border-primary/10">
-          <span className="text-foreground/80 font-mono tracking-widest text-sm">
+        <div className="inline-block px-3 sm:px-4 py-1.5 sm:py-2 bg-secondary/50 rounded border border-primary/10">
+          <span className="text-foreground/80 font-mono tracking-wider sm:tracking-widest text-xs sm:text-sm">
             {pillarsDisplay}
           </span>
         </div>
@@ -358,21 +358,21 @@ export function DestinyDashboard({
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-secondary/50">
-          <TabsTrigger value="bazi" className="font-serif">八字命盘</TabsTrigger>
-          <TabsTrigger value="timeline" className="font-serif">铁板流年</TabsTrigger>
-          <TabsTrigger value="verdict" className="font-serif">终身总评</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 bg-secondary/50 h-auto">
+          <TabsTrigger value="bazi" className="font-serif text-xs sm:text-sm py-2 sm:py-2.5">八字命盘</TabsTrigger>
+          <TabsTrigger value="timeline" className="font-serif text-xs sm:text-sm py-2 sm:py-2.5">铁板流年</TabsTrigger>
+          <TabsTrigger value="verdict" className="font-serif text-xs sm:text-sm py-2 sm:py-2.5">终身总评</TabsTrigger>
         </TabsList>
 
         {/* Tab 1: BaZi Profile */}
-        <TabsContent value="bazi" className="space-y-6 mt-6">
+        <TabsContent value="bazi" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
           {/* Four Pillars */}
           <div>
-            <h3 className="text-lg font-serif text-primary mb-4 flex items-center gap-2">
-              <Scroll className="w-5 h-5" />
+            <h3 className="text-base sm:text-lg font-serif text-primary mb-3 sm:mb-4 flex items-center gap-2">
+              <Scroll className="w-4 h-4 sm:w-5 sm:h-5" />
               四柱八字
             </h3>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
               <PillarCard title="年柱" ganZhi={report.baziProfile.pillars.year} subtitle="Year" />
               <PillarCard title="月柱" ganZhi={report.baziProfile.pillars.month} subtitle="Month" />
               <PillarCard title="日柱" ganZhi={report.baziProfile.pillars.day} subtitle="Day" />
@@ -395,13 +395,13 @@ export function DestinyDashboard({
 
           {/* Da Yun Timeline */}
           <div>
-            <h3 className="text-lg font-serif text-primary mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
+            <h3 className="text-base sm:text-lg font-serif text-primary mb-3 sm:mb-4 flex flex-wrap items-center gap-1 sm:gap-2">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
               十年大运
-              <span className="text-xs text-muted-foreground font-normal ml-2">(点击查看详情和AI解读)</span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground font-normal">(点击查看详情)</span>
             </h3>
             <ScrollArea className="w-full">
-              <div className="flex gap-3 pb-4">
+              <div className="flex gap-1.5 sm:gap-3 pb-3 sm:pb-4">
                 {report.lifeCycles.slice(0, 8).map((cycle, index) => (
                   <DaYunItem 
                     key={index} 
@@ -416,34 +416,34 @@ export function DestinyDashboard({
             
             {/* Selected Da Yun Details with AI */}
             {selectedDaYunIndex !== null && selectedDaYun && (
-              <div className="mt-4 p-4 bg-primary/10 border border-primary/30 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-serif text-primary text-lg">
+              <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-primary/10 border border-primary/30 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2 sm:mb-3">
+                  <h4 className="font-serif text-primary text-base sm:text-lg">
                     第{selectedDaYunIndex + 1}步大运 · {selectedDaYun.ganZhi}
                   </h4>
                   <Badge variant="outline" className={ELEMENT_COLORS[selectedDaYun.element]}>
                     {selectedDaYun.element}运
                   </Badge>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
                   <div>
                     <span className="text-muted-foreground">起运年龄:</span>
-                    <span className="ml-2 text-foreground">{selectedDaYun.startAge}岁</span>
+                    <span className="ml-1 sm:ml-2 text-foreground">{selectedDaYun.startAge}岁</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">结束年龄:</span>
-                    <span className="ml-2 text-foreground">{selectedDaYun.endAge}岁</span>
+                    <span className="ml-1 sm:ml-2 text-foreground">{selectedDaYun.endAge}岁</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">起运年份:</span>
-                    <span className="ml-2 text-foreground">{selectedDaYun.startYear}年</span>
+                    <span className="ml-1 sm:ml-2 text-foreground">{selectedDaYun.startYear}年</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">运势五行:</span>
-                    <span className="ml-2 text-foreground">{selectedDaYun.element}</span>
+                    <span className="ml-1 sm:ml-2 text-foreground">{selectedDaYun.element}</span>
                   </div>
                 </div>
-                <p className="mt-3 text-sm text-muted-foreground">
+                <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground">
                   此运{selectedDaYun.element}气当令，
                   {report.baziProfile.favorableElements.includes(selectedDaYun.element) 
                     ? '与命局喜用相合，运势较佳。' 
@@ -462,8 +462,8 @@ export function DestinyDashboard({
                     hexagram={hexagramResult}
                   />
                 ) : (
-                  <div className="mt-3 pt-3 border-t border-border/30 text-sm text-muted-foreground flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
+                  <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/30 text-xs sm:text-sm text-muted-foreground flex items-center gap-1 sm:gap-2">
+                    <Lock className="w-3 h-3 sm:w-4 sm:h-4" />
                     {isAuthenticated ? '升级会员解锁AI解读' : '登录并升级会员解锁AI解读'}
                   </div>
                 )}
@@ -473,37 +473,38 @@ export function DestinyDashboard({
         </TabsContent>
 
         {/* Tab 2: Iron Plate Timeline */}
-        <TabsContent value="timeline" className="space-y-4 mt-6">
+        <TabsContent value="timeline" className="space-y-3 sm:space-y-4 mt-4 sm:mt-6">
           {/* Range Selector */}
-          <div className="flex items-center justify-between bg-secondary/30 rounded-lg p-3">
-            <span className="text-sm text-muted-foreground">显示年龄范围</span>
-            <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-secondary/30 rounded-lg p-2 sm:p-3">
+            <span className="text-xs sm:text-sm text-muted-foreground">年龄范围</span>
+            <div className="grid grid-cols-4 gap-1 sm:flex sm:gap-2">
               {[
-                { label: '1-20岁', start: 1, end: 20 },
-                { label: '20-40岁', start: 20, end: 40 },
-                { label: '40-60岁', start: 40, end: 60 },
-                { label: '60-80岁', start: 60, end: 80 },
+                { label: '1-20', mobileLabel: '1-20岁', start: 1, end: 20 },
+                { label: '20-40', mobileLabel: '20-40岁', start: 20, end: 40 },
+                { label: '40-60', mobileLabel: '40-60岁', start: 40, end: 60 },
+                { label: '60-80', mobileLabel: '60-80岁', start: 60, end: 80 },
               ].map(range => (
                 <Button
                   key={range.label}
                   variant={flowYearRange.start === range.start ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setFlowYearRange({ start: range.start, end: range.end })}
-                  className="text-xs"
+                  className="text-[10px] sm:text-xs px-2 sm:px-3 h-7 sm:h-8"
                 >
-                  {range.label}
+                  <span className="sm:hidden">{range.label}</span>
+                  <span className="hidden sm:inline">{range.mobileLabel}</span>
                 </Button>
               ))}
             </div>
           </div>
 
           {/* Timeline */}
-          <ScrollArea className="h-[500px] pr-4">
+          <ScrollArea className="h-[400px] sm:h-[500px] pr-2 sm:pr-4">
             {isLoadingFlowYears ? (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex gap-4 p-4 bg-card/50 rounded-lg">
-                    <Skeleton className="w-16 h-20" />
+                  <div key={i} className="flex gap-2 sm:gap-4 p-3 sm:p-4 bg-card/50 rounded-lg">
+                    <Skeleton className="w-12 sm:w-16 h-16 sm:h-20" />
                     <div className="flex-1 space-y-2">
                       <Skeleton className="h-4 w-full" />
                       <Skeleton className="h-4 w-3/4" />
@@ -512,7 +513,7 @@ export function DestinyDashboard({
                 ))}
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {displayedFlowYears.map(fy => (
                   <FlowYearItem 
                     key={fy.age} 
@@ -529,12 +530,12 @@ export function DestinyDashboard({
         </TabsContent>
 
         {/* Tab 3: General Verdict */}
-        <TabsContent value="verdict" className="space-y-4 mt-6">
+        <TabsContent value="verdict" className="space-y-3 sm:space-y-4 mt-4 sm:mt-6">
           {/* Overall AI Summary */}
           {canUseAI && loadedAspects.length > 0 && (
-            <div className="bg-gradient-to-b from-primary/10 to-transparent border border-primary/30 rounded-lg p-4 mb-6">
-              <h3 className="text-lg font-serif text-primary mb-3 flex items-center gap-2">
-                <Sparkles className="w-5 h-5" />
+            <div className="bg-gradient-to-b from-primary/10 to-transparent border border-primary/30 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+              <h3 className="text-base sm:text-lg font-serif text-primary mb-2 sm:mb-3 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
                 命运总览 · AI深度解读
               </h3>
               <AIInterpretation
@@ -549,17 +550,17 @@ export function DestinyDashboard({
           )}
 
           {isLoadingAspects ? (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="bg-card/50 rounded-lg p-5">
-                  <Skeleton className="h-6 w-32 mb-3" />
+                <div key={i} className="bg-card/50 rounded-lg p-4 sm:p-5">
+                  <Skeleton className="h-5 sm:h-6 w-24 sm:w-32 mb-2 sm:mb-3" />
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-3/4 mt-2" />
                 </div>
               ))}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {loadedAspects.map((aspect) => {
                 const Icon = aspect.icon;
                 return (
@@ -567,17 +568,17 @@ export function DestinyDashboard({
                     key={aspect.key} 
                     className="bg-card/50 border border-border/50 rounded-lg overflow-hidden"
                   >
-                    <div className="flex items-center gap-3 p-4 border-b border-border/30">
-                      <div className={`w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center ${aspect.color}`}>
-                        <Icon className="w-5 h-5" />
+                    <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 border-b border-border/30">
+                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center ${aspect.color}`}>
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
-                      <div>
-                        <h3 className="text-lg font-serif text-primary">{aspect.label}</h3>
-                        <span className="text-xs text-muted-foreground">条文 #{aspect.clauseNumber}</span>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-base sm:text-lg font-serif text-primary truncate">{aspect.label}</h3>
+                        <span className="text-[10px] sm:text-xs text-muted-foreground">条文 #{aspect.clauseNumber}</span>
                       </div>
                     </div>
-                    <div className="p-4">
-                      <p className="font-serif text-foreground/90 leading-relaxed">
+                    <div className="p-3 sm:p-4">
+                      <p className="font-serif text-foreground/90 leading-relaxed text-xs sm:text-sm">
                         {aspect.content}
                       </p>
                       {canUseAI ? (
@@ -590,8 +591,8 @@ export function DestinyDashboard({
                           allAspects={loadedAspects.map(a => ({ label: a.label, content: a.content }))}
                         />
                       ) : (
-                        <div className="mt-3 pt-3 border-t border-border/30 text-sm text-muted-foreground flex items-center gap-2">
-                          <Lock className="w-4 h-4" />
+                        <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/30 text-xs sm:text-sm text-muted-foreground flex items-center gap-1 sm:gap-2">
+                          <Lock className="w-3 h-3 sm:w-4 sm:h-4" />
                           {isAuthenticated ? '升级会员解锁AI解读' : '登录并升级会员解锁AI解读'}
                         </div>
                       )}
@@ -605,23 +606,24 @@ export function DestinyDashboard({
       </Tabs>
 
       {/* Footer */}
-      <div className="space-y-4 pt-4 border-t border-border/50">
-        <div className="bg-secondary/30 border border-border/50 rounded-lg p-4 text-center">
-          <p className="text-xs text-muted-foreground leading-relaxed">
+      <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t border-border/50">
+        <div className="bg-secondary/30 border border-border/50 rounded-lg p-3 sm:p-4 text-center">
+          <p className="text-[10px] sm:text-xs text-muted-foreground leading-relaxed">
             本结果基于《铁板神数》太玄数学模型推演，结合八字命理与六爻卦象，仅供参考。
-            <br />
-            Results based on Tai Xuan model combined with BaZi and Liu Yao. For reference only.
+            <br className="hidden sm:block" />
+            <span className="sm:hidden"> </span>
+            Results based on Tai Xuan model. For reference only.
           </p>
         </div>
 
         <Button
           onClick={onReset}
           variant="outline"
-          className="w-full py-5 text-lg font-serif tracking-widest border-primary/30 
+          className="w-full py-4 sm:py-5 text-base sm:text-lg font-serif tracking-wider sm:tracking-widest border-primary/30 
                      hover:border-primary hover:bg-primary/10 transition-all duration-300 group"
         >
-          <RotateCcw className="w-5 h-5 mr-3 group-hover:rotate-180 transition-transform duration-500" />
-          重新推算 · Recalculate
+          <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 group-hover:rotate-180 transition-transform duration-500" />
+          重新推算
         </Button>
       </div>
     </div>

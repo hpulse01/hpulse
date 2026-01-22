@@ -42,40 +42,40 @@ const RELATIVE_MEANINGS: Record<string, { meaning: string; aspect: string }> = {
 // Line Display Component
 function LineDisplay({ line, index }: { line: HexagramLine; index: number }) {
   const ElementIcon = ELEMENT_ICONS[line.element] || CircleDot;
-  const positionNames = ['初爻', '二爻', '三爻', '四爻', '五爻', '上爻'];
+  const positionNames = ['初', '二', '三', '四', '五', '上'];
   
   return (
     <div className={`
-      flex items-center gap-3 p-2 rounded-lg transition-all
+      flex items-center gap-1.5 sm:gap-3 p-1.5 sm:p-2 rounded-lg transition-all
       ${line.isChanging ? 'bg-primary/20 border border-primary/30' : 'bg-secondary/20'}
     `}>
-      <span className="text-xs text-muted-foreground w-10">{positionNames[index]}</span>
+      <span className="text-[10px] sm:text-xs text-muted-foreground w-6 sm:w-10">{positionNames[index]}爻</span>
       
       {/* Line symbol */}
-      <div className={`font-mono text-lg ${line.isChanging ? 'text-primary' : 'text-foreground/70'}`}>
-        {line.yinYang === 'yang' ? '▅▅▅▅▅' : '▅▅ ▅▅'}
-        {line.isChanging && <span className="ml-1 text-primary">○</span>}
+      <div className={`font-mono text-sm sm:text-lg ${line.isChanging ? 'text-primary' : 'text-foreground/70'}`}>
+        {line.yinYang === 'yang' ? '▅▅▅' : '▅ ▅'}
+        {line.isChanging && <span className="ml-0.5 sm:ml-1 text-primary">○</span>}
       </div>
       
       {/* Branch and relative */}
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className="text-xs">
+      <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
+        <Badge variant="outline" className="text-[10px] sm:text-xs px-1 sm:px-1.5">
           {line.branch}
         </Badge>
         <Badge 
           variant="outline" 
-          className={`text-xs ${ELEMENT_COLORS[line.element]}`}
+          className={`text-[10px] sm:text-xs px-1 sm:px-1.5 ${ELEMENT_COLORS[line.element]}`}
         >
-          <ElementIcon className="w-3 h-3 mr-1" />
+          <ElementIcon className="w-2 h-2 sm:w-3 sm:h-3 mr-0.5" />
           {line.element}
         </Badge>
-        <span className="text-sm text-foreground">{line.relative}</span>
+        <span className="text-xs sm:text-sm text-foreground truncate">{line.relative}</span>
       </div>
       
       {/* Changing indicator */}
       {line.isChanging && (
-        <Badge className="ml-auto bg-primary/80 text-primary-foreground text-xs">
-          动爻
+        <Badge className="bg-primary/80 text-primary-foreground text-[10px] sm:text-xs px-1 sm:px-1.5">
+          动
         </Badge>
       )}
     </div>
@@ -84,25 +84,22 @@ function LineDisplay({ line, index }: { line: HexagramLine; index: number }) {
 
 // Six Relatives Analysis
 function SixRelativesAnalysis({ lines }: { lines: HexagramLine[] }) {
-  // Count relatives
   const relativeCounts: Record<string, number> = {};
   const movingRelatives: string[] = [];
   
   lines.forEach(line => {
     relativeCounts[line.relative] = (relativeCounts[line.relative] || 0) + 1;
-    if (line.isChanging) {
-      movingRelatives.push(line.relative);
-    }
+    if (line.isChanging) movingRelatives.push(line.relative);
   });
   
   return (
-    <div className="bg-card/50 border border-border/50 rounded-lg p-4">
-      <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-        <Target className="w-4 h-4" />
+    <div className="bg-card/50 border border-border/50 rounded-lg p-3 sm:p-4">
+      <h4 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3 flex items-center gap-2">
+        <Target className="w-3 h-3 sm:w-4 sm:h-4" />
         六亲分布
       </h4>
       
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-5 gap-1 sm:gap-2">
         {Object.entries(RELATIVE_MEANINGS).map(([relative, info]) => {
           const count = relativeCounts[relative] || 0;
           const isMoving = movingRelatives.includes(relative);
@@ -110,23 +107,17 @@ function SixRelativesAnalysis({ lines }: { lines: HexagramLine[] }) {
           return (
             <div 
               key={relative}
-              className={`
-                text-center p-2 rounded-lg
-                ${isMoving ? 'bg-primary/20 border border-primary/30' : 'bg-secondary/30'}
-              `}
+              className={`text-center p-1.5 sm:p-2 rounded-lg ${isMoving ? 'bg-primary/20 border border-primary/30' : 'bg-secondary/30'}`}
             >
-              <span className={`text-lg font-serif ${isMoving ? 'text-primary' : 'text-foreground'}`}>
+              <span className={`text-sm sm:text-lg font-serif ${isMoving ? 'text-primary' : 'text-foreground'}`}>
                 {relative}
               </span>
-              <Badge 
-                variant="outline" 
-                className={`mt-1 block mx-auto w-fit text-xs ${count > 1 ? 'border-primary text-primary' : ''}`}
-              >
-                {count}爻
+              <Badge variant="outline" className={`mt-0.5 block mx-auto w-fit text-[9px] sm:text-xs ${count > 1 ? 'border-primary text-primary' : ''}`}>
+                {count}
               </Badge>
               {isMoving && (
-                <span className="text-xs text-primary block mt-1">
-                  <Zap className="w-3 h-3 inline" /> 动
+                <span className="text-[10px] sm:text-xs text-primary block mt-0.5">
+                  <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 inline" />
                 </span>
               )}
             </div>
@@ -135,10 +126,9 @@ function SixRelativesAnalysis({ lines }: { lines: HexagramLine[] }) {
       </div>
       
       {movingRelatives.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-border/30">
-          <p className="text-xs text-muted-foreground">
-            动爻分析：{movingRelatives.map(r => `${r}(${RELATIVE_MEANINGS[r].aspect})`).join('、')}发动，
-            主此方面有变化或应验。
+        <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/30">
+          <p className="text-[10px] sm:text-xs text-muted-foreground">
+            动爻：{movingRelatives.map(r => `${r}(${RELATIVE_MEANINGS[r].aspect})`).join('、')}
           </p>
         </div>
       )}
