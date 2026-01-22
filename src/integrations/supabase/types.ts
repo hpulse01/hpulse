@@ -53,6 +53,30 @@ export type Database = {
         }
         Relationships: []
       }
+      registration_ips: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string
+          registered_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address: string
+          registered_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string
+          registered_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       tieban_clauses: {
         Row: {
           category: string | null
@@ -126,6 +150,7 @@ export type Database = {
         Returns: boolean
       }
       can_use_ai: { Args: { p_user_id: string }; Returns: boolean }
+      cleanup_old_registration_ips: { Args: never; Returns: undefined }
       consume_ai_use: { Args: { p_user_id: string }; Returns: boolean }
       get_user_level: {
         Args: { p_user_id: string }
