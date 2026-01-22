@@ -22,6 +22,7 @@ import {
 import { AIInterpretation } from '@/components/AIInterpretation';
 import { BaZiDetailedDisplay } from '@/components/BaZiDetailedDisplay';
 import { LiuYaoDeepAnalysis } from '@/components/LiuYaoDeepAnalysis';
+import { ZiweiDisplay } from '@/components/ZiweiDisplay';
 import { useAuth } from '@/hooks/useAuth';
 import { calculateLiuYaoHexagram } from '@/utils/liuYaoAlgorithm';
 import { 
@@ -387,6 +388,15 @@ export function DestinyDashboard({
             day={birthData.day}
             hour={birthData.hour}
             minute={birthData.minute}
+            gender={birthData.gender}
+          />
+
+          {/* Ziwei Doushu Display */}
+          <ZiweiDisplay
+            year={birthData.year}
+            month={birthData.month}
+            day={birthData.day}
+            hour={birthData.hour}
             gender={birthData.gender}
           />
 
