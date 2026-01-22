@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          ai_uses_remaining: number
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          level: Database["public"]["Enums"]["user_level"]
+          total_calculations: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_uses_remaining?: number
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          level?: Database["public"]["Enums"]["user_level"]
+          total_calculations?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_uses_remaining?: number
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          level?: Database["public"]["Enums"]["user_level"]
+          total_calculations?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tieban_clauses: {
         Row: {
           category: string | null
@@ -38,15 +74,38 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["user_level"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["user_level"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["user_level"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_use_ai: { Args: { p_user_id: string }; Returns: boolean }
+      consume_ai_use: { Args: { p_user_id: string }; Returns: boolean }
+      get_user_level: {
+        Args: { p_user_id: string }
+        Returns: Database["public"]["Enums"]["user_level"]
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_level: "level_1" | "level_2" | "level_3"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -173,6 +232,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_level: ["level_1", "level_2", "level_3"],
+    },
   },
 } as const

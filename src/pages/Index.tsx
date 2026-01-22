@@ -281,6 +281,14 @@ const Index = () => {
                 report={fullReport}
                 pillarsDisplay={ganZhiDisplay}
                 birthYear={birthInput.year}
+                birthData={{
+                  year: birthInput.year,
+                  month: birthInput.month,
+                  day: birthInput.day,
+                  hour: birthInput.hour,
+                  minute: birthInput.minute,
+                  gender: birthInput.gender,
+                }}
                 onReset={handleReset}
               />
             </div>

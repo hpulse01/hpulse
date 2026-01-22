@@ -2,7 +2,7 @@
  * Destiny Dashboard Component (天命总览仪表盘)
  * 
  * A comprehensive tabbed interface showing:
- * - Tab 1: BaZi Profile (八字命盘)
+ * - Tab 1: BaZi Profile (八字命盘) with Ten Gods, Hidden Stems, Na Yin
  * - Tab 2: Iron Plate Timeline (铁板流年)
  * - Tab 3: General Verdict (终身总评)
  */
@@ -20,11 +20,14 @@ import {
   type DestinyProjection,
 } from '@/utils/tiebanAlgorithm';
 import { AIInterpretation } from '@/components/AIInterpretation';
-import { LiuYaoDisplay } from '@/components/LiuYaoDisplay';
+import { BaZiDetailedDisplay } from '@/components/BaZiDetailedDisplay';
+import { LiuYaoDeepAnalysis } from '@/components/LiuYaoDeepAnalysis';
+import { useAuth } from '@/hooks/useAuth';
+import { calculateLiuYaoHexagram } from '@/utils/liuYaoAlgorithm';
 import { 
   RotateCcw, Scroll, Sparkles, Heart, Coins, Briefcase, 
   Activity, Baby, Calendar, Zap, Mountain, Flame, Droplet, 
-  TreeDeciduous, CircleDot
+  TreeDeciduous, CircleDot, Lock
 } from 'lucide-react';
 
 // ==========================================
@@ -64,6 +67,7 @@ interface DestinyDashboardProps {
   report: FullDestinyReport;
   pillarsDisplay: string;
   birthYear: number;
+  birthData: { year: number; month: number; day: number; hour: number; minute: number; gender: 'male' | 'female' };
   onReset: () => void;
 }
 
@@ -136,13 +140,19 @@ function DaYunItem({
   );
 }
 
-// Flow Year Timeline Item
+// Flow Year Timeline Item with AI
 function FlowYearItem({ 
   flowYear, 
-  currentAge 
+  currentAge,
+  pillarsDisplay,
+  baziProfile,
+  canUseAI,
 }: { 
   flowYear: FlowYearClause & { content?: string }; 
   currentAge: number;
+  pillarsDisplay: string;
+  baziProfile: any;
+  canUseAI: boolean;
 }) {
   const isCurrentAge = flowYear.age === currentAge;
   const isPast = flowYear.age < currentAge;
@@ -176,12 +186,29 @@ function FlowYearItem({
       {/* Content Column */}
       <div className="flex-1">
         {flowYear.content ? (
-          <p className={`
-            font-serif text-sm leading-relaxed
-            ${hasAgeMatch ? 'text-primary' : 'text-foreground/80'}
-          `}>
-            {flowYear.content}
-          </p>
+          <>
+            <p className={`
+              font-serif text-sm leading-relaxed
+              ${hasAgeMatch ? 'text-primary' : 'text-foreground/80'}
+            `}>
+              {flowYear.content}
+            </p>
+            
+            {/* AI Interpretation for flow year */}
+            {canUseAI ? (
+              <AIInterpretation
+                clauseContent={flowYear.content}
+                aspectLabel={`${flowYear.year}年 (${flowYear.age}岁) 流年`}
+                pillarsDisplay={pillarsDisplay}
+                baziProfile={baziProfile}
+              />
+            ) : (
+              <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
+                <Lock className="w-3 h-3" />
+                AI解读需升级会员
+              </div>
+            )}
+          </>
         ) : (
           <Skeleton className="h-4 w-full bg-muted/30" />
         )}
@@ -208,8 +235,10 @@ export function DestinyDashboard({
   report,
   pillarsDisplay,
   birthYear,
+  birthData,
   onReset,
 }: DestinyDashboardProps) {
+  const { canUseAI, isAuthenticated, profile } = useAuth();
   const [activeTab, setActiveTab] = useState('bazi');
   const [loadedAspects, setLoadedAspects] = useState<LoadedAspect[]>([]);
   const [loadedFlowYears, setLoadedFlowYears] = useState<Map<number, string>>(new Map());
@@ -217,6 +246,11 @@ export function DestinyDashboard({
   const [isLoadingFlowYears, setIsLoadingFlowYears] = useState(false);
   const [flowYearRange, setFlowYearRange] = useState({ start: 20, end: 40 });
   const [selectedDaYunIndex, setSelectedDaYunIndex] = useState<number | null>(null);
+
+  // Calculate hexagram for the session
+  const hexagramResult = useMemo(() => {
+    return calculateLiuYaoHexagram(new Date());
+  }, []);
 
   // Calculate current age
   const currentAge = useMemo(() => {
@@ -299,6 +333,9 @@ export function DestinyDashboard({
     );
   }, [report.lifeCycles, currentAge]);
 
+  // Get selected Da Yun for AI
+  const selectedDaYun = selectedDaYunIndex !== null ? report.lifeCycles[selectedDaYunIndex] : null;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -343,56 +380,25 @@ export function DestinyDashboard({
             </div>
           </div>
 
-          {/* Day Master Analysis */}
-          <div className="bg-card/50 border border-border/50 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-muted-foreground mb-3">日主分析</h4>
-            <div className="flex flex-wrap gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground text-sm">日主:</span>
-                <span className="text-xl font-serif text-primary">{report.baziProfile.dayMaster}</span>
-                <Badge variant="outline" className={ELEMENT_COLORS[report.baziProfile.dayMasterElement]}>
-                  {report.baziProfile.dayMasterElement}
-                </Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground text-sm">身强弱:</span>
-                <Badge variant="secondary">{report.baziProfile.strength}</Badge>
-              </div>
-            </div>
-            
-            <div className="mt-4 flex flex-wrap gap-4">
-              <div>
-                <span className="text-xs text-muted-foreground">喜用神:</span>
-                <div className="flex gap-1 mt-1">
-                  {report.baziProfile.favorableElements.map(el => (
-                    <Badge key={el} variant="outline" className={ELEMENT_COLORS[el]}>
-                      {el}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground">忌神:</span>
-                <div className="flex gap-1 mt-1">
-                  {report.baziProfile.unfavorableElements.map(el => (
-                    <Badge key={el} variant="outline" className="border-destructive/50 text-destructive">
-                      {el}
-                    </Badge>
-                  ))}
-                </div>
-            </div>
-          </div>
+          {/* Deep BaZi Analysis */}
+          <BaZiDetailedDisplay
+            year={birthData.year}
+            month={birthData.month}
+            day={birthData.day}
+            hour={birthData.hour}
+            minute={birthData.minute}
+            gender={birthData.gender}
+          />
 
-          {/* Liu Yao Hexagram */}
-          <LiuYaoDisplay />
-          </div>
+          {/* Liu Yao Deep Analysis */}
+          <LiuYaoDeepAnalysis calculationTime={new Date()} />
 
           {/* Da Yun Timeline */}
           <div>
             <h3 className="text-lg font-serif text-primary mb-4 flex items-center gap-2">
               <Calendar className="w-5 h-5" />
               十年大运
-              <span className="text-xs text-muted-foreground font-normal ml-2">(点击查看详情)</span>
+              <span className="text-xs text-muted-foreground font-normal ml-2">(点击查看详情和AI解读)</span>
             </h3>
             <ScrollArea className="w-full">
               <div className="flex gap-3 pb-4">
@@ -408,43 +414,59 @@ export function DestinyDashboard({
               </div>
             </ScrollArea>
             
-            {/* Selected Da Yun Details */}
-            {selectedDaYunIndex !== null && report.lifeCycles[selectedDaYunIndex] && (
+            {/* Selected Da Yun Details with AI */}
+            {selectedDaYunIndex !== null && selectedDaYun && (
               <div className="mt-4 p-4 bg-primary/10 border border-primary/30 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="font-serif text-primary text-lg">
-                    第{selectedDaYunIndex + 1}步大运 · {report.lifeCycles[selectedDaYunIndex].ganZhi}
+                    第{selectedDaYunIndex + 1}步大运 · {selectedDaYun.ganZhi}
                   </h4>
-                  <Badge variant="outline" className={ELEMENT_COLORS[report.lifeCycles[selectedDaYunIndex].element]}>
-                    {report.lifeCycles[selectedDaYunIndex].element}运
+                  <Badge variant="outline" className={ELEMENT_COLORS[selectedDaYun.element]}>
+                    {selectedDaYun.element}运
                   </Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">起运年龄:</span>
-                    <span className="ml-2 text-foreground">{report.lifeCycles[selectedDaYunIndex].startAge}岁</span>
+                    <span className="ml-2 text-foreground">{selectedDaYun.startAge}岁</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">结束年龄:</span>
-                    <span className="ml-2 text-foreground">{report.lifeCycles[selectedDaYunIndex].endAge}岁</span>
+                    <span className="ml-2 text-foreground">{selectedDaYun.endAge}岁</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">起运年份:</span>
-                    <span className="ml-2 text-foreground">{report.lifeCycles[selectedDaYunIndex].startYear}年</span>
+                    <span className="ml-2 text-foreground">{selectedDaYun.startYear}年</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">运势五行:</span>
-                    <span className="ml-2 text-foreground">{report.lifeCycles[selectedDaYunIndex].element}</span>
+                    <span className="ml-2 text-foreground">{selectedDaYun.element}</span>
                   </div>
                 </div>
                 <p className="mt-3 text-sm text-muted-foreground">
-                  此运{report.lifeCycles[selectedDaYunIndex].element}气当令，
-                  {report.baziProfile.favorableElements.includes(report.lifeCycles[selectedDaYunIndex].element) 
+                  此运{selectedDaYun.element}气当令，
+                  {report.baziProfile.favorableElements.includes(selectedDaYun.element) 
                     ? '与命局喜用相合，运势较佳。' 
-                    : report.baziProfile.unfavorableElements.includes(report.lifeCycles[selectedDaYunIndex].element)
+                    : report.baziProfile.unfavorableElements.includes(selectedDaYun.element)
                       ? '与命局忌神相冲，宜谨慎行事。'
                       : '运势平稳，顺其自然。'}
                 </p>
+                
+                {/* AI Interpretation for Da Yun */}
+                {canUseAI ? (
+                  <AIInterpretation
+                    clauseContent={`${selectedDaYun.ganZhi}大运，${selectedDaYun.startAge}-${selectedDaYun.endAge}岁，${selectedDaYun.element}气当令。${report.baziProfile.favorableElements.includes(selectedDaYun.element) ? '喜用神得力。' : report.baziProfile.unfavorableElements.includes(selectedDaYun.element) ? '忌神临运。' : ''}`}
+                    aspectLabel={`第${selectedDaYunIndex + 1}步大运 (${selectedDaYun.startAge}-${selectedDaYun.endAge}岁)`}
+                    pillarsDisplay={pillarsDisplay}
+                    baziProfile={report.baziProfile}
+                    hexagram={hexagramResult}
+                  />
+                ) : (
+                  <div className="mt-3 pt-3 border-t border-border/30 text-sm text-muted-foreground flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    {isAuthenticated ? '升级会员解锁AI解读' : '登录并升级会员解锁AI解读'}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -496,6 +518,9 @@ export function DestinyDashboard({
                     key={fy.age} 
                     flowYear={fy} 
                     currentAge={currentAge}
+                    pillarsDisplay={pillarsDisplay}
+                    baziProfile={report.baziProfile}
+                    canUseAI={canUseAI}
                   />
                 ))}
               </div>
@@ -505,6 +530,24 @@ export function DestinyDashboard({
 
         {/* Tab 3: General Verdict */}
         <TabsContent value="verdict" className="space-y-4 mt-6">
+          {/* Overall AI Summary */}
+          {canUseAI && loadedAspects.length > 0 && (
+            <div className="bg-gradient-to-b from-primary/10 to-transparent border border-primary/30 rounded-lg p-4 mb-6">
+              <h3 className="text-lg font-serif text-primary mb-3 flex items-center gap-2">
+                <Sparkles className="w-5 h-5" />
+                命运总览 · AI深度解读
+              </h3>
+              <AIInterpretation
+                clauseContent={loadedAspects.map(a => `【${a.label}】${a.content}`).join('\n')}
+                aspectLabel="终身总评全览"
+                pillarsDisplay={pillarsDisplay}
+                baziProfile={report.baziProfile}
+                hexagram={hexagramResult}
+                allAspects={loadedAspects.map(a => ({ label: a.label, content: a.content }))}
+              />
+            </div>
+          )}
+
           {isLoadingAspects ? (
             <div className="space-y-4">
               {[...Array(4)].map((_, i) => (
@@ -537,13 +580,21 @@ export function DestinyDashboard({
                       <p className="font-serif text-foreground/90 leading-relaxed">
                         {aspect.content}
                       </p>
-                      <AIInterpretation
-                        clauseContent={aspect.content}
-                        aspectLabel={aspect.label}
-                        pillarsDisplay={pillarsDisplay}
-                        baziProfile={report.baziProfile}
-                        allAspects={loadedAspects.map(a => ({ label: a.label, content: a.content }))}
-                      />
+                      {canUseAI ? (
+                        <AIInterpretation
+                          clauseContent={aspect.content}
+                          aspectLabel={aspect.label}
+                          pillarsDisplay={pillarsDisplay}
+                          baziProfile={report.baziProfile}
+                          hexagram={hexagramResult}
+                          allAspects={loadedAspects.map(a => ({ label: a.label, content: a.content }))}
+                        />
+                      ) : (
+                        <div className="mt-3 pt-3 border-t border-border/30 text-sm text-muted-foreground flex items-center gap-2">
+                          <Lock className="w-4 h-4" />
+                          {isAuthenticated ? '升级会员解锁AI解读' : '登录并升级会员解锁AI解读'}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -557,9 +608,9 @@ export function DestinyDashboard({
       <div className="space-y-4 pt-4 border-t border-border/50">
         <div className="bg-secondary/30 border border-border/50 rounded-lg p-4 text-center">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            本结果基于《铁板神数》太玄数学模型推演，仅供参考。
+            本结果基于《铁板神数》太玄数学模型推演，结合八字命理与六爻卦象，仅供参考。
             <br />
-            Results based on Tai Xuan mathematical model. For reference only.
+            Results based on Tai Xuan model combined with BaZi and Liu Yao. For reference only.
           </p>
         </div>
 
