@@ -11,83 +11,83 @@
 
 @layer base {
   :root {
-    /* Core Temple Palette */
-    --background: 0 0% 10%; /* Deep Obsidian #1a1a1a */
-    --foreground: 50 14% 95%; /* Parchment Silk #f5f5f0 */
+    /* 传统中国古典配色 - Classic Chinese Palette */
+    --background: 220 20% 8%; /* 玄青 - Deep Indigo Black */
+    --foreground: 40 30% 92%; /* 月白 - Moon White */
 
-    --card: 0 0% 12%;
-    --card-foreground: 50 14% 95%;
+    --card: 220 18% 11%;
+    --card-foreground: 40 30% 92%;
 
-    --popover: 0 0% 8%;
-    --popover-foreground: 50 14% 95%;
+    --popover: 220 22% 7%;
+    --popover-foreground: 40 30% 92%;
 
-    /* Antique Gold - Primary accent */
-    --primary: 43 74% 49%;
-    --primary-foreground: 0 0% 10%;
+    /* 朱砂红 - Vermillion Red - Primary accent */
+    --primary: 5 75% 48%;
+    --primary-foreground: 40 30% 95%;
 
-    /* Ink Stone - Secondary elements */
-    --secondary: 0 0% 18%;
-    --secondary-foreground: 50 14% 90%;
+    /* 墨色 - Ink Black - Secondary elements */
+    --secondary: 220 15% 15%;
+    --secondary-foreground: 40 25% 88%;
 
-    /* Faded Scroll - Muted elements */
-    --muted: 0 0% 20%;
-    --muted-foreground: 50 5% 60%;
+    /* 黛色 - Muted Indigo */
+    --muted: 220 12% 18%;
+    --muted-foreground: 40 10% 55%;
 
-    /* Cinnabar Red - Accent for confirmations */
-    --accent: 4 72% 45%;
-    --accent-foreground: 50 14% 95%;
+    /* 藏蓝 - Tibetan Blue - Accent */
+    --accent: 215 55% 35%;
+    --accent-foreground: 40 30% 95%;
 
-    /* Destructive - Deep vermillion */
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 50 14% 95%;
+    /* 深朱 - Deep Vermillion */
+    --destructive: 0 65% 35%;
+    --destructive-foreground: 40 30% 95%;
 
     /* Borders and inputs */
-    --border: 0 0% 25%;
-    --input: 0 0% 18%;
-    --ring: 43 74% 49%;
+    --border: 220 15% 22%;
+    --input: 220 15% 14%;
+    --ring: 5 75% 48%;
 
     --radius: 0.25rem;
 
-    /* Sidebar - Temple hall */
-    --sidebar-background: 0 0% 8%;
-    --sidebar-foreground: 50 14% 85%;
-    --sidebar-primary: 43 74% 49%;
-    --sidebar-primary-foreground: 0 0% 10%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 50 14% 95%;
-    --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 43 74% 49%;
+    /* Sidebar - 古殿配色 */
+    --sidebar-background: 220 22% 6%;
+    --sidebar-foreground: 40 25% 82%;
+    --sidebar-primary: 5 75% 48%;
+    --sidebar-primary-foreground: 40 30% 95%;
+    --sidebar-accent: 220 15% 12%;
+    --sidebar-accent-foreground: 40 30% 92%;
+    --sidebar-border: 220 15% 18%;
+    --sidebar-ring: 5 75% 48%;
 
-    /* Custom Temple Colors */
-    --cinnabar: 4 72% 45%;
-    --jade: 160 40% 35%;
-    --ink: 0 0% 5%;
-    --bronze: 30 50% 40%;
-    --parchment: 50 14% 95%;
-    --scroll: 40 20% 85%;
+    /* 传统五色 - Traditional Chinese Colors */
+    --cinnabar: 5 75% 48%; /* 朱砂 */
+    --jade: 165 45% 32%; /* 翡翠 */
+    --ink: 220 20% 5%; /* 墨色 */
+    --bronze: 35 55% 38%; /* 赭石 */
+    --parchment: 40 30% 92%; /* 宣纸 */
+    --scroll: 38 35% 82%; /* 绢帛 */
   }
 
-  /* Dark mode is the default and only mode for this solemn application */
+  /* Dark mode - 古典深色主题 */
   .dark {
-    --background: 0 0% 10%;
-    --foreground: 50 14% 95%;
-    --card: 0 0% 12%;
-    --card-foreground: 50 14% 95%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 50 14% 95%;
-    --primary: 43 74% 49%;
-    --primary-foreground: 0 0% 10%;
-    --secondary: 0 0% 18%;
-    --secondary-foreground: 50 14% 90%;
-    --muted: 0 0% 20%;
-    --muted-foreground: 50 5% 60%;
-    --accent: 4 72% 45%;
-    --accent-foreground: 50 14% 95%;
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 50 14% 95%;
-    --border: 0 0% 25%;
-    --input: 0 0% 18%;
-    --ring: 43 74% 49%;
+    --background: 220 20% 8%;
+    --foreground: 40 30% 92%;
+    --card: 220 18% 11%;
+    --card-foreground: 40 30% 92%;
+    --popover: 220 22% 7%;
+    --popover-foreground: 40 30% 92%;
+    --primary: 5 75% 48%;
+    --primary-foreground: 40 30% 95%;
+    --secondary: 220 15% 15%;
+    --secondary-foreground: 40 25% 88%;
+    --muted: 220 12% 18%;
+    --muted-foreground: 40 10% 55%;
+    --accent: 215 55% 35%;
+    --accent-foreground: 40 30% 95%;
+    --destructive: 0 65% 35%;
+    --destructive-foreground: 40 30% 95%;
+    --border: 220 15% 22%;
+    --input: 220 15% 14%;
+    --ring: 5 75% 48%;
   }
 }
 
@@ -121,10 +121,10 @@
 
   @keyframes pulse-glow {
     0%, 100% {
-      box-shadow: 0 0 20px hsl(43 74% 49% / 0.2);
+      box-shadow: 0 0 20px hsl(5 75% 48% / 0.2);
     }
     50% {
-      box-shadow: 0 0 40px hsl(43 74% 49% / 0.4);
+      box-shadow: 0 0 40px hsl(5 75% 48% / 0.4);
     }
   }
 
@@ -161,22 +161,22 @@
   .delay-900 { animation-delay: 900ms; }
   .delay-1000 { animation-delay: 1000ms; }
 
-  /* Temple decorative borders */
+  /* Temple decorative borders - 朱砂边框 */
   .border-temple {
     border-image: linear-gradient(
       to right,
       transparent,
-      hsl(43 74% 49% / 0.5),
-      hsl(43 74% 49%),
-      hsl(43 74% 49% / 0.5),
+      hsl(5 75% 48% / 0.5),
+      hsl(5 75% 48%),
+      hsl(5 75% 48% / 0.5),
       transparent
     ) 1;
   }
 
-  /* Scroll paper texture effect */
+  /* Scroll paper texture effect - 古卷纹理 */
   .bg-scroll-texture {
     background: 
-      radial-gradient(ellipse at center, hsl(0 0% 12%) 0%, hsl(0 0% 8%) 100%);
+      radial-gradient(ellipse at center, hsl(220 18% 11%) 0%, hsl(220 22% 7%) 100%);
   }
 
   /* Classical Chinese vertical text support */
