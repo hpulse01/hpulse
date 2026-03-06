@@ -23,6 +23,7 @@ import {
   type LifeAspect,
   type CollapsedEvent,
   type DestinyPhase,
+  type YearDestiny,
 } from '@/utils/quantumPredictionEngine';
 import { TiebanEngine } from '@/utils/tiebanAlgorithm';
 import {
@@ -30,6 +31,7 @@ import {
   TrendingDown, Minus, Zap, Waves, Network, BarChart3, BookOpen,
   Briefcase, Coins, Heart, Activity, Brain, Users,
   Palette, Star, Home, Compass, Globe, ChevronDown, ChevronUp,
+  Scroll, Link2, AlertTriangle,
 } from 'lucide-react';
 
 // ─────────────────────────────────────
@@ -198,40 +200,83 @@ function PhaseLoading({ phase, systems }: { phase: AppStep; systems?: string[] }
 // Event Card
 // ─────────────────────────────────────
 
-function EventCard({ event, currentAge }: { event: CollapsedEvent; currentAge: number }) {
+function YearCard({ yearDestiny, currentAge }: { yearDestiny: YearDestiny; currentAge: number }) {
+  const event = yearDestiny.primaryEvent;
   const isCurrent = event.age === currentAge;
   const isPast = event.age < currentAge;
   const typeCN = QuantumPredictionEngine.getEventTypeCN(event.eventType);
   const typeColor = EVENT_TYPE_COLORS[event.eventType] || 'border-border/30 bg-card/30';
+  const [showDetail, setShowDetail] = useState(false);
 
   return (
     <div className={`
-      p-3 rounded-lg border transition-all
+      rounded-lg border transition-all
       ${isCurrent ? 'ring-2 ring-violet-500/50 shadow-lg shadow-violet-500/10 ' : ''}
       ${isPast ? 'opacity-60 ' : ''}
+      ${yearDestiny.isSynergyYear ? 'ring-1 ring-fuchsia-500/30 ' : ''}
       ${typeColor}
     `}>
-      <div className="flex items-start gap-3">
-        <div className="text-center min-w-[48px]">
-          <div className={`text-lg font-serif ${isCurrent ? 'text-violet-300' : 'text-foreground'}`}>{event.age}<span className="text-[10px] text-muted-foreground">岁</span></div>
-          <div className="text-[10px] text-muted-foreground">{event.year}</div>
-          <div className="text-[10px] text-violet-300/60">{event.ganZhi}</div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap mb-1">
-            <span className="text-sm font-serif text-foreground">{event.title}</span>
-            <Badge variant="outline" className="text-[9px] px-1 py-0 border-violet-500/30 text-violet-300">{typeCN}</Badge>
-            {event.convergence > 0.4 && <Badge variant="outline" className="text-[9px] px-1 py-0 border-fuchsia-500/30 text-fuchsia-300">{event.systemVotes.length}系共振</Badge>}
+      <button onClick={() => setShowDetail(!showDetail)} className="w-full text-left p-3">
+        <div className="flex items-start gap-3">
+          <div className="text-center min-w-[48px]">
+            <div className={`text-lg font-serif ${isCurrent ? 'text-violet-300' : 'text-foreground'}`}>{event.age}<span className="text-[10px] text-muted-foreground">岁</span></div>
+            <div className="text-[10px] text-muted-foreground">{event.year}</div>
+            <div className="text-[10px] text-violet-300/60">{event.ganZhi}</div>
+            {yearDestiny.isSynergyYear && <div className="text-[9px] text-fuchsia-400 mt-0.5">{yearDestiny.synergyCount}系共振</div>}
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">{event.description}</p>
-          <div className="flex items-center gap-2 mt-1.5">
-            <div className="flex-1 h-1 bg-secondary/30 rounded-full overflow-hidden">
-              <div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-400 transition-all" style={{ width: `${event.energyLevel}%` }} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap mb-1">
+              <span className="text-sm font-serif text-foreground">{event.title}</span>
+              <Badge variant="outline" className="text-[9px] px-1 py-0 border-violet-500/30 text-violet-300">{typeCN}</Badge>
+              {yearDestiny.secondaryEvents.length > 0 && (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 border-cyan-500/30 text-cyan-300">+{yearDestiny.secondaryEvents.length}</Badge>
+              )}
+              {yearDestiny.causalLinks.length > 0 && <Link2 className="w-3 h-3 text-amber-400" />}
             </div>
-            <span className="text-[10px] font-mono text-violet-300">{event.energyLevel}</span>
+            <p className="text-xs text-muted-foreground leading-relaxed">{event.description}</p>
+            <div className="flex items-center gap-2 mt-1.5">
+              <div className="flex-1 h-1 bg-secondary/30 rounded-full overflow-hidden">
+                <div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-400" style={{ width: `${yearDestiny.overallEnergy}%` }} />
+              </div>
+              <span className="text-[10px] font-mono text-violet-300">{yearDestiny.overallEnergy}</span>
+              {showDetail ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
+            </div>
           </div>
         </div>
-      </div>
+      </button>
+
+      {showDetail && (
+        <div className="px-3 pb-3 space-y-2 border-t border-border/20 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+          {/* Year narrative */}
+          <p className="text-[10px] text-muted-foreground leading-relaxed bg-violet-500/5 p-2 rounded">{yearDestiny.yearNarrative}</p>
+
+          {/* Secondary events */}
+          {yearDestiny.secondaryEvents.map((sec, i) => {
+            const secTypeCN = QuantumPredictionEngine.getEventTypeCN(sec.eventType);
+            const Icon = ASPECT_ICONS[sec.dominantAspect];
+            return (
+              <div key={i} className="flex items-start gap-2 p-2 bg-card/30 rounded border border-border/10">
+                <div className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 ${ASPECT_COLORS[sec.dominantAspect]}`}><Icon className="w-3 h-3" /></div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] font-serif text-foreground">{sec.title}</span>
+                    <Badge variant="outline" className="text-[8px] px-1 py-0">{secTypeCN}</Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">{sec.description}</p>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Causal links */}
+          {yearDestiny.causalLinks.map((link, i) => (
+            <div key={i} className="flex items-center gap-1.5 p-1.5 bg-amber-500/5 rounded border border-amber-500/20 text-[9px] text-amber-300">
+              <Link2 className="w-3 h-3 flex-shrink-0" />
+              <span>{link.description}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -240,10 +285,14 @@ function EventCard({ event, currentAge }: { event: CollapsedEvent; currentAge: n
 // Phase Section
 // ─────────────────────────────────────
 
-function PhaseSection({ phase, currentAge }: { phase: DestinyPhase; currentAge: number }) {
-  const [expanded, setExpanded] = useState(phase.events.some(e => e.age === currentAge) || phase.startAge <= 12);
-  const significantEvents = phase.events.filter(e => e.convergence > 0.3 || e.eventType === 'turning_point' || e.eventType === 'milestone');
-  const displayEvents = expanded ? phase.events : significantEvents.slice(0, 3);
+function PhaseSection({ phase, currentAge, yearDestinies, phaseNarrative }: {
+  phase: DestinyPhase; currentAge: number;
+  yearDestinies: YearDestiny[];
+  phaseNarrative?: import('@/utils/quantumPredictionEngine').PhaseNarrative;
+}) {
+  const [expanded, setExpanded] = useState(yearDestinies.some(y => y.age === currentAge) || phase.startAge <= 12);
+  const significantYears = yearDestinies.filter(y => y.isSynergyYear || y.primaryEvent.eventType === 'turning_point' || y.primaryEvent.eventType === 'milestone' || y.primaryEvent.convergence > 0.3);
+  const displayYears = expanded ? yearDestinies : significantYears.slice(0, 3);
 
   return (
     <div className="border border-violet-500/20 rounded-xl overflow-hidden">
@@ -254,7 +303,10 @@ function PhaseSection({ phase, currentAge }: { phase: DestinyPhase; currentAge: 
           </div>
           <div className="text-left">
             <h4 className="text-sm font-serif text-violet-200">{phase.name} · {phase.theme}</h4>
-            <p className="text-[10px] text-muted-foreground">{phase.startAge}-{phase.endAge}岁 · 能量 {phase.overallEnergy}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {phase.startAge}-{phase.endAge}岁 · 能量 {phase.overallEnergy}
+              {phaseNarrative && ` · 巅峰${phaseNarrative.peakAge}岁 · 低谷${phaseNarrative.valleyAge}岁`}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -264,12 +316,27 @@ function PhaseSection({ phase, currentAge }: { phase: DestinyPhase; currentAge: 
           {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
         </div>
       </button>
-      {displayEvents.length > 0 && (
+
+      {/* Phase narrative */}
+      {expanded && phaseNarrative && (
+        <div className="px-4 pt-3 pb-1">
+          <p className="text-[10px] text-muted-foreground leading-relaxed bg-violet-500/5 p-2.5 rounded-lg border border-violet-500/10">{phaseNarrative.narrative}</p>
+          {phaseNarrative.keyMilestones.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {phaseNarrative.keyMilestones.map((m, i) => (
+                <Badge key={i} variant="outline" className="text-[8px] border-fuchsia-500/20 text-fuchsia-300">{m}</Badge>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {displayYears.length > 0 && (
         <div className="p-3 space-y-2">
-          {displayEvents.map(e => <EventCard key={e.age} event={e} currentAge={currentAge} />)}
-          {!expanded && phase.events.length > displayEvents.length && (
+          {displayYears.map(y => <YearCard key={y.age} yearDestiny={y} currentAge={currentAge} />)}
+          {!expanded && yearDestinies.length > displayYears.length && (
             <button onClick={() => setExpanded(true)} className="w-full text-center text-xs text-violet-400 hover:text-violet-300 py-2 transition-colors">
-              展开全部 {phase.events.length} 个事件
+              展开全部 {yearDestinies.length} 年事件
             </button>
           )}
         </div>
@@ -397,33 +464,121 @@ export default function QuantumPrediction() {
 
               {/* Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-5 bg-violet-950/30 border border-violet-500/20 h-auto">
+                <TabsList className="grid w-full grid-cols-6 bg-violet-950/30 border border-violet-500/20 h-auto">
                   <TabsTrigger value="destiny" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
                     <BookOpen className="w-3 h-3 mr-1 hidden sm:inline" />命运全知
+                  </TabsTrigger>
+                  <TabsTrigger value="narrative" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
+                    <Scroll className="w-3 h-3 mr-1 hidden sm:inline" />命运书
                   </TabsTrigger>
                   <TabsTrigger value="quantum" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
                     <BarChart3 className="w-3 h-3 mr-1 hidden sm:inline" />量子态
                   </TabsTrigger>
                   <TabsTrigger value="waveform" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
-                    <Waves className="w-3 h-3 mr-1 hidden sm:inline" />能量波形
+                    <Waves className="w-3 h-3 mr-1 hidden sm:inline" />波形
                   </TabsTrigger>
                   <TabsTrigger value="systems" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
-                    <Globe className="w-3 h-3 mr-1 hidden sm:inline" />九系解析
+                    <Globe className="w-3 h-3 mr-1 hidden sm:inline" />九系
                   </TabsTrigger>
                   <TabsTrigger value="entangle" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
                     <Network className="w-3 h-3 mr-1 hidden sm:inline" />纠缠
                   </TabsTrigger>
                 </TabsList>
 
-                {/* Tab: Destiny Revelation (命运全知) */}
+                {/* Tab: Destiny Revelation (命运全知) — multi-event per year */}
                 <TabsContent value="destiny" className="mt-5 space-y-4">
+                  {/* Synergy year highlights */}
+                  {result.expandedDestiny.synergyYears.length > 0 && (
+                    <div className="bg-fuchsia-500/10 border border-fuchsia-500/20 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertTriangle className="w-4 h-4 text-fuchsia-400" />
+                        <span className="text-xs font-serif text-fuchsia-300">命定之年 (6+系高度共振)</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {result.expandedDestiny.synergyYears.map(age => {
+                          const yd = result.expandedDestiny.yearDestinies.find(y => y.age === age);
+                          return (
+                            <Badge key={age} variant="outline" className="text-[10px] border-fuchsia-500/30 text-fuchsia-300">
+                              {age}岁 · {yd?.primaryEvent.title || ''}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <ScrollArea className="h-[600px] pr-2">
                     <div className="space-y-4">
-                      {result.destinyPhases.map((phase, i) => (
-                        <PhaseSection key={i} phase={phase} currentAge={currentAge} />
-                      ))}
+                      {result.destinyPhases.map((phase, i) => {
+                        const phaseYD = result.expandedDestiny.yearDestinies.filter(y => y.age >= phase.startAge && y.age <= phase.endAge);
+                        const phaseNarr = result.expandedDestiny.phaseNarratives[i];
+                        return <PhaseSection key={i} phase={phase} currentAge={currentAge} yearDestinies={phaseYD} phaseNarrative={phaseNarr} />;
+                      })}
                     </div>
                   </ScrollArea>
+                </TabsContent>
+
+                {/* Tab: Life Narrative (命运书) */}
+                <TabsContent value="narrative" className="mt-5">
+                  <div className="bg-card/40 border border-violet-500/20 rounded-xl p-5 md:p-8">
+                    <div className="text-center mb-6">
+                      <Scroll className="w-8 h-8 text-violet-400 mx-auto mb-2" />
+                      <h3 className="text-lg font-serif text-violet-200 tracking-wider">命运之书</h3>
+                      <p className="text-[10px] text-muted-foreground">九大体系量子坍缩后的确定性叙事</p>
+                    </div>
+                    <ScrollArea className="h-[550px]">
+                      <div className="prose prose-sm prose-invert max-w-none space-y-4">
+                        {/* Opening */}
+                        <div className="bg-violet-500/5 border-l-2 border-violet-500/40 pl-4 py-2">
+                          <h4 className="text-sm font-serif text-violet-300 mb-1">命盘总论</h4>
+                          <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{result.expandedDestiny.lifeNarrative.opening}</p>
+                        </div>
+
+                        {/* Phase narratives */}
+                        {result.expandedDestiny.phaseNarratives.map((pn, i) => (
+                          <div key={i} className="bg-card/30 border border-border/20 rounded-lg p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-7 h-7 rounded bg-violet-500/20 flex items-center justify-center text-sm font-serif text-violet-300">{pn.phase.element}</div>
+                              <h4 className="text-sm font-serif text-violet-200">{pn.phase.name} ({pn.phase.startAge}-{pn.phase.endAge}岁)</h4>
+                            </div>
+                            <p className="text-xs text-muted-foreground leading-relaxed">{pn.narrative}</p>
+                            {pn.keyMilestones.length > 0 && (
+                              <div className="mt-2 pt-2 border-t border-border/10">
+                                <p className="text-[10px] text-violet-300/70">关键节点:</p>
+                                {pn.keyMilestones.map((m, j) => <p key={j} className="text-[10px] text-muted-foreground ml-2">• {m}</p>)}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Climax */}
+                        <div className="bg-fuchsia-500/10 border-l-2 border-fuchsia-500/40 pl-4 py-2">
+                          <h4 className="text-sm font-serif text-fuchsia-300 mb-1">命运之锚</h4>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{result.expandedDestiny.lifeNarrative.climax}</p>
+                        </div>
+
+                        {/* Closing */}
+                        <div className="bg-violet-500/5 border-l-2 border-violet-500/40 pl-4 py-2">
+                          <h4 className="text-sm font-serif text-violet-300 mb-1">终语</h4>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{result.expandedDestiny.lifeNarrative.closing}</p>
+                        </div>
+
+                        {/* Causal chains summary */}
+                        {result.expandedDestiny.causalChains.length > 0 && (
+                          <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-4">
+                            <h4 className="text-sm font-serif text-amber-300 mb-2 flex items-center gap-1.5"><Link2 className="w-4 h-4" />因果链</h4>
+                            <div className="space-y-1">
+                              {result.expandedDestiny.causalChains.slice(0, 15).map((c, i) => (
+                                <p key={i} className="text-[10px] text-muted-foreground">
+                                  <span className="text-amber-400">{c.fromAge}岁→{c.toAge}岁:</span> {c.description}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </div>
                 </TabsContent>
 
                 {/* Tab: Quantum States */}

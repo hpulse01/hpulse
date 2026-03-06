@@ -23,6 +23,7 @@ import { VedicAstrologyEngine, type VedicReport } from './worldSystems/vedicAstr
 import { NumerologyEngine, type NumerologyReport } from './worldSystems/numerology';
 import { MayanCalendarEngine, type MayanReport } from './worldSystems/mayanCalendar';
 import { KabbalahEngine, type KabbalahReport } from './worldSystems/kabbalah';
+import { expandDestiny } from './destinyNarrative';
 
 // ═══════════════════════════════════════════════
 // Types
@@ -115,6 +116,10 @@ export interface DestinyPhase {
   overallEnergy: number;
 }
 
+// ── Narrative types (re-exported from destinyNarrative) ──
+
+export type { YearDestiny, CausalLink, PhaseNarrative, LifeNarrative, ExpandedDestiny } from './destinyNarrative';
+
 // ── Full result ──
 
 export interface QuantumPredictionResult {
@@ -137,6 +142,9 @@ export interface QuantumPredictionResult {
   deathAge: number;
   quantumSignature: string;
   dominantElement: string;
+
+  // Phase 5 — Expanded Destiny
+  expandedDestiny: import('./destinyNarrative').ExpandedDestiny;
 
   // Raw system data for detail panel
   baziProfile: BaZiProfile;
@@ -359,12 +367,14 @@ function quantumCollapse(
   entanglements: QuantumEntanglement[];
   overallCoherence: number;
   deathAge: number;
+  allBranchVotes: Map<number, Map<LifeAspect, { convergence: number; eventType: DestinyEventType; energy: number; systems: string[] }>>;
 } {
   const fav = baziProfile.favorableElements;
   const unfav = baziProfile.unfavorableElements;
 
   // ── Collapse per-age events ──
   const timeline: CollapsedEvent[] = [];
+  const allBranchVotes = new Map<number, Map<LifeAspect, { convergence: number; eventType: DestinyEventType; energy: number; systems: string[] }>>();
   const currentYear = new Date().getFullYear();
   const currentAge = currentYear - input.year;
 
@@ -381,6 +391,18 @@ function quantumCollapse(
       aspectVotes[b.aspect].types.push(b.eventType);
       aspectVotes[b.aspect].intensities.push(b.intensity);
     }
+
+    // Store all votes for narrative engine
+    const ageVoteMap = new Map<LifeAspect, { convergence: number; eventType: DestinyEventType; energy: number; systems: string[] }>();
+    for (const [aspect, data] of Object.entries(aspectVotes)) {
+      const conv = (data.systems.size / systems.length) * (data.totalProb / ageBranches.length);
+      const avgInt = data.intensities.reduce((a, b) => a + b, 0) / data.intensities.length;
+      const tc: Record<string, number> = {};
+      data.types.forEach(t => { tc[t] = (tc[t] || 0) + 1; });
+      const domType = (Object.entries(tc).sort((a, b) => b[1] - a[1])[0]?.[0] || 'growth') as DestinyEventType;
+      ageVoteMap.set(aspect as LifeAspect, { convergence: conv, eventType: domType, energy: Math.round(avgInt), systems: Array.from(data.systems) });
+    }
+    allBranchVotes.set(age, ageVoteMap);
 
     // Find the aspect with highest cross-system agreement (convergence)
     let bestAspect: LifeAspect = 'fortune';
@@ -505,7 +527,7 @@ function quantumCollapse(
   const coherenceBonus = overallCoherence * 5;
   const deathAge = clamp(Math.round(baseLifespan + healthBonus + coherenceBonus));
 
-  return { timeline, states, entanglements, overallCoherence, deathAge };
+  return { timeline, states, entanglements, overallCoherence, deathAge, allBranchVotes };
 }
 
 // ═══════════════════════════════════════════════
@@ -723,10 +745,17 @@ export const QuantumPredictionEngine = {
     const { branches, totalGenerated, perSystem } = generateInfiniteWorlds(systems, input, vedicReport, numerologyReport, fullReport);
 
     // Phase 3
-    const { timeline, states, entanglements, overallCoherence, deathAge } = quantumCollapse(systems, branches, input, baziProfile, fullReport, vedicReport, numerologyReport);
+    const { timeline, states, entanglements, overallCoherence, deathAge, allBranchVotes } = quantumCollapse(systems, branches, input, baziProfile, fullReport, vedicReport, numerologyReport);
 
     // Phase 4
     const { phases, lifeSummary } = revealDestiny(timeline, states, deathAge, input);
+
+    // Phase 5 — Expanded Destiny (narrative engine)
+    const expandedDestinyResult = expandDestiny(
+      timeline, phases, states, systems, allBranchVotes,
+      baziProfile, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport,
+      overallCoherence, totalGenerated,
+    );
 
     // Dominant element
     const elCounts: Record<string, number> = {};
@@ -755,6 +784,7 @@ export const QuantumPredictionEngine = {
       deathAge,
       quantumSignature,
       dominantElement,
+      expandedDestiny: expandedDestinyResult,
       baziProfile, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport,
       timestamp,
     };
