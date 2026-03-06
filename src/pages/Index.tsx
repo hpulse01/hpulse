@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { BirthDataForm } from '@/components/BirthDataForm';
 import { SixRelationsVerification } from '@/components/SixRelationsVerification';
 import { DestinyDashboard } from '@/components/DestinyDashboard';
@@ -192,7 +193,15 @@ const Index = () => {
                 </p>
               )}
             </div>
-            <div className="flex-1 flex justify-end">
+            <div className="flex-1 flex justify-end items-center gap-2">
+              <Link
+                to="/quantum"
+                className="px-3 py-1.5 text-xs rounded-md border border-violet-500/30 text-violet-300
+                           hover:bg-violet-500/10 hover:border-violet-500/50 transition-all duration-300
+                           bg-violet-500/5 font-serif tracking-wider"
+              >
+                H-Pulse 量子预测
+              </Link>
               <UserMenu />
             </div>
           </div>
