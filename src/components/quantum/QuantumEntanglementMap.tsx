@@ -6,15 +6,17 @@ interface QuantumEntanglementMapProps {
   className?: string;
 }
 
-const ASPECT_POSITIONS: Record<LifeAspect, { x: number; y: number }> = {
-  career:     { x: 150, y: 30 },
-  wealth:     { x: 270, y: 70 },
-  love:       { x: 280, y: 170 },
-  health:     { x: 220, y: 260 },
-  wisdom:     { x: 80, y: 260 },
-  social:     { x: 20, y: 170 },
-  creativity: { x: 30, y: 70 },
-  fortune:    { x: 150, y: 150 },
+const ASPECT_POSITIONS: Record<string, { x: number; y: number }> = {
+  career:       { x: 150, y: 20 },
+  wealth:       { x: 245, y: 50 },
+  love:         { x: 285, y: 130 },
+  health:       { x: 265, y: 215 },
+  wisdom:       { x: 195, y: 275 },
+  social:       { x: 105, y: 275 },
+  creativity:   { x: 35, y: 215 },
+  fortune:      { x: 15, y: 130 },
+  family:       { x: 55, y: 50 },
+  spirituality: { x: 150, y: 150 },
 };
 
 export function QuantumEntanglementMap({ entanglements, className = '' }: QuantumEntanglementMapProps) {
@@ -62,9 +64,9 @@ export function QuantumEntanglementMap({ entanglements, className = '' }: Quantu
       })}
 
       {/* Aspect nodes */}
-      {(Object.entries(ASPECT_POSITIONS) as [LifeAspect, { x: number; y: number }][]).map(([aspect, pos]) => {
-        const label = QuantumPredictionEngine.getAspectLabel(aspect);
-        const isFortune = aspect === 'fortune';
+      {(Object.entries(ASPECT_POSITIONS) as [string, { x: number; y: number }][]).map(([aspect, pos]) => {
+        const label = QuantumPredictionEngine.getAspectLabel(aspect as LifeAspect);
+        const isFortune = aspect === 'spirituality';
 
         return (
           <g key={aspect}>
