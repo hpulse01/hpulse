@@ -724,6 +724,12 @@ export interface BaZiChartResult {
   elementBalance: ElementBalance[];
   twelveStages: TwelveStageInfo[];
   shenSha: ShenShaInfo[];
+  /** v3.0: 地支刑冲合害 */
+  branchInteractions: BranchInteraction[];
+  /** v3.0: 天干合化 */
+  stemCombinations: StemCombination[];
+  /** v3.0: 空亡 */
+  kongWang: KongWangInfo;
 }
 
 /** 三层输出：Layer 3 - 分析结论 */
