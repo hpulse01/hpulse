@@ -26,6 +26,7 @@ import { MayanCalendarEngine, type MayanReport } from './worldSystems/mayanCalen
 import { KabbalahEngine, type KabbalahReport } from './worldSystems/kabbalah';
 import { runMeihua, type MeihuaResult } from './meihuaAlgorithm';
 import { runQimen, type QimenResult } from './qimenAlgorithm';
+import { buildLiuRenEngineOutput, type LiuRenResult } from './liurenAlgorithm';
 
 import type {
   StandardizedInput,
