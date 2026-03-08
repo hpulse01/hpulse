@@ -822,7 +822,7 @@ function orchestrate(
     finalConfidence,
     causalSummary,
     generatedAt: new Date().toISOString(),
-    algorithmVersion: '4.1.0',
+    algorithmVersion: '5.0.0',
     activeEngines: activeEngineNames,
     executedEngines,
     skippedEngines: skippedEngineList,
