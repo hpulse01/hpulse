@@ -249,7 +249,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
                 className="bg-input border-border/50 h-9 rounded-lg text-sm" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground/60 font-sans">经度</Label>
+              <Label className="text-[10px] text-muted-foreground/60 font-sans">{t('form.longitude')}</Label>
               <Input type="number" step="0.0001" value={formData.geoLongitude}
                 onChange={(e) => setFormData({ ...formData, geoLongitude: Number(e.target.value) })}
                 className="bg-input border-border/50 h-9 rounded-lg text-sm" />
