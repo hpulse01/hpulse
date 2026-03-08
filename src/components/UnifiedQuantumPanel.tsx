@@ -162,16 +162,16 @@ export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelPr
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4 bg-violet-950/30 border border-violet-500/20 h-auto">
           <TabsTrigger value="timeline" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
-            <BookOpen className="w-3 h-3 mr-1 hidden sm:inline" />命运全知
+            <BookOpen className="w-3 h-3 mr-1 hidden sm:inline" />{t('quantum.omniscience')}
           </TabsTrigger>
           <TabsTrigger value="states" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
-            <BarChart3 className="w-3 h-3 mr-1 hidden sm:inline" />量子态
+            <BarChart3 className="w-3 h-3 mr-1 hidden sm:inline" />{t('quantum.states')}
           </TabsTrigger>
           <TabsTrigger value="waveform" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
-            <Waves className="w-3 h-3 mr-1 hidden sm:inline" />能量波形
+            <Waves className="w-3 h-3 mr-1 hidden sm:inline" />{t('quantum.waveform')}
           </TabsTrigger>
           <TabsTrigger value="entangle" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
-            <Network className="w-3 h-3 mr-1 hidden sm:inline" />纠缠
+            <Network className="w-3 h-3 mr-1 hidden sm:inline" />{t('quantum.entangle')}
           </TabsTrigger>
         </TabsList>
 
