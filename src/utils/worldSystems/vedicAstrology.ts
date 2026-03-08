@@ -1,12 +1,13 @@
 /**
- * Vedic Astrology / Jyotish Engine v2.0 (吠陀占星术)
+ * Vedic Astrology / Jyotish Engine v3.0 (吠陀占星术)
  *
- * Upgrades:
- * - Pancha Mahapurusha Yoga detection (5 great personality yogas)
- * - Dhana Yoga (wealth combinations)
- * - Raja Yoga (power/authority)
- * - Expanded Nakshatra analysis with gana/yoni
- * - Shadbala-inspired planet strength
+ * v3.0 Upgrades:
+ * - Kuja Dosha (Manglik) detection
+ * - Sade Sati detection (Saturn transit over Moon)
+ * - Ashtakavarga basic scoring
+ * - Chandra Kundali (Moon chart) analysis
+ * - Enhanced Dasha quality with sub-period hints
+ * - Nakshatra compatibility grouping
  */
 
 import {
