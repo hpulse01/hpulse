@@ -141,7 +141,7 @@ interface UnifiedQuantumPanelProps {
 export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelProps) {
   const [selectedAspect, setSelectedAspect] = useState<LifeAspect | null>(null);
   const [activeTab, setActiveTab] = useState('timeline');
-
+  const { t, lang } = useI18n();
   const currentAge = useMemo(() => new Date().getFullYear() - birthYear, [birthYear]);
   const sortedStates = useMemo(() => [...result.states].sort((a, b) => b.probability - a.probability), [result]);
 
