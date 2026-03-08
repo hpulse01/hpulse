@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { DisclaimerDialog, hasConsented } from '@/components/DisclaimerDialog';
 import { BirthDataForm, type BirthDataWithGeo } from '@/components/BirthDataForm';
 import { SixRelationsVerification } from '@/components/SixRelationsVerification';
 import { DestinyDashboard } from '@/components/DestinyDashboard';
