@@ -1,12 +1,13 @@
 /**
- * 太乙神数引擎 v2.0.0 — Taiyi Shenshu (Supreme Unity Divine Numbers)
+ * 太乙神数引擎 v3.0.0 — Taiyi Shenshu (Supreme Unity Divine Numbers)
  *
- * v2.0 升级:
- * - 扩展十六神完整排布
- * - 增加太乙积年精确算法
- * - 增强格局检测（主客和战、太乙临宫等）
- * - 独立评估模块：趋势分级、应期推算
- * - 标准化三层输出
+ * v3.0 升级:
+ * - 三门四户系统（天门/地户/人门/鬼户）
+ * - 太乙十二运计算（太乙临宫的十二长生状态）
+ * - 计神/文昌位置分析与学业/文运判定
+ * - 主客胜负精算（含五行相数比较）
+ * - 增强太乙游行方向判断
+ * - 应期细化（含季节+五行+方位三重判定）
  */
 
 import type { StandardizedInput, FateVector, EngineOutput } from '@/types/prediction';
