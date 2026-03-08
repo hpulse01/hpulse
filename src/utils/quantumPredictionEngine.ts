@@ -48,8 +48,10 @@ import type {
   TimingBasis,
 } from '@/types/prediction';
 import { ALL_FATE_DIMENSIONS, FATE_DIMENSION_LABELS } from '@/types/prediction';
-import { getWeightsForQueryType } from '@/config/engineWeights';
-import { detectConflicts, fuseFateVectors } from '@/utils/conflictResolver';
+import { calculateDynamicWeights, getWeightsForQueryType } from '@/config/engineWeights';
+import { detectConflicts, fuseFateVectors, generateConflictReport } from '@/utils/conflictResolver';
+import { generateCollapseSeed, quantumCollapsePipeline, calculateFateVectorCoherence } from '@/utils/quantumMath';
+import type { WorldLineInput } from '@/utils/quantumMath';
 import {
   getActiveEngines,
   getSkippedEngines,
