@@ -170,7 +170,7 @@ export function AIInterpretation({
 
       requestBody.hexagram = {
         name: hexagram.mainHexagram.name,
-        symbol: hexagram.mainHexagram.symbol,
+        symbol: hexagram.mainHexagram.name,
         lines: hexagram.mainHexagram.lines.map(l => l.value),
         changingLines: hexagram.mainHexagram.changingLines,
         interpretation: hexagram.interpretation,

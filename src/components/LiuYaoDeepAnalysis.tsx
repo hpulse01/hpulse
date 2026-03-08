@@ -149,7 +149,7 @@ function HexagramInterpretation({ hexagram, hasChanging }: { hexagram: LiuYaoRes
         {/* Main Hexagram */}
         <div className="text-center">
           <span className="text-xs text-muted-foreground block mb-1">本卦</span>
-          <div className="text-5xl mb-2">{hexagram.symbol}</div>
+          <div className="text-3xl mb-2 font-serif text-primary">{hexagram.name}</div>
           <span className="text-lg font-serif text-primary">{hexagram.name}</span>
         </div>
         
@@ -161,7 +161,7 @@ function HexagramInterpretation({ hexagram, hasChanging }: { hexagram: LiuYaoRes
             </div>
             <div className="text-center">
               <span className="text-xs text-muted-foreground block mb-1">变卦</span>
-              <div className="text-5xl mb-2">{hexagram.targetHexagram.symbol}</div>
+              <div className="text-3xl mb-2 font-serif text-primary">{hexagram.targetHexagram.name}</div>
               <span className="text-lg font-serif text-primary">{hexagram.targetHexagram.name}</span>
             </div>
           </>
