@@ -139,11 +139,11 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-card border-primary/20 z-50" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader className="text-center">
-          <DialogTitle className="text-2xl font-serif text-primary tracking-wider">
-            铁板神数
+          <DialogTitle className="text-2xl font-serif text-gradient-gold tracking-[0.15em]">
+            H-Pulse
           </DialogTitle>
-          <DialogDescription>
-            登录解锁更多功能
+          <DialogDescription className="text-muted-foreground/70 text-xs tracking-widest uppercase mt-1">
+            Quantum Destiny Prediction · 登录解锁高级功能
           </DialogDescription>
         </DialogHeader>
 
