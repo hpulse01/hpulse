@@ -63,14 +63,15 @@ const WEIGHT_TABLE: Record<QueryType, WeightConfig[]> = {
     { engineName: 'meihua', weight: 0.17, reason: '梅花易数日度感应占断' },
   ],
   instantDecision: [
-    { engineName: 'bazi', weight: 0.10, reason: '八字提供基底参考' },
-    { engineName: 'ziwei', weight: 0.08, reason: '紫微提供基底参考' },
-    { engineName: 'liuyao', weight: 0.35, reason: '六爻为即时占卜首选体系' },
-    { engineName: 'western', weight: 0.12, reason: '西方占星卜卦盘' },
-    { engineName: 'vedic', weight: 0.10, reason: '吠陀Prashna占星术' },
-    { engineName: 'numerology', weight: 0.08, reason: '数字即时参考' },
-    { engineName: 'mayan', weight: 0.10, reason: '玛雅当日能量' },
-    { engineName: 'kabbalah', weight: 0.07, reason: '卡巴拉即时参考' },
+    { engineName: 'bazi', weight: 0.08, reason: '八字提供基底参考' },
+    { engineName: 'ziwei', weight: 0.06, reason: '紫微提供基底参考' },
+    { engineName: 'liuyao', weight: 0.25, reason: '六爻为即时占卜首选体系' },
+    { engineName: 'western', weight: 0.08, reason: '西方占星卜卦盘' },
+    { engineName: 'vedic', weight: 0.07, reason: '吠陀Prashna占星术' },
+    { engineName: 'numerology', weight: 0.06, reason: '数字即时参考' },
+    { engineName: 'mayan', weight: 0.08, reason: '玛雅当日能量' },
+    { engineName: 'kabbalah', weight: 0.05, reason: '卡巴拉即时参考' },
+    { engineName: 'meihua', weight: 0.27, reason: '梅花易数为即时感应占断核心体系' },
   ],
 };
 
