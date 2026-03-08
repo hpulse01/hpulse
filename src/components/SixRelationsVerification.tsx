@@ -572,11 +572,11 @@ export const SixRelationsVerification = ({
                     {/* Zodiacs Row */}
                     <div className="flex gap-4 mt-3 text-sm">
                       <span className="text-muted-foreground flex items-center gap-1">
-                        <span className="text-lg">{zodiacFather?.emoji}</span>
+                        {zodiacFather && <img src={ZODIAC_ICONS[zodiacFather.value]} alt={zodiacFather.name} className="w-5 h-5 object-contain" />}
                         父属{zodiacFather?.name}
                       </span>
                       <span className="text-muted-foreground flex items-center gap-1">
-                        <span className="text-lg">{zodiacMother?.emoji}</span>
+                        {zodiacMother && <img src={ZODIAC_ICONS[zodiacMother.value]} alt={zodiacMother.name} className="w-5 h-5 object-contain" />}
                         母属{zodiacMother?.name}
                       </span>
                     </div>
