@@ -243,7 +243,7 @@ export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelPr
             <QuantumWaveform timeline={waveformTimeline} height={280} />
           </div>
           <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4">
-            <h3 className="text-sm font-serif text-violet-300 mb-3">生命阶段能量</h3>
+            <h3 className="text-sm font-serif text-violet-300 mb-3">{t('quantum.phase_energy')}</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {result.destinyPhases.map((p, i) => (
                 <div key={i} className="p-3 rounded-lg bg-card/30 border border-violet-500/10 text-center">
