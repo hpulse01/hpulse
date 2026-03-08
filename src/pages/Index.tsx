@@ -396,9 +396,14 @@ const Index = () => {
 
               {/* Footer Actions */}
               <div className="space-y-4 pt-4 border-t border-border/20">
-                <div className="glass rounded-xl p-4 text-center">
+                <div className="glass rounded-xl p-4 text-center space-y-2">
+                  <div className="flex items-center justify-center gap-1.5 text-accent/80">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span className="text-[11px] font-semibold tracking-wide">免责声明</span>
+                  </div>
                   <p className="text-[10px] text-muted-foreground/60 leading-relaxed font-sans">
-                    H-Pulse 综合十三大命理体系，通过递归命运树的量子坍缩与铁板考刻校准，收敛为唯一确定性命运轨迹。
+                    所有推算结果均基于传统命理数学模型，仅供文化研究与个人兴趣参考，不构成任何科学预测、医疗建议、投资建议或人生指导。
+                    请以理性科学态度看待结果，重大决策请咨询专业人士。
                   </p>
                 </div>
                 <Button onClick={handleReset} variant="outline"
