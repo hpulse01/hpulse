@@ -1770,7 +1770,7 @@ export function extractKabbalahEvents(
   });
 
   // Death from tree of life
-  const kDeathAge = 70 + report.soulSephirah.number + report.personalitySephirah.number % 5;
+  const kDeathAge = 70 + report.soulSephirah.index + report.personalitySephirah.index % 5;
   seeds.push({
     ...B, id: seedId('kabbalah', 'death', kDeathAge, 'kabbalah-death'),
     category: 'death', subcategory: '生命树寿限',
