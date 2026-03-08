@@ -685,6 +685,14 @@ function orchestrate(
     meihuaResult = mhResult.meihuaResult;
   }
 
+  // ── Qimen (奇门遁甲) — only run if active ──
+  let qimenResult: QimenResult | null = null;
+  if (isActive('qimen')) {
+    const qmResult = runQimen(standardizedInput);
+    engineOutputs.push(qmResult.eo);
+    qimenResult = qmResult.qimenResult;
+  }
+
   // ── Dynamic weights (filtered to active engines only) ──
   const activeNames = engineOutputs.map(e => e.engineName);
   const weightConfigs = getWeightsForQueryType(queryType, activeNames);
