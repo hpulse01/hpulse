@@ -676,7 +676,6 @@ export function calculateLiuYaoHexagram(timestamp: Date = new Date()): LiuYaoRes
   const spirits = SIX_SPIRITS_TABLE[dayStem] || SIX_SPIRITS_TABLE['甲'];
 
   // 6. 月建地支 (用于旺衰)
-  const Solar = (await import('lunar-typescript')).Solar;
   const solarObj = Solar.fromYmdHms(year, month, day, hour, minute, second);
   const lunarObj = solarObj.getLunar();
   const monthBranch = lunarObj.getMonthInGanZhi().charAt(1);
