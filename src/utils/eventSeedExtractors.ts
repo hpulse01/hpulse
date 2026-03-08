@@ -1764,7 +1764,7 @@ export function extractKabbalahEvents(
     fateImpact: { health: -5 },
     sourceDetail: '卡巴拉质点健康推算',
     sourceFieldPath: 'soulSephirah(health-derived)',
-    sourceEvidence: `灵魂质点${report.soulSephirah.number}`,
+    sourceEvidence: `灵魂质点${report.soulSephirah.index}`,
     reasoning: `50 + 灵魂质点号 = ${healthAge}`,
     confidence: 0.3, conflictTags: ['health-kabbalah'],
   });
