@@ -1693,7 +1693,7 @@ export function extractKabbalahEvents(
   // Tree of Life journey milestones (10 Sephiroth × life stages)
   const sephirothAges = [10, 18, 25, 32, 40, 48, 55, 62, 70, 78]; // Malkuth → Kether
   const sephirothNames = ['王国', '基础', '荣耀', '胜利', '美', '严厉', '仁慈', '理解', '智慧', '王冠'];
-  const milestoneIdx = Math.min(report.soulSephirah.number - 1, 9);
+  const milestoneIdx = Math.min(report.soulSephirah.index - 1, 9);
   const msAge = sephirothAges[milestoneIdx] || 40;
   seeds.push({
     ...B, id: seedId('kabbalah', 'turning_point', msAge, `tol-milestone-${milestoneIdx}`),
