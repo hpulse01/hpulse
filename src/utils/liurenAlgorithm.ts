@@ -1,11 +1,13 @@
 /**
- * 大六壬引擎 v2.0.0 — Da Liu Ren (Greater Six Ren)
+ * 大六壬引擎 v3.0.0 — Da Liu Ren (Greater Six Ren)
  *
- * v2.0 升级:
- * - 增强课体分类（12种标准课体）
- * - 扩展三传取法（完善涉害法深度比较）
- * - 增加类神判断与六亲关系
- * - 标准化三层输出
+ * v3.0 升级:
+ * - 空亡检测（旬空二支影响三传）
+ * - 年命纳入分析（年支与三传关系）
+ * - 德合分析（日德/月德/天德）
+ * - 天将与地支合/冲关系
+ * - 增强吉凶评估
+ * - 三传递生/递克/回头生克完善
  */
 
 import type { StandardizedInput, FateVector, EngineOutput } from '@/types/prediction';
