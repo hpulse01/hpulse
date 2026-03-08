@@ -24,6 +24,7 @@ import { VedicAstrologyEngine, type VedicReport } from './worldSystems/vedicAstr
 import { NumerologyEngine, type NumerologyReport } from './worldSystems/numerology';
 import { MayanCalendarEngine, type MayanReport } from './worldSystems/mayanCalendar';
 import { KabbalahEngine, type KabbalahReport } from './worldSystems/kabbalah';
+import { runMeihua, type MeihuaResult } from './meihuaAlgorithm';
 
 import type {
   StandardizedInput,
