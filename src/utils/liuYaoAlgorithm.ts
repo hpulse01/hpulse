@@ -673,7 +673,15 @@ export function calculateLiuYaoHexagram(timestamp: Date = new Date()): LiuYaoRes
   const { ganZhi: timeGanZhi, dayStem } = getTimeGanZhi(timestamp);
   const spirits = SIX_SPIRITS_TABLE[dayStem] || SIX_SPIRITS_TABLE['甲'];
 
-  // 6. 装卦
+  // 6. 月建地支 (用于旺衰)
+  const Solar = (await import('lunar-typescript')).Solar;
+  const solarObj = Solar.fromYmdHms(year, month, day, hour, minute, second);
+  const lunarObj = solarObj.getLunar();
+  const monthBranch = lunarObj.getMonthInGanZhi().charAt(1);
+  const dayBranch = lunarObj.getDayInGanZhi().charAt(1);
+  const dayElement = BRANCH_ELEMENTS[dayBranch] || '土';
+
+  // 7. 装卦
   const changingLines: number[] = [];
   const hexagramLines: HexagramLine[] = rawLines.map((raw, idx) => {
     const position = idx + 1;
@@ -686,12 +694,22 @@ export function calculateLiuYaoHexagram(timestamp: Date = new Date()): LiuYaoRes
 
     if (raw.isChanging) changingLines.push(position);
 
+    // v3.0: 月建旺衰
+    const monthStrength = MONTHLY_STRENGTH[monthBranch]?.[element] || '休';
+
+    // v3.0: 日辰生克
+    let dayRelation = '';
+    if (dayElement === element) dayRelation = '日辰比和';
+    else if (WUXING_SHENG[dayElement] === element) dayRelation = '日辰生之';
+    else if (WUXING_KE[dayElement] === element) dayRelation = '日辰克之';
+    else if (WUXING_SHENG[element] === dayElement) dayRelation = '泄于日辰';
+    else if (WUXING_KE[element] === dayElement) dayRelation = '克日辰';
+
     // 变爻
     let changedBranch: string | undefined;
     let changedElement: string | undefined;
     let changedRelative: string | undefined;
     if (raw.isChanging) {
-      // 变卦后的经卦
       const changedBits = [...fullLines];
       changedBits[idx] = changedBits[idx] === 1 ? 0 : 1;
       const changedLowerIdx = linesToTrigramIndex(changedBits.slice(0, 3));
@@ -703,26 +721,17 @@ export function calculateLiuYaoHexagram(timestamp: Date = new Date()): LiuYaoRes
     }
 
     return {
-      position,
-      value: raw.value,
-      isChanging: raw.isChanging,
-      yinYang: raw.yinYang,
-      branch,
-      element,
-      relative,
-      spirit,
-      isShiYao,
-      isYingYao,
-      changedBranch,
-      changedElement,
-      changedRelative,
+      position, value: raw.value, isChanging: raw.isChanging, yinYang: raw.yinYang,
+      branch, element, relative, spirit, isShiYao, isYingYao,
+      changedBranch, changedElement, changedRelative,
+      monthStrength, dayRelation,
     };
   });
 
-  // 7. 卦名
+  // 8. 卦名
   const hexInfo = getHexagramName(upperIdx, lowerIdx);
 
-  // 8. 变卦
+  // 9. 变卦
   let targetHexagram: Hexagram['targetHexagram'] | undefined;
   if (changingLines.length > 0) {
     const changedBits = [...fullLines];
@@ -734,31 +743,28 @@ export function calculateLiuYaoHexagram(timestamp: Date = new Date()): LiuYaoRes
   }
 
   const mainHexagram: Hexagram = {
-    name: hexInfo.name,
-    description: hexInfo.desc,
-    lines: hexagramLines,
-    changingLines,
-    upperTrigram: upperName,
-    lowerTrigram: lowerName,
-    palace,
-    palaceElement,
-    shiYao,
-    yingYao,
-    targetHexagram,
+    name: hexInfo.name, description: hexInfo.desc,
+    lines: hexagramLines, changingLines,
+    upperTrigram: upperName, lowerTrigram: lowerName,
+    palace, palaceElement, shiYao, yingYao, targetHexagram,
   };
 
-  // 9. 分析
+  // 10. 分析
   const interpretation = generateInterpretation(mainHexagram);
   const dominantElement = getDominantElement(hexagramLines);
   const tendency = assessTendency(mainHexagram);
   const keyFindings = extractKeyFindings(mainHexagram);
 
+  // v3.0: 用神、伏神、反吟伏吟
+  const yongShen = calculateYongShen(mainHexagram);
+  const fuShen = calculateFuShen(mainHexagram);
+  const fanFuYin = detectFanFuYin(mainHexagram);
+
   return {
     rawParams: {
       divineTime: timestamp.toISOString(),
-      timeGanZhi,
-      dayStem,
-      method: '时间起卦（京房纳甲法）',
+      timeGanZhi, dayStem,
+      method: '时间起卦（京房纳甲法）v3.0',
     },
     chartResult: {
       mainHexagram,
@@ -766,16 +772,13 @@ export function calculateLiuYaoHexagram(timestamp: Date = new Date()): LiuYaoRes
       changingCount: changingLines.length,
     },
     analysisConclusion: {
-      interpretation,
-      dominantElement,
-      overallTendency: tendency,
-      keyFindings,
+      interpretation, dominantElement, overallTendency: tendency, keyFindings,
+      yongShen, fuShen, fanFuYin,
     },
     mainHexagram,
     hasChanging: changingLines.length > 0,
     divineTime: timestamp,
-    timeGanZhi,
-    interpretation,
+    timeGanZhi, interpretation,
   };
 }
 
