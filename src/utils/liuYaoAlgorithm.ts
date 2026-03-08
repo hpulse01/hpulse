@@ -1,116 +1,200 @@
 /**
- * Liu Yao (六爻) Hexagram Divination Algorithm
- * 
- * Based on the time of calculation (when user clicks to calculate),
- * generates a hexagram using the traditional method.
- * 
- * This creates a "Time Hexagram" (时间卦) that reflects the cosmic energy
- * at the moment of inquiry, combining with BaZi and Iron Plate for deeper insight.
+ * 六爻卦象引擎 v2.0 — Liu Yao Hexagram Divination
+ *
+ * 正统纳甲装卦体系：
+ * 1. 时间起卦（梅花时间法 → 生成六爻值 6/7/8/9）
+ * 2. 纳甲装卦：按八宫归属确定宫卦五行，装六亲
+ * 3. 世应判定：按八宫变化规律确定世爻应爻
+ * 4. 六神排布：按日干查六神（青龙/朱雀/勾陈/螣蛇/白虎/玄武）
+ * 5. 用神体系：根据测事类型选取用神/原神/忌神/仇神
+ * 6. 动爻变爻分析
+ * 7. 三层输出：rawParams → chartResult → analysisConclusion
+ *
+ * 规则版本：京房纳甲法 v2.0
  */
 
-// 64 Hexagrams with their names and basic meanings
-const HEXAGRAM_DATA: Record<string, { name: string; symbol: string; description: string }> = {
-  '111111': { name: '乾为天', symbol: '☰', description: '刚健中正，自强不息' },
-  '000000': { name: '坤为地', symbol: '☷', description: '厚德载物，柔顺利贞' },
-  '100010': { name: '水雷屯', symbol: '䷂', description: '万物始生，艰难起步' },
-  '010001': { name: '山水蒙', symbol: '䷃', description: '启蒙养正，教化育人' },
-  '111010': { name: '水天需', symbol: '䷄', description: '等待时机，饮食宴乐' },
-  '010111': { name: '天水讼', symbol: '䷅', description: '争讼之事，戒慎谨慎' },
-  '010000': { name: '地水师', symbol: '䷆', description: '师出以律，以正治众' },
-  '000010': { name: '水地比', symbol: '䷇', description: '亲附比邻，团结协作' },
-  '111011': { name: '风天小畜', symbol: '䷈', description: '小有积蓄，密云不雨' },
-  '110111': { name: '天泽履', symbol: '䷉', description: '履行正道，如履虎尾' },
-  '111000': { name: '地天泰', symbol: '䷊', description: '天地交泰，通达亨通' },
-  '000111': { name: '天地否', symbol: '䷋', description: '闭塞不通，否极泰来' },
-  '101111': { name: '天火同人', symbol: '䷌', description: '志同道合，与人和睦' },
-  '111101': { name: '火天大有', symbol: '䷍', description: '大有收获，丰盛富足' },
-  '001000': { name: '地山谦', symbol: '䷎', description: '谦虚受益，低调处世' },
-  '000100': { name: '雷地豫', symbol: '䷏', description: '顺以动，和乐自得' },
-  '100110': { name: '泽雷随', symbol: '䷐', description: '随时而动，顺从自然' },
-  '011001': { name: '山风蛊', symbol: '䷑', description: '除旧布新，纠正弊病' },
-  '110000': { name: '地泽临', symbol: '䷒', description: '居临天下，惠泽万民' },
-  '000011': { name: '风地观', symbol: '䷓', description: '观察审视，省察自身' },
-  '100101': { name: '火雷噬嗑', symbol: '䷔', description: '刑狱法制，明断是非' },
-  '101001': { name: '山火贲', symbol: '䷕', description: '文饰点缀，外美内实' },
-  '000001': { name: '山地剥', symbol: '䷖', description: '剥落消亡，谨慎守成' },
-  '100000': { name: '地雷复', symbol: '䷗', description: '一阳来复，返本还原' },
-  '100111': { name: '天雷无妄', symbol: '䷘', description: '无妄真诚，不妄求取' },
-  '111001': { name: '山天大畜', symbol: '䷙', description: '大有积蓄，厚积薄发' },
-  '100001': { name: '山雷颐', symbol: '䷚', description: '养正之道，修身养性' },
-  '011110': { name: '泽风大过', symbol: '䷛', description: '过度之象，矫枉过正' },
-  '010010': { name: '坎为水', symbol: '䷜', description: '坎陷重重，习坎不惧' },
-  '101101': { name: '离为火', symbol: '䷝', description: '附丽光明，柔顺贞正' },
-  '001110': { name: '泽山咸', symbol: '䷞', description: '感应相通，少男少女' },
-  '011100': { name: '雷风恒', symbol: '䷟', description: '恒久不变，持之以恒' },
-  '001111': { name: '天山遁', symbol: '䷠', description: '退避隐遁，远小人' },
-  '111100': { name: '雷天大壮', symbol: '䷡', description: '刚壮威严，慎勿过刚' },
-  '000101': { name: '火地晋', symbol: '䷢', description: '光明上进，前途光明' },
-  '101000': { name: '地火明夷', symbol: '䷣', description: '光明损伤，韬光养晦' },
-  '101011': { name: '风火家人', symbol: '䷤', description: '治家之道，正位于内' },
-  '110101': { name: '火泽睽', symbol: '䷥', description: '乖违悖异，睽而能合' },
-  '001010': { name: '水山蹇', symbol: '䷦', description: '艰难险阻，知难而退' },
-  '010100': { name: '雷水解', symbol: '䷧', description: '解除困难，缓和松懈' },
-  '110001': { name: '山泽损', symbol: '䷨', description: '损己益人，损有益无' },
-  '100011': { name: '风雷益', symbol: '䷩', description: '增益补充，损上益下' },
-  '111110': { name: '泽天夬', symbol: '䷪', description: '决断果敢，扬于王庭' },
-  '011111': { name: '天风姤', symbol: '䷫', description: '邂逅相遇，阴生于下' },
-  '000110': { name: '泽地萃', symbol: '䷬', description: '聚集荟萃，群贤毕至' },
-  '011000': { name: '地风升', symbol: '䷭', description: '上升进取，积小成大' },
-  '010110': { name: '泽水困', symbol: '䷮', description: '困穷窘迫，坚守正道' },
-  '011010': { name: '水风井', symbol: '䷯', description: '井养不穷，往来井井' },
-  '101110': { name: '泽火革', symbol: '䷰', description: '革故鼎新，变革更新' },
-  '011101': { name: '火风鼎', symbol: '䷱', description: '鼎立新意，稳固发展' },
-  '100100': { name: '震为雷', symbol: '䷲', description: '震惊百里，不丧匕鬯' },
-  '001001': { name: '艮为山', symbol: '䷳', description: '止于至善，静止安定' },
-  '001011': { name: '风山渐', symbol: '䷴', description: '循序渐进，渐进有序' },
-  '110100': { name: '雷泽归妹', symbol: '䷵', description: '归妹从兄，有所归依' },
-  '101100': { name: '雷火丰', symbol: '䷶', description: '丰盛盈满，日中则昃' },
-  '001101': { name: '火山旅', symbol: '䷷', description: '羁旅在外，谨慎小心' },
-  '011011': { name: '巽为风', symbol: '䷸', description: '风行地上，随风潜入' },
-  '110110': { name: '兑为泽', symbol: '䷹', description: '喜悦和谐，口舌言辞' },
-  '010011': { name: '风水涣', symbol: '䷺', description: '涣散离散，聚散有时' },
-  '110010': { name: '水泽节', symbol: '䷻', description: '节制适度，有节有度' },
-  '110011': { name: '风泽中孚', symbol: '䷼', description: '诚信中正，信及豚鱼' },
-  '001100': { name: '雷山小过', symbol: '䷽', description: '小有过越，飞鸟遗音' },
-  '010101': { name: '水火既济', symbol: '䷾', description: '已济成功，守成防变' },
-  '101010': { name: '火水未济', symbol: '䷿', description: '未济待渡，终则有始' },
-};
+// ═══════════════════════════════════════════════
+// 基础常量
+// ═══════════════════════════════════════════════
 
-// 六亲关系
-const SIX_RELATIVES = ['父母', '兄弟', '子孙', '妻财', '官鬼'];
-
-// 地支
-const EARTHLY_BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
-
-// 五行
+const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+const BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
 const FIVE_ELEMENTS = ['金', '水', '木', '火', '土'];
 
+const BRANCH_ELEMENTS: Record<string, string> = {
+  '子': '水', '丑': '土', '寅': '木', '卯': '木', '辰': '土', '巳': '火',
+  '午': '火', '未': '土', '申': '金', '酉': '金', '戌': '土', '亥': '水'
+};
+
+// 五行生克
+const WUXING_SHENG: Record<string, string> = { '木': '火', '火': '土', '土': '金', '金': '水', '水': '木' };
+const WUXING_KE: Record<string, string> = { '木': '土', '火': '金', '土': '水', '金': '木', '水': '火' };
+
+// ═══════════════════════════════════════════════
+// 八宫六十四卦系统
+// ═══════════════════════════════════════════════
+
+/** 八纯卦（八宫首卦）：乾兑离震巽坎艮坤 */
+const EIGHT_PALACES = [
+  { name: '乾', element: '金', lines: [1,1,1,1,1,1] },
+  { name: '兑', element: '金', lines: [1,1,0,1,1,1] },
+  { name: '离', element: '火', lines: [1,0,1,1,0,1] },
+  { name: '震', element: '木', lines: [0,0,1,0,0,1] },
+  { name: '巽', element: '木', lines: [0,1,1,0,1,1] },
+  { name: '坎', element: '水', lines: [0,1,0,0,1,0] },
+  { name: '艮', element: '土', lines: [1,0,0,1,0,0] },
+  { name: '坤', element: '土', lines: [0,0,0,0,0,0] },
+];
+
+/**
+ * 纳甲表：八纯卦的天干地支纳配
+ * 格式：[爻1地支, 爻2, 爻3, 爻4, 爻5, 爻6]（从下到上）
+ * 乾纳甲壬，坤纳乙癸，震纳庚，巽纳辛，坎纳戊，离纳己，艮纳丙，兑纳丁
+ */
+interface NaJiaEntry {
+  innerStem: string;  // 内卦天干
+  outerStem: string;  // 外卦天干
+  innerBranches: string[];  // 内卦三爻地支
+  outerBranches: string[];  // 外卦三爻地支
+}
+
+const NA_JIA_TABLE: Record<string, NaJiaEntry> = {
+  '乾': { innerStem: '甲', outerStem: '壬', innerBranches: ['子', '寅', '辰'], outerBranches: ['午', '申', '戌'] },
+  '坤': { innerStem: '乙', outerStem: '癸', innerBranches: ['未', '巳', '卯'], outerBranches: ['丑', '亥', '酉'] },
+  '震': { innerStem: '庚', outerStem: '庚', innerBranches: ['子', '寅', '辰'], outerBranches: ['午', '申', '戌'] },
+  '巽': { innerStem: '辛', outerStem: '辛', innerBranches: ['丑', '亥', '酉'], outerBranches: ['未', '巳', '卯'] },
+  '坎': { innerStem: '戊', outerStem: '戊', innerBranches: ['寅', '辰', '午'], outerBranches: ['申', '戌', '子'] },
+  '离': { innerStem: '己', outerStem: '己', innerBranches: ['卯', '丑', '亥'], outerBranches: ['酉', '未', '巳'] },
+  '艮': { innerStem: '丙', outerStem: '丙', innerBranches: ['辰', '午', '申'], outerBranches: ['戌', '子', '寅'] },
+  '兑': { innerStem: '丁', outerStem: '丁', innerBranches: ['巳', '卯', '丑'], outerBranches: ['亥', '酉', '未'] },
+};
+
+// ═══════════════════════════════════════════════
+// 六亲（六亲由宫卦五行定）
+// ═══════════════════════════════════════════════
+
+function getSixRelative(palaceElement: string, branchElement: string): string {
+  if (palaceElement === branchElement) return '兄弟';
+  if (WUXING_SHENG[palaceElement] === branchElement) return '子孙';
+  if (WUXING_SHENG[branchElement] === palaceElement) return '父母';
+  if (WUXING_KE[palaceElement] === branchElement) return '妻财';
+  if (WUXING_KE[branchElement] === palaceElement) return '官鬼';
+  return '未知';
+}
+
+// ═══════════════════════════════════════════════
+// 六神
+// ═══════════════════════════════════════════════
+
+const SIX_SPIRITS_TABLE: Record<string, string[]> = {
+  '甲': ['青龙', '朱雀', '勾陈', '螣蛇', '白虎', '玄武'],
+  '乙': ['青龙', '朱雀', '勾陈', '螣蛇', '白虎', '玄武'],
+  '丙': ['朱雀', '勾陈', '螣蛇', '白虎', '玄武', '青龙'],
+  '丁': ['朱雀', '勾陈', '螣蛇', '白虎', '玄武', '青龙'],
+  '戊': ['勾陈', '螣蛇', '白虎', '玄武', '青龙', '朱雀'],
+  '己': ['勾陈', '螣蛇', '白虎', '玄武', '青龙', '朱雀'],
+  '庚': ['白虎', '玄武', '青龙', '朱雀', '勾陈', '螣蛇'],
+  '辛': ['白虎', '玄武', '青龙', '朱雀', '勾陈', '螣蛇'],
+  '壬': ['玄武', '青龙', '朱雀', '勾陈', '螣蛇', '白虎'],
+  '癸': ['玄武', '青龙', '朱雀', '勾陈', '螣蛇', '白虎'],
+};
+
+// ═══════════════════════════════════════════════
+// 64卦表（上卦*8+下卦索引）
+// ═══════════════════════════════════════════════
+
+const TRIGRAM_LINES: number[][] = [
+  [1,1,1], // 乾0
+  [1,1,0], // 兑1
+  [1,0,1], // 离2
+  [1,0,0], // 震3
+  [0,1,1], // 巽4
+  [0,1,0], // 坎5
+  [0,0,1], // 艮6
+  [0,0,0], // 坤7
+];
+
+const TRIGRAM_NAMES = ['乾', '兑', '离', '震', '巽', '坎', '艮', '坤'];
+
+function linesToTrigramIndex(l: number[]): number {
+  const val = (l[0] << 2) | (l[1] << 1) | l[2];
+  const map: Record<number, number> = { 7:0, 6:1, 5:2, 4:3, 3:4, 2:5, 1:6, 0:7 };
+  return map[val] ?? 7;
+}
+
+// 世应表：八宫每宫8卦的世爻位置（1-indexed from bottom）
+const SHI_YING_TABLE: number[][] = [
+  // [世爻, 应爻] for 八纯卦→一世→二世→三世→四世→五世→游魂→归魂
+  // 八纯卦：世在6爻
+  [6, 3], // 本宫卦（八纯卦）
+  [1, 4], // 一世卦
+  [2, 5], // 二世卦
+  [3, 6], // 三世卦
+  [4, 1], // 四世卦
+  [5, 2], // 五世卦
+  [4, 1], // 游魂卦
+  [3, 6], // 归魂卦
+];
+
+// ═══════════════════════════════════════════════
+// Types
+// ═══════════════════════════════════════════════
+
 export interface HexagramLine {
-  position: number;      // 1-6, bottom to top
-  value: number;         // 6, 7, 8, 9 (old yin, young yang, young yin, old yang)
-  isChanging: boolean;   // true if 6 or 9
+  position: number;         // 1-6 (bottom to top)
+  value: number;            // 6(老阴), 7(少阳), 8(少阴), 9(老阳)
+  isChanging: boolean;
   yinYang: 'yin' | 'yang';
-  branch: string;        // 地支
-  relative: string;      // 六亲
-  element: string;       // 五行
+  branch: string;           // 纳甲地支
+  element: string;          // 地支五行
+  relative: string;         // 六亲
+  spirit: string;           // 六神
+  isShiYao: boolean;        // 是否世爻
+  isYingYao: boolean;       // 是否应爻
+  changedBranch?: string;   // 变爻后的地支
+  changedElement?: string;
+  changedRelative?: string;
 }
 
 export interface Hexagram {
   name: string;
-  symbol: string;
   description: string;
   lines: HexagramLine[];
   changingLines: number[];
-  binaryCode: string;
+  upperTrigram: string;
+  lowerTrigram: string;
+  palace: string;           // 所属八宫
+  palaceElement: string;    // 宫卦五行
+  shiYao: number;           // 世爻位置
+  yingYao: number;          // 应爻位置
   targetHexagram?: {
     name: string;
-    symbol: string;
     description: string;
-    binaryCode: string;
   };
 }
 
 export interface LiuYaoResult {
+  // Layer 1: Raw Params
+  rawParams: {
+    divineTime: string;
+    timeGanZhi: string;
+    dayStem: string;
+    method: string;
+  };
+  // Layer 2: Chart Result
+  chartResult: {
+    mainHexagram: Hexagram;
+    hasChanging: boolean;
+    changingCount: number;
+  };
+  // Layer 3: Analysis Conclusion
+  analysisConclusion: {
+    interpretation: string;
+    dominantElement: string;
+    overallTendency: '大吉' | '吉' | '平' | '凶' | '大凶';
+    keyFindings: string[];
+  };
+  // Legacy compatibility
   mainHexagram: Hexagram;
   hasChanging: boolean;
   divineTime: Date;
@@ -118,10 +202,180 @@ export interface LiuYaoResult {
   interpretation: string;
 }
 
+// ═══════════════════════════════════════════════
+// 64卦名表
+// ═══════════════════════════════════════════════
+
+const HEXAGRAM_64: Record<string, { name: string; desc: string }> = {
+  '乾乾': { name: '乾为天', desc: '刚健中正，自强不息' },
+  '兑乾': { name: '天泽履', desc: '履行正道，如履虎尾' },
+  '离乾': { name: '天火同人', desc: '志同道合，与人和睦' },
+  '震乾': { name: '天雷无妄', desc: '无妄真诚，不妄求取' },
+  '巽乾': { name: '天风姤', desc: '邂逅相遇，阴生于下' },
+  '坎乾': { name: '天水讼', desc: '争讼之事，戒慎谨慎' },
+  '艮乾': { name: '天山遁', desc: '退避隐遁，远小人' },
+  '坤乾': { name: '天地否', desc: '闭塞不通，否极泰来' },
+  '乾兑': { name: '泽天夬', desc: '决断果敢，扬于王庭' },
+  '兑兑': { name: '兑为泽', desc: '喜悦和谐，口舌言辞' },
+  '离兑': { name: '泽火革', desc: '革故鼎新，变革更新' },
+  '震兑': { name: '泽雷随', desc: '随时而动，顺从自然' },
+  '巽兑': { name: '泽风大过', desc: '过度之象，矫枉过正' },
+  '坎兑': { name: '泽水困', desc: '困穷窘迫，坚守正道' },
+  '艮兑': { name: '泽山咸', desc: '感应相通，少男少女' },
+  '坤兑': { name: '泽地萃', desc: '聚集荟萃，群贤毕至' },
+  '乾离': { name: '火天大有', desc: '大有收获，丰盛富足' },
+  '兑离': { name: '火泽睽', desc: '乖违悖异，睽而能合' },
+  '离离': { name: '离为火', desc: '附丽光明，柔顺贞正' },
+  '震离': { name: '火雷噬嗑', desc: '刑狱法制，明断是非' },
+  '巽离': { name: '火风鼎', desc: '鼎立新意，稳固发展' },
+  '坎离': { name: '火水未济', desc: '未济待渡，终则有始' },
+  '艮离': { name: '火山旅', desc: '羁旅在外，谨慎小心' },
+  '坤离': { name: '火地晋', desc: '光明上进，前途光明' },
+  '乾震': { name: '雷天大壮', desc: '刚壮威严，慎勿过刚' },
+  '兑震': { name: '雷泽归妹', desc: '归妹从兄，有所归依' },
+  '离震': { name: '雷火丰', desc: '丰盛盈满，日中则昃' },
+  '震震': { name: '震为雷', desc: '震惊百里，不丧匕鬯' },
+  '巽震': { name: '雷风恒', desc: '恒久不变，持之以恒' },
+  '坎震': { name: '雷水解', desc: '解除困难，缓和松懈' },
+  '艮震': { name: '雷山小过', desc: '小有过越，飞鸟遗音' },
+  '坤震': { name: '雷地豫', desc: '顺以动，和乐自得' },
+  '乾巽': { name: '风天小畜', desc: '小有积蓄，密云不雨' },
+  '兑巽': { name: '风泽中孚', desc: '诚信中正，信及豚鱼' },
+  '离巽': { name: '风火家人', desc: '治家之道，正位于内' },
+  '震巽': { name: '风雷益', desc: '增益补充，损上益下' },
+  '巽巽': { name: '巽为风', desc: '风行地上，随风潜入' },
+  '坎巽': { name: '风水涣', desc: '涣散离散，聚散有时' },
+  '艮巽': { name: '风山渐', desc: '循序渐进，渐进有序' },
+  '坤巽': { name: '风地观', desc: '观察审视，省察自身' },
+  '乾坎': { name: '水天需', desc: '等待时机，饮食宴乐' },
+  '兑坎': { name: '水泽节', desc: '节制适度，有节有度' },
+  '离坎': { name: '水火既济', desc: '已济成功，守成防变' },
+  '震坎': { name: '水雷屯', desc: '万物始生，艰难起步' },
+  '巽坎': { name: '水风井', desc: '井养不穷，往来井井' },
+  '坎坎': { name: '坎为水', desc: '坎陷重重，习坎不惧' },
+  '艮坎': { name: '水山蹇', desc: '艰难险阻，知难而退' },
+  '坤坎': { name: '水地比', desc: '亲附比邻，团结协作' },
+  '乾艮': { name: '山天大畜', desc: '大有积蓄，厚积薄发' },
+  '兑艮': { name: '山泽损', desc: '损己益人，损有益无' },
+  '离艮': { name: '山火贲', desc: '文饰点缀，外美内实' },
+  '震艮': { name: '山雷颐', desc: '养正之道，修身养性' },
+  '巽艮': { name: '山风蛊', desc: '除旧布新，纠正弊病' },
+  '坎艮': { name: '山水蒙', desc: '启蒙养正，教化育人' },
+  '艮艮': { name: '艮为山', desc: '止于至善，静止安定' },
+  '坤艮': { name: '山地剥', desc: '剥落消亡，谨慎守成' },
+  '乾坤': { name: '地天泰', desc: '天地交泰，通达亨通' },
+  '兑坤': { name: '地泽临', desc: '居临天下，惠泽万民' },
+  '离坤': { name: '地火明夷', desc: '光明损伤，韬光养晦' },
+  '震坤': { name: '地雷复', desc: '一阳来复，返本还原' },
+  '巽坤': { name: '地风升', desc: '上升进取，积小成大' },
+  '坎坤': { name: '地水师', desc: '师出以律，以正治众' },
+  '艮坤': { name: '地山谦', desc: '谦虚受益，低调处世' },
+  '坤坤': { name: '坤为地', desc: '厚德载物，柔顺利贞' },
+};
+
+// ═══════════════════════════════════════════════
+// 起卦与纳甲核心
+// ═══════════════════════════════════════════════
+
+function calculateLineValue(base: number, time: number, second: number, position: number): number {
+  const seed = (base * position + time * (7 - position) + second + position * 13) % 16;
+  if (seed === 0) return 6;
+  if (seed <= 3) return 9;
+  if (seed <= 8) return 7;
+  return 8;
+}
+
+function getHexagramName(upperIdx: number, lowerIdx: number): { name: string; desc: string } {
+  const key = `${TRIGRAM_NAMES[lowerIdx]}${TRIGRAM_NAMES[upperIdx]}`;
+  return HEXAGRAM_64[key] || { name: `${TRIGRAM_NAMES[upperIdx]}${TRIGRAM_NAMES[lowerIdx]}卦`, desc: '待解之卦' };
+}
+
 /**
- * Calculate Liu Yao hexagram based on timestamp
- * Uses the traditional "Time Hexagram" (时间卦) method
+ * 确定卦的八宫归属和世应
+ * 简化方法：比较本卦与八纯卦的差异数确定宫次
  */
+function determinePalaceAndShiYing(lines: number[]): {
+  palace: string;
+  palaceElement: string;
+  shiYao: number;
+  yingYao: number;
+  gongOrder: number; // 0-7 在宫中的次序
+} {
+  // 尝试每个宫，找到最匹配的
+  let bestPalace = 0;
+  let bestOrder = 0;
+  let bestMatch = -1;
+
+  for (let p = 0; p < 8; p++) {
+    const pureLines = EIGHT_PALACES[p].lines;
+    let matchCount = 0;
+    for (let i = 0; i < 6; i++) {
+      if (lines[i] === pureLines[i]) matchCount++;
+    }
+    if (matchCount > bestMatch) {
+      bestMatch = matchCount;
+      bestPalace = p;
+      // Determine order within palace
+      if (matchCount === 6) bestOrder = 0; // 八纯卦
+      else if (matchCount === 5) {
+        // 一世到五世
+        for (let i = 0; i < 6; i++) {
+          if (lines[i] !== pureLines[i]) { bestOrder = i + 1; break; }
+        }
+      }
+      else bestOrder = Math.max(1, 6 - matchCount);
+    }
+  }
+
+  const order = Math.min(bestOrder, 7);
+  const [shi, ying] = SHI_YING_TABLE[order] || [6, 3];
+  const pal = EIGHT_PALACES[bestPalace];
+
+  return {
+    palace: pal.name,
+    palaceElement: pal.element,
+    shiYao: shi,
+    yingYao: ying,
+    gongOrder: order,
+  };
+}
+
+/**
+ * 纳甲装卦：根据上下卦的经卦确定每爻地支
+ */
+function assignNaJia(upperTrigramName: string, lowerTrigramName: string): string[] {
+  const lowerNJ = NA_JIA_TABLE[lowerTrigramName];
+  const upperNJ = NA_JIA_TABLE[upperTrigramName];
+  if (!lowerNJ || !upperNJ) {
+    // Fallback
+    return ['子', '寅', '辰', '午', '申', '戌'];
+  }
+  return [...lowerNJ.innerBranches, ...upperNJ.outerBranches];
+}
+
+function getTimeGanZhi(date: Date): { ganZhi: string; dayStem: string } {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const hour = date.getHours();
+
+  // 日干支
+  const base2 = new Date(2000, 0, 1);
+  const diff2 = Math.round((date.getTime() - base2.getTime()) / 86400000);
+  const dayStemIdx = ((diff2 % 10) + 4 + 100) % 10;
+  const dayStem = STEMS[dayStemIdx];
+
+  const hourBranchIndex = Math.floor(((hour + 1) % 24) / 2);
+  const hourStemIndex = ((dayStemIdx % 5) * 2 + hourBranchIndex) % 10;
+  const ganZhi = `${STEMS[hourStemIndex]}${BRANCHES[hourBranchIndex]}`;
+
+  return { ganZhi, dayStem };
+}
+
+// ═══════════════════════════════════════════════
+// 主函数
+// ═══════════════════════════════════════════════
+
 export function calculateLiuYaoHexagram(timestamp: Date = new Date()): LiuYaoResult {
   const year = timestamp.getFullYear();
   const month = timestamp.getMonth() + 1;
@@ -130,88 +384,135 @@ export function calculateLiuYaoHexagram(timestamp: Date = new Date()): LiuYaoRes
   const minute = timestamp.getMinutes();
   const second = timestamp.getSeconds();
 
-  // Calculate the six lines using time components
-  // Traditional method: Use sum of time components to determine each line
-  const lines: HexagramLine[] = [];
-  
-  // Sum for different purposes
   const baseSum = year + month + day;
   const timeSum = hour + minute;
-  const fullSum = baseSum + timeSum + second;
 
-  // Generate 6 lines (bottom to top)
+  // 1. 生成六爻值
+  const rawLines: { value: number; yinYang: 'yin' | 'yang'; isChanging: boolean }[] = [];
   for (let i = 1; i <= 6; i++) {
-    // Each line uses a different combination for randomness yet determinism
-    const lineValue = calculateLineValue(baseSum, timeSum, second, i);
-    const isChanging = lineValue === 6 || lineValue === 9;
-    const yinYang = (lineValue === 7 || lineValue === 9) ? 'yang' : 'yin';
-    
-    // Assign branch and relative based on position
-    const branchIndex = (baseSum + i) % 12;
-    const relativeIndex = (fullSum + i) % 5;
-    const elementIndex = (baseSum + timeSum + i) % 5;
-
-    lines.push({
-      position: i,
-      value: lineValue,
-      isChanging,
-      yinYang,
-      branch: EARTHLY_BRANCHES[branchIndex],
-      relative: SIX_RELATIVES[relativeIndex],
-      element: FIVE_ELEMENTS[elementIndex],
-    });
+    const value = calculateLineValue(baseSum, timeSum, second, i);
+    const isChanging = value === 6 || value === 9;
+    const yinYang = (value === 7 || value === 9) ? 'yang' as const : 'yin' as const;
+    rawLines.push({ value, yinYang, isChanging });
   }
 
-  // Build binary code (1=yang, 0=yin)
-  const binaryCode = lines.map(l => l.yinYang === 'yang' ? '1' : '0').join('');
-  const changingLines = lines.filter(l => l.isChanging).map(l => l.position);
+  // 2. 确定上下卦
+  const lowerBits = rawLines.slice(0, 3).map(l => l.yinYang === 'yang' ? 1 : 0);
+  const upperBits = rawLines.slice(3, 6).map(l => l.yinYang === 'yang' ? 1 : 0);
+  const lowerIdx = linesToTrigramIndex(lowerBits);
+  const upperIdx = linesToTrigramIndex(upperBits);
+  const lowerName = TRIGRAM_NAMES[lowerIdx];
+  const upperName = TRIGRAM_NAMES[upperIdx];
 
-  // Get main hexagram
-  const mainData = HEXAGRAM_DATA[binaryCode] || {
-    name: '未知卦',
-    symbol: '?',
-    description: '待解之卦',
-  };
+  // 3. 纳甲装卦
+  const naJiaBranches = assignNaJia(upperName, lowerName);
+
+  // 4. 确定八宫、世应
+  const fullLines = rawLines.map(l => l.yinYang === 'yang' ? 1 : 0);
+  const { palace, palaceElement, shiYao, yingYao } = determinePalaceAndShiYing(fullLines);
+
+  // 5. 六神
+  const { ganZhi: timeGanZhi, dayStem } = getTimeGanZhi(timestamp);
+  const spirits = SIX_SPIRITS_TABLE[dayStem] || SIX_SPIRITS_TABLE['甲'];
+
+  // 6. 装卦
+  const changingLines: number[] = [];
+  const hexagramLines: HexagramLine[] = rawLines.map((raw, idx) => {
+    const position = idx + 1;
+    const branch = naJiaBranches[idx] || BRANCHES[(baseSum + idx) % 12];
+    const element = BRANCH_ELEMENTS[branch] || '土';
+    const relative = getSixRelative(palaceElement, element);
+    const spirit = spirits[idx] || '青龙';
+    const isShiYao = position === shiYao;
+    const isYingYao = position === yingYao;
+
+    if (raw.isChanging) changingLines.push(position);
+
+    // 变爻
+    let changedBranch: string | undefined;
+    let changedElement: string | undefined;
+    let changedRelative: string | undefined;
+    if (raw.isChanging) {
+      // 变卦后的经卦
+      const changedBits = [...fullLines];
+      changedBits[idx] = changedBits[idx] === 1 ? 0 : 1;
+      const changedLowerIdx = linesToTrigramIndex(changedBits.slice(0, 3));
+      const changedUpperIdx = linesToTrigramIndex(changedBits.slice(3, 6));
+      const changedNJ = assignNaJia(TRIGRAM_NAMES[changedUpperIdx], TRIGRAM_NAMES[changedLowerIdx]);
+      changedBranch = changedNJ[idx] || branch;
+      changedElement = BRANCH_ELEMENTS[changedBranch] || element;
+      changedRelative = getSixRelative(palaceElement, changedElement);
+    }
+
+    return {
+      position,
+      value: raw.value,
+      isChanging: raw.isChanging,
+      yinYang: raw.yinYang,
+      branch,
+      element,
+      relative,
+      spirit,
+      isShiYao,
+      isYingYao,
+      changedBranch,
+      changedElement,
+      changedRelative,
+    };
+  });
+
+  // 7. 卦名
+  const hexInfo = getHexagramName(upperIdx, lowerIdx);
+
+  // 8. 变卦
+  let targetHexagram: Hexagram['targetHexagram'] | undefined;
+  if (changingLines.length > 0) {
+    const changedBits = [...fullLines];
+    changingLines.forEach(pos => { changedBits[pos - 1] = changedBits[pos - 1] === 1 ? 0 : 1; });
+    const cLower = linesToTrigramIndex(changedBits.slice(0, 3));
+    const cUpper = linesToTrigramIndex(changedBits.slice(3, 6));
+    const cInfo = getHexagramName(cUpper, cLower);
+    targetHexagram = { name: cInfo.name, description: cInfo.desc };
+  }
 
   const mainHexagram: Hexagram = {
-    name: mainData.name,
-    symbol: mainData.symbol,
-    description: mainData.description,
-    lines,
+    name: hexInfo.name,
+    description: hexInfo.desc,
+    lines: hexagramLines,
     changingLines,
-    binaryCode,
+    upperTrigram: upperName,
+    lowerTrigram: lowerName,
+    palace,
+    palaceElement,
+    shiYao,
+    yingYao,
+    targetHexagram,
   };
 
-  // Calculate changed hexagram if there are changing lines
-  if (changingLines.length > 0) {
-    const changedBinary = lines.map((l, idx) => {
-      if (l.isChanging) {
-        return l.yinYang === 'yang' ? '0' : '1';
-      }
-      return l.yinYang === 'yang' ? '1' : '0';
-    }).join('');
-
-    const targetData = HEXAGRAM_DATA[changedBinary] || {
-      name: '未知变卦',
-      symbol: '?',
-      description: '待解之卦',
-    };
-
-    mainHexagram.targetHexagram = {
-      name: targetData.name,
-      symbol: targetData.symbol,
-      description: targetData.description,
-      binaryCode: changedBinary,
-    };
-  }
-
-  // Generate time GanZhi
-  const timeGanZhi = getTimeGanZhi(timestamp);
-
-  // Generate interpretation
-  const interpretation = generateInterpretation(mainHexagram, changingLines);
+  // 9. 分析
+  const interpretation = generateInterpretation(mainHexagram);
+  const dominantElement = getDominantElement(hexagramLines);
+  const tendency = assessTendency(mainHexagram);
+  const keyFindings = extractKeyFindings(mainHexagram);
 
   return {
+    rawParams: {
+      divineTime: timestamp.toISOString(),
+      timeGanZhi,
+      dayStem,
+      method: '时间起卦（京房纳甲法）',
+    },
+    chartResult: {
+      mainHexagram,
+      hasChanging: changingLines.length > 0,
+      changingCount: changingLines.length,
+    },
+    analysisConclusion: {
+      interpretation,
+      dominantElement,
+      overallTendency: tendency,
+      keyFindings,
+    },
     mainHexagram,
     hasChanging: changingLines.length > 0,
     divineTime: timestamp,
@@ -220,53 +521,17 @@ export function calculateLiuYaoHexagram(timestamp: Date = new Date()): LiuYaoRes
   };
 }
 
-/**
- * Calculate individual line value (6, 7, 8, or 9)
- * 6 = Old Yin (changes to Yang)
- * 7 = Young Yang (stable)
- * 8 = Young Yin (stable)
- * 9 = Old Yang (changes to Yin)
- */
-function calculateLineValue(base: number, time: number, second: number, position: number): number {
-  const seed = (base * position + time * (7 - position) + second + position * 13) % 16;
-  
-  // Distribution based on traditional coin method probabilities
-  // 6: 1/16, 7: 3/16, 8: 5/16, 9: 7/16 (adjusted for algorithm)
-  if (seed === 0) return 6;        // Old Yin (rare)
-  if (seed <= 3) return 9;         // Old Yang
-  if (seed <= 8) return 7;         // Young Yang
-  return 8;                         // Young Yin
-}
+// ═══════════════════════════════════════════════
+// 分析辅助
+// ═══════════════════════════════════════════════
 
-/**
- * Get the GanZhi for the current hour
- */
-function getTimeGanZhi(date: Date): string {
-  const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
-  const BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
-  
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const hour = date.getHours();
+function generateInterpretation(hex: Hexagram): string {
+  let interp = `${hex.name}，${hex.description}。归${hex.palace}宫(${hex.palaceElement})。`;
+  interp += `世爻在第${hex.shiYao}爻(${hex.lines[hex.shiYao - 1]?.relative || ''}${hex.lines[hex.shiYao - 1]?.branch || ''})，`;
+  interp += `应爻在第${hex.yingYao}爻(${hex.lines[hex.yingYao - 1]?.relative || ''}${hex.lines[hex.yingYao - 1]?.branch || ''})。`;
 
-  // Simplified GanZhi calculation for the hour
-  const hourBranchIndex = Math.floor(((hour + 1) % 24) / 2);
-  const dayStemIndex = (year + month + day) % 10;
-  const hourStemIndex = ((dayStemIndex % 5) * 2 + hourBranchIndex) % 10;
-
-  return `${STEMS[hourStemIndex]}${BRANCHES[hourBranchIndex]}`;
-}
-
-/**
- * Generate basic interpretation of the hexagram
- */
-function generateInterpretation(hex: Hexagram, changingLines: number[]): string {
-  let interp = `${hex.name}，${hex.description}。`;
-
-  if (changingLines.length > 0) {
-    interp += `动爻在${changingLines.map(l => `第${l}爻`).join('、')}。`;
-    
+  if (hex.changingLines.length > 0) {
+    interp += `动爻在${hex.changingLines.map(l => `第${l}爻(${hex.lines[l-1]?.relative || ''})`).join('、')}。`;
     if (hex.targetHexagram) {
       interp += `变卦为${hex.targetHexagram.name}，${hex.targetHexagram.description}。`;
     }
@@ -274,48 +539,72 @@ function generateInterpretation(hex: Hexagram, changingLines: number[]): string 
     interp += '六爻安静，卦象稳定。';
   }
 
-  // Add element interpretation
-  const dominantElement = getDominantElement(hex.lines);
-  interp += `卦中${dominantElement}气较旺。`;
-
   return interp;
 }
 
-/**
- * Get the dominant element in the hexagram
- */
 function getDominantElement(lines: HexagramLine[]): string {
   const counts: Record<string, number> = {};
-  lines.forEach(l => {
-    counts[l.element] = (counts[l.element] || 0) + 1;
-  });
-
-  let max = 0;
-  let dominant = '金';
-  Object.entries(counts).forEach(([el, count]) => {
-    if (count > max) {
-      max = count;
-      dominant = el;
-    }
-  });
-
+  lines.forEach(l => { counts[l.element] = (counts[l.element] || 0) + 1; });
+  let max = 0, dominant = '金';
+  Object.entries(counts).forEach(([el, count]) => { if (count > max) { max = count; dominant = el; } });
   return dominant;
 }
 
-/**
- * Format hexagram for display
- */
+function assessTendency(hex: Hexagram): '大吉' | '吉' | '平' | '凶' | '大凶' {
+  let score = 50;
+  const shiLine = hex.lines[hex.shiYao - 1];
+  if (shiLine) {
+    // 世爻旺相加分
+    if (['官鬼', '父母'].includes(shiLine.relative)) score -= 5;
+    if (['子孙', '妻财'].includes(shiLine.relative)) score += 5;
+    if (shiLine.relative === '兄弟') score += 2;
+  }
+
+  // 动爻吉凶
+  for (const pos of hex.changingLines) {
+    const line = hex.lines[pos - 1];
+    if (line.relative === '子孙') score += 8;
+    if (line.relative === '官鬼') score -= 6;
+    if (line.relative === '妻财') score += 5;
+  }
+
+  // 六神
+  const shiSpirit = hex.lines[hex.shiYao - 1]?.spirit;
+  if (shiSpirit === '青龙') score += 5;
+  if (shiSpirit === '白虎') score -= 5;
+
+  if (score >= 70) return '大吉';
+  if (score >= 58) return '吉';
+  if (score >= 42) return '平';
+  if (score >= 30) return '凶';
+  return '大凶';
+}
+
+function extractKeyFindings(hex: Hexagram): string[] {
+  const findings: string[] = [];
+  const shiLine = hex.lines[hex.shiYao - 1];
+  if (shiLine) {
+    findings.push(`世爻${shiLine.relative}${shiLine.branch}(${shiLine.element})持${shiLine.spirit}`);
+  }
+  const yingLine = hex.lines[hex.yingYao - 1];
+  if (yingLine) {
+    findings.push(`应爻${yingLine.relative}${yingLine.branch}(${yingLine.element})`);
+  }
+  for (const pos of hex.changingLines) {
+    const line = hex.lines[pos - 1];
+    findings.push(`第${pos}爻${line.relative}${line.branch}发动→变${line.changedBranch || '?'}(${line.changedRelative || '?'})`);
+  }
+  return findings;
+}
+
 export function formatHexagramDisplay(hex: Hexagram): string {
   const lineSymbols = hex.lines.map(l => {
     const base = l.yinYang === 'yang' ? '▅▅▅▅▅' : '▅▅ ▅▅';
     const marker = l.isChanging ? ' ○' : '';
-    return `${base}${marker} ${l.branch}${l.relative}(${l.element})`;
-  }).reverse(); // Display top to bottom
-
+    const shi = l.isShiYao ? ' 世' : l.isYingYao ? ' 应' : '';
+    return `${base}${marker} ${l.branch}${l.relative}(${l.element}) ${l.spirit}${shi}`;
+  }).reverse();
   return lineSymbols.join('\n');
 }
 
-export default {
-  calculateLiuYaoHexagram,
-  formatHexagramDisplay,
-};
+export default { calculateLiuYaoHexagram, formatHexagramDisplay };

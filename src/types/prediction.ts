@@ -216,3 +216,41 @@ export interface UnifiedPredictionResult {
   /** Engine dependency graph (which engines depend on which) */
   engineDependencyGraph: Record<string, string[]>;
 }
+
+// ═══════════════════════════════════════════════
+// 8. Engine Three-Layer Report Standard
+// ═══════════════════════════════════════════════
+
+/**
+ * Universal three-layer output standard for all engines:
+ * Layer 1 — rawParams: original input parameters used by the engine
+ * Layer 2 — chartResult: charting/排盘 output (structured data)
+ * Layer 3 — analysisConclusion: pattern/strength/evaluation results
+ */
+export interface EngineThreeLayerReport<
+  TRawParams = Record<string, unknown>,
+  TChartResult = Record<string, unknown>,
+  TConclusion = Record<string, unknown>,
+> {
+  engineName: EngineName;
+  engineNameCN: string;
+  engineVersion: string;
+  /** Layer 1: Raw input parameters */
+  rawParams: TRawParams;
+  /** Layer 2: Charting / 排盘 result */
+  chartResult: TChartResult;
+  /** Layer 3: Analysis conclusion */
+  analysisConclusion: TConclusion;
+  /** Computed FateVector */
+  fateVector: FateVector;
+  /** Metadata */
+  meta: {
+    ruleSchool: string;
+    sourceGrade: SourceGrade;
+    confidence: number;
+    computationTimeMs: number;
+    timingBasis: TimingBasis;
+    warnings: string[];
+    uncertaintyNotes: string[];
+  };
+}
