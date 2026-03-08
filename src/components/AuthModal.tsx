@@ -137,7 +137,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-card border-primary/20 z-50" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-md glass-elevated border-primary/20 z-50" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader className="text-center">
           <DialogTitle className="text-2xl font-serif text-gradient-gold tracking-[0.15em]">
             H-Pulse
