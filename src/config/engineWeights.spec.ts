@@ -16,19 +16,27 @@ describe('engineWeights', () => {
     expect(weights.find(w => w.engineName === 'liuyao')).toBeUndefined();
   });
 
-  it('instantDecision includes liuyao, meihua, and qimen with top weights', () => {
+  it('natalAnalysis does not include liuren', () => {
+    const weights = getWeightsForQueryType('natalAnalysis');
+    expect(weights.find(w => w.engineName === 'liuren')).toBeUndefined();
+  });
+
+  it('instantDecision includes liuyao, meihua, qimen, and liuren with top weights', () => {
     const weights = getWeightsForQueryType('instantDecision');
     const ly = weights.find(w => w.engineName === 'liuyao');
     const mh = weights.find(w => w.engineName === 'meihua');
     const qm = weights.find(w => w.engineName === 'qimen');
+    const lr = weights.find(w => w.engineName === 'liuren');
     expect(ly).toBeDefined();
     expect(mh).toBeDefined();
     expect(qm).toBeDefined();
+    expect(lr).toBeDefined();
     const sorted = [...weights].sort((a, b) => b.weight - a.weight);
-    const topThree = sorted.slice(0, 3).map(w => w.engineName);
-    expect(topThree).toContain('meihua');
-    expect(topThree).toContain('liuyao');
-    expect(topThree).toContain('qimen');
+    const topFour = sorted.slice(0, 4).map(w => w.engineName);
+    expect(topFour).toContain('meihua');
+    expect(topFour).toContain('liuyao');
+    expect(topFour).toContain('qimen');
+    expect(topFour).toContain('liuren');
   });
 
   it('filtered weights re-normalize to 1.0', () => {

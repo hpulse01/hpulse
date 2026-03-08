@@ -26,6 +26,7 @@ import { MayanCalendarEngine, type MayanReport } from './worldSystems/mayanCalen
 import { KabbalahEngine, type KabbalahReport } from './worldSystems/kabbalah';
 import { runMeihua, type MeihuaResult } from './meihuaAlgorithm';
 import { runQimen, type QimenResult } from './qimenAlgorithm';
+import { buildLiuRenEngineOutput, type LiuRenResult } from './liurenAlgorithm';
 
 import type {
   StandardizedInput,
@@ -609,6 +610,7 @@ interface OrchestrationResult {
     kabbalahReport: KabbalahReport;
     meihuaResult: MeihuaResult | null;
     qimenResult: QimenResult | null;
+    liurenResult: LiuRenResult | null;
   };
   systems: SystemAnalysis[];
 }
@@ -693,6 +695,14 @@ function orchestrate(
     qimenResult = qmResult.qimenResult;
   }
 
+  // ── LiuRen (大六壬) — only run if active ──
+  let liurenResult: LiuRenResult | null = null;
+  if (isActive('liuren')) {
+    const lrResult = buildLiuRenEngineOutput(standardizedInput);
+    engineOutputs.push(lrResult.eo);
+    liurenResult = lrResult.liurenResult;
+  }
+
   // ── Dynamic weights (filtered to active engines only) ──
   const activeNames = engineOutputs.map(e => e.engineName);
   const weightConfigs = getWeightsForQueryType(queryType, activeNames);
@@ -765,6 +775,7 @@ function orchestrate(
     { id: 'kabbalah', name: 'Kabbalah', nameCN: '卡巴拉', origin: '希伯来', weight: 0.08, lifeVectors: kabResult.kabbalahReport.lifeVectors, meta: { '灵魂质点': kabResult.kabbalahReport.soulSephirah.nameCN, '人格质点': kabResult.kabbalahReport.personalitySephirah.nameCN } },
     ...(meihuaResult ? [{ id: 'meihua', name: 'Meihua Yishu', nameCN: '梅花易数', origin: '中国', weight: 0.10, lifeVectors: {}, meta: { '本卦': meihuaResult.benGua.name, '变卦': meihuaResult.bianGua.name, '体用': meihuaResult.tiYong.relation } }] : []),
     ...(qimenResult ? [{ id: 'qimen', name: 'Qi Men Dun Jia', nameCN: '奇门遁甲', origin: '中国', weight: 0.10, lifeVectors: {}, meta: { '遁局': `${qimenResult.chart.dunType}${qimenResult.chart.juNumber}局`, '值符': qimenResult.chart.zhiFu, '值使': qimenResult.chart.zhiShi } }] : []),
+    ...(liurenResult ? [{ id: 'liuren', name: 'Da Liu Ren', nameCN: '大六壬', origin: '中国', weight: 0.10, lifeVectors: {}, meta: { '课体': liurenResult.keType, '三传': `${liurenResult.sanChuan.chu}→${liurenResult.sanChuan.zhong}→${liurenResult.sanChuan.mo}`, '吉凶': liurenResult.auspiciousness } }] : []),
   ];
 
   return {
@@ -781,6 +792,7 @@ function orchestrate(
       kabbalahReport: kabResult.kabbalahReport,
       meihuaResult,
       qimenResult,
+      liurenResult,
     },
     systems,
   };

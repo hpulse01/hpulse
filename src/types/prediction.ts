@@ -144,12 +144,12 @@ export interface PredictionConflict {
 export type EngineName =
   | 'tieban' | 'bazi' | 'ziwei' | 'liuyao'
   | 'western' | 'vedic' | 'numerology' | 'mayan' | 'kabbalah'
-  | 'meihua' | 'qimen';
+  | 'meihua' | 'qimen' | 'liuren';
 
 export const ALL_ENGINE_NAMES: EngineName[] = [
   'tieban', 'bazi', 'ziwei', 'liuyao',
   'western', 'vedic', 'numerology', 'mayan', 'kabbalah',
-  'meihua', 'qimen',
+  'meihua', 'qimen', 'liuren',
 ];
 
 export interface EngineActivationRule {
