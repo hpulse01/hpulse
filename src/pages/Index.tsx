@@ -43,6 +43,7 @@ const ALL_ENGINE_LABELS = [
 ];
 
 const Index = () => {
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(() => hasConsented());
   const [step, setStep] = useState<AppStep>('input');
   const [birthInput, setBirthInput] = useState<TiebanInput | null>(null);
   const [ganZhiDisplay, setGanZhiDisplay] = useState('');
