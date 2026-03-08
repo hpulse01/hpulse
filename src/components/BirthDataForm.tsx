@@ -214,7 +214,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
         <div className="grid grid-cols-3 gap-2 text-[11px] font-sans">
           <div className="flex items-center gap-1">
             <Compass className="w-3 h-3 text-muted-foreground/50" />
-            <span className="text-muted-foreground">纬</span>
+            <span className="text-muted-foreground">{t('form.lat')}</span>
             <span className="text-foreground/70 font-mono">{formData.geoLatitude.toFixed(4)}°</span>
           </div>
           <div className="flex items-center gap-1">
