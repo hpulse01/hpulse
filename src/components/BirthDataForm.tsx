@@ -194,7 +194,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
         </div>
 
         <div className="text-center mt-2 py-2 bg-card/50 rounded-lg border border-border/20">
-          <span className="text-muted-foreground text-xs font-sans">时辰 </span>
+          <span className="text-muted-foreground text-xs font-sans">{t('form.chinese_hour')} </span>
           <span className="text-primary font-serif text-sm">{chineseHour}</span>
         </div>
       </div>
