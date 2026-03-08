@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { BirthDataForm } from '@/components/BirthDataForm';
+import { BirthDataForm, type BirthDataWithGeo } from '@/components/BirthDataForm';
 import { SixRelationsVerification } from '@/components/SixRelationsVerification';
 import { DestinyDashboard } from '@/components/DestinyDashboard';
 import { UnifiedQuantumPanel } from '@/components/UnifiedQuantumPanel';
@@ -53,7 +53,7 @@ const Index = () => {
    * STEP 1: Handle birth data submission
    * Calculate base number, then go to Kao Ke verification
    */
-  const handleBirthDataSubmit = useCallback(async (birthData: TiebanInput) => {
+  const handleBirthDataSubmit = useCallback(async (birthData: BirthDataWithGeo) => {
     setStep('calculating');
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));

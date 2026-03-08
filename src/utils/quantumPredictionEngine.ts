@@ -1,16 +1,19 @@
 /**
- * H-Pulse Quantum Prediction Engine v3 (量子预测引擎)
+ * H-Pulse Quantum Prediction Engine v3.1 (量子预测引擎)
  *
- * P1 Unified Orchestration Layer:
- *   1. Receive StandardizedInput
- *   2. Decide which engines to activate
- *   3. Execute engines, collect EngineOutput[]
- *   4. Calculate dynamic weights
+ * P1.1 Unified Orchestration Layer:
+ *   1. Accept StandardizedInput as sole entry point
+ *   2. Use engine activation strategy to decide which engines run
+ *   3. Execute only active engines, collect EngineOutput[]
+ *   4. Calculate dynamic weights (filtered to active engines)
  *   5. Fuse FateVector
  *   6. Detect & resolve conflicts
- *   7. Output UnifiedPredictionResult
+ *   7. Output UnifiedPredictionResult with activeEngines/skippedEngines
  *
- * Backward compatibility: `predict()` still returns old QuantumPredictionResult.
+ * Deterministic guarantee: for deterministic queryTypes (natalAnalysis, annualForecast),
+ * same StandardizedInput always produces same UnifiedPredictionResult.
+ *
+ * Legacy backward compatibility: `predict()` still returns old QuantumPredictionResult.
  */
 
 import { TiebanEngine, type TiebanInput, type BaZiProfile, type FullDestinyReport } from './tiebanAlgorithm';
@@ -30,10 +33,17 @@ import type {
   UnifiedPredictionResult,
   WeightEntry,
   QueryType,
+  EngineName,
 } from '@/types/prediction';
 import { ALL_FATE_DIMENSIONS, FATE_DIMENSION_LABELS } from '@/types/prediction';
 import { getWeightsForQueryType } from '@/config/engineWeights';
 import { detectConflicts, fuseFateVectors } from '@/utils/conflictResolver';
+import {
+  getActiveEngines,
+  getSkippedEngines,
+  buildActivationSummary,
+  DETERMINISTIC_QUERY_TYPES,
+} from '@/config/engineActivation';
 
 // ═══════════════════════════════════════════════
 // Legacy Types (kept for backward compatibility)
@@ -162,8 +172,6 @@ export interface QuantumPredictionResult {
   mayanReport: MayanReport;
   kabbalahReport: KabbalahReport;
   timestamp: Date;
-
-  // P1: Unified result (optional for backward compat)
   unifiedResult?: UnifiedPredictionResult;
 }
 
@@ -218,36 +226,80 @@ function lifeVectorsToFateVector(lifeVectors: Record<string, number>): FateVecto
 }
 
 // ═══════════════════════════════════════════════
-// P1 Orchestrator: Build EngineOutput from raw engine runs
+// Helper: StandardizedInput → QuantumInput (for legacy engine APIs)
 // ═══════════════════════════════════════════════
 
-function buildEngineOutputs(
-  input: QuantumInput,
-  systemOffset: number,
-): {
-  engineOutputs: EngineOutput[];
-  rawData: {
-    baziProfile: BaZiProfile;
-    fullReport: FullDestinyReport;
-    ziweiReport: ZiweiReport;
-    liuYaoResult: LiuYaoResult;
-    westernReport: WesternAstrologyReport;
-    vedicReport: VedicReport;
-    numerologyReport: NumerologyReport;
-    mayanReport: MayanReport;
-    kabbalahReport: KabbalahReport;
+function standardizedToQuantumInput(si: StandardizedInput): QuantumInput {
+  return {
+    year: si.birthLocalDateTime.year,
+    month: si.birthLocalDateTime.month,
+    day: si.birthLocalDateTime.day,
+    hour: si.birthLocalDateTime.hour,
+    minute: si.birthLocalDateTime.minute,
+    gender: si.gender,
+    geoLatitude: si.geoLatitude,
+    geoLongitude: si.geoLongitude,
+    timezoneOffsetMinutes: si.timezoneOffsetMinutesAtBirth,
   };
-  systems: SystemAnalysis[];
-} {
-  const engineOutputs: EngineOutput[] = [];
+}
 
-  // ── 1. Tieban ──
-  const t0_tieban = performance.now();
+// ═══════════════════════════════════════════════
+// Helper: QuantumInput → StandardizedInput (for legacy predict() path)
+// ═══════════════════════════════════════════════
+
+function quantumInputToStandardized(
+  input: QuantumInput,
+  queryType: QueryType = 'natalAnalysis',
+  locationName: string = '',
+  timezoneIana: string = '',
+): StandardizedInput {
+  const utcMs = Date.UTC(input.year, input.month - 1, input.day, input.hour, input.minute, 0)
+    - input.timezoneOffsetMinutes * 60_000;
+  const utcDate = new Date(utcMs);
+
+  return {
+    birthLocalDateTime: {
+      year: input.year,
+      month: input.month,
+      day: input.day,
+      hour: input.hour,
+      minute: input.minute,
+    },
+    birthUtcDateTime: utcDate.toISOString(),
+    geoLatitude: input.geoLatitude,
+    geoLongitude: input.geoLongitude,
+    timezoneIana,
+    timezoneOffsetMinutesAtBirth: input.timezoneOffsetMinutes,
+    gender: input.gender,
+    normalizedLocationName: locationName,
+    queryType,
+    queryTimeUtc: new Date().toISOString(),
+    sourceMetadata: {
+      provider: 'legacy_quantum_input',
+      confidence: 0.8,
+      normalizedLocationName: locationName,
+      timezoneIana,
+    },
+  };
+}
+
+// ═══════════════════════════════════════════════
+// P1.1 Engine Runners (individual, called only if active)
+// ═══════════════════════════════════════════════
+
+function runTieban(input: QuantumInput, systemOffset: number): {
+  eo: EngineOutput;
+  baziProfile: BaZiProfile;
+  fullReport: FullDestinyReport;
+  tiebanVectors: Record<string, number>;
+  theoBase: number;
+} {
+  const t0 = performance.now();
   const tiebanInput: TiebanInput = { ...input };
   const baziProfile = TiebanEngine.calculateBaZiProfile(tiebanInput);
   const theoBase = TiebanEngine.calculateTheoreticalBase(tiebanInput);
   const fullReport = TiebanEngine.generateFullDestinyReport(tiebanInput, theoBase, systemOffset);
-  const t1_tieban = performance.now();
+  const t1 = performance.now();
 
   const proj = fullReport.destinyProjection;
   const norm = (v: number) => Math.max(5, Math.min(95, Math.round((v % 1000) / 10)));
@@ -258,24 +310,34 @@ function buildEngineOutputs(
     family: norm(proj.marriage + proj.children), spirituality: norm(proj.lifeDestiny + proj.health),
   };
 
-  engineOutputs.push({
-    engineName: 'tieban',
-    engineNameCN: '铁板神数',
-    engineVersion: '2.0.0',
-    sourceUrls: ['https://en.wikipedia.org/wiki/Tiě_Bǎn_Shén_Shù'],
-    sourceGrade: 'B',
-    ruleSchool: '太玄刻分定局法',
-    confidence: 0.75,
-    computationTimeMs: Math.round(t1_tieban - t0_tieban),
-    rawInputSnapshot: { year: input.year, month: input.month, day: input.day, hour: input.hour, minute: input.minute },
-    fateVector: lifeVectorsToFateVector(tiebanVectors),
-    normalizedOutput: { '条文基数': String(theoBase) },
-    warnings: [],
-    uncertaintyNotes: ['铁板条文映射为启发式'],
-  });
+  return {
+    eo: {
+      engineName: 'tieban',
+      engineNameCN: '铁板神数',
+      engineVersion: '2.0.0',
+      sourceUrls: ['https://en.wikipedia.org/wiki/Tiě_Bǎn_Shén_Shù'],
+      sourceGrade: 'B',
+      ruleSchool: '太玄刻分定局法',
+      confidence: 0.75,
+      computationTimeMs: Math.round(t1 - t0),
+      rawInputSnapshot: { year: input.year, month: input.month, day: input.day, hour: input.hour, minute: input.minute },
+      fateVector: lifeVectorsToFateVector(tiebanVectors),
+      normalizedOutput: { '条文基数': String(theoBase) },
+      warnings: [],
+      uncertaintyNotes: ['铁板条文映射为启发式'],
+    },
+    baziProfile,
+    fullReport,
+    tiebanVectors,
+    theoBase,
+  };
+}
 
-  // ── 2. BaZi ──
-  const t0_bazi = performance.now();
+function runBazi(input: QuantumInput, baziProfile: BaZiProfile, tiebanVectors: Record<string, number>): {
+  eo: EngineOutput;
+  baziVectors: Record<string, number>;
+} {
+  const t0 = performance.now();
   const fav = baziProfile.favorableElements;
   const unfav = baziProfile.unfavorableElements;
   const baziVectors: Record<string, number> = {};
@@ -288,30 +350,34 @@ function buildEngineOutputs(
     });
     baziVectors[a] = clamp(s + (tiebanVectors[a] - 50) * 0.3);
   }
-  const t1_bazi = performance.now();
+  const t1 = performance.now();
 
-  engineOutputs.push({
-    engineName: 'bazi',
-    engineNameCN: '八字命理',
-    engineVersion: '2.0.0',
-    sourceUrls: ['https://en.wikipedia.org/wiki/Four_Pillars_of_Destiny'],
-    sourceGrade: 'A',
-    ruleSchool: '子平八字',
-    confidence: 0.80,
-    computationTimeMs: Math.round(t1_bazi - t0_bazi),
-    rawInputSnapshot: { year: input.year, month: input.month, day: input.day, hour: input.hour },
-    fateVector: lifeVectorsToFateVector(baziVectors),
-    normalizedOutput: {
-      '日主': `${baziProfile.dayMaster}(${baziProfile.dayMasterElement})`,
-      '喜用': fav.join(''),
-      '忌': unfav.join(''),
+  return {
+    eo: {
+      engineName: 'bazi',
+      engineNameCN: '八字命理',
+      engineVersion: '2.0.0',
+      sourceUrls: ['https://en.wikipedia.org/wiki/Four_Pillars_of_Destiny'],
+      sourceGrade: 'A',
+      ruleSchool: '子平八字',
+      confidence: 0.80,
+      computationTimeMs: Math.round(t1 - t0),
+      rawInputSnapshot: { year: input.year, month: input.month, day: input.day, hour: input.hour },
+      fateVector: lifeVectorsToFateVector(baziVectors),
+      normalizedOutput: {
+        '日主': `${baziProfile.dayMaster}(${baziProfile.dayMasterElement})`,
+        '喜用': fav.join(''),
+        '忌': unfav.join(''),
+      },
+      warnings: [],
+      uncertaintyNotes: ['八字喜忌判断为简化启发式'],
     },
-    warnings: [],
-    uncertaintyNotes: ['八字喜忌判断为简化启发式'],
-  });
+    baziVectors,
+  };
+}
 
-  // ── 3. Ziwei ──
-  const t0_ziwei = performance.now();
+function runZiwei(input: QuantumInput): { eo: EngineOutput; ziweiReport: ZiweiReport } {
+  const t0 = performance.now();
   const ziweiReport = ZiweiEngine.generateReport({
     year: input.year, month: input.month, day: input.day, hour: input.hour, gender: input.gender,
   });
@@ -333,28 +399,34 @@ function buildEngineOutputs(
       if (star.sihua === '忌') ziweiVectors[target] -= 4;
     }
   }
-  const t1_ziwei = performance.now();
+  const t1 = performance.now();
   const mingStars = ziweiReport.palaces.find(p => p.isMing)?.stars.map(s => s.name).join('、') || '无';
 
-  engineOutputs.push({
-    engineName: 'ziwei',
-    engineNameCN: '紫微斗数',
-    engineVersion: '2.0.0',
-    sourceUrls: ['https://en.wikipedia.org/wiki/Zi_wei_dou_shu'],
-    sourceGrade: 'A',
-    ruleSchool: '三合派紫微斗数',
-    confidence: 0.78,
-    computationTimeMs: Math.round(t1_ziwei - t0_ziwei),
-    rawInputSnapshot: { year: input.year, month: input.month, day: input.day, hour: input.hour, gender: input.gender },
-    fateVector: lifeVectorsToFateVector(ziweiVectors),
-    normalizedOutput: { '命宫': ziweiReport.mingGong, '主星': mingStars, '五行局': ziweiReport.wuxingju.name },
-    warnings: [],
-    uncertaintyNotes: ['宫位星曜评分为简化启发式'],
-  });
+  return {
+    eo: {
+      engineName: 'ziwei',
+      engineNameCN: '紫微斗数',
+      engineVersion: '2.0.0',
+      sourceUrls: ['https://en.wikipedia.org/wiki/Zi_wei_dou_shu'],
+      sourceGrade: 'A',
+      ruleSchool: '三合派紫微斗数',
+      confidence: 0.78,
+      computationTimeMs: Math.round(t1 - t0),
+      rawInputSnapshot: { year: input.year, month: input.month, day: input.day, hour: input.hour, gender: input.gender },
+      fateVector: lifeVectorsToFateVector(ziweiVectors),
+      normalizedOutput: { '命宫': ziweiReport.mingGong, '主星': mingStars, '五行局': ziweiReport.wuxingju.name },
+      warnings: [],
+      uncertaintyNotes: ['宫位星曜评分为简化启发式'],
+    },
+    ziweiReport,
+  };
+}
 
-  // ── 4. LiuYao ──
-  const t0_liuyao = performance.now();
-  const liuYaoResult = calculateLiuYaoHexagram(new Date());
+function runLiuYao(queryTimeUtc: string): { eo: EngineOutput; liuYaoResult: LiuYaoResult } {
+  const t0 = performance.now();
+  // Use the query time (deterministic for a given queryTimeUtc)
+  const queryDate = new Date(queryTimeUtc);
+  const liuYaoResult = calculateLiuYaoHexagram(queryDate);
   const liuYaoVectors: Record<string, number> = {};
   const lineMap: Record<number, LifeAspect[]> = {
     1: ['fortune', 'health'], 2: ['love', 'family'], 3: ['creativity', 'wisdom'],
@@ -366,233 +438,278 @@ function buildEngineOutputs(
     const boost = (line.yinYang === 'yang' ? 4 : -2) + (line.isChanging ? 3 : 0);
     for (const t of targets) liuYaoVectors[t] = clamp(liuYaoVectors[t] + boost);
   }
-  const t1_liuyao = performance.now();
-
-  engineOutputs.push({
-    engineName: 'liuyao',
-    engineNameCN: '六爻卦象',
-    engineVersion: '1.0.0',
-    sourceUrls: ['https://en.wikipedia.org/wiki/I_Ching_divination'],
-    sourceGrade: 'B',
-    ruleSchool: '京房六爻',
-    confidence: 0.60,
-    computationTimeMs: Math.round(t1_liuyao - t0_liuyao),
-    rawInputSnapshot: { queryTime: new Date().toISOString() },
-    fateVector: lifeVectorsToFateVector(liuYaoVectors),
-    normalizedOutput: { '卦名': liuYaoResult.mainHexagram.name, '动爻': String(liuYaoResult.mainHexagram.changingLines.length) },
-    warnings: ['六爻基于起卦时间而非出生时间，适用于即时占卜'],
-    uncertaintyNotes: ['六爻结果与起卦时间强相关'],
-  });
-
-  // ── 5. Western ──
-  const t0_western = performance.now();
-  const westernReport = WesternAstrologyEngine.calculate(input);
-  const t1_western = performance.now();
-
-  engineOutputs.push({
-    engineName: 'western',
-    engineNameCN: '西方占星',
-    engineVersion: WesternAstrologyEngine.metadata.algorithm_version,
-    sourceUrls: WesternAstrologyEngine.metadata.source_urls,
-    sourceGrade: WesternAstrologyEngine.metadata.source_grade,
-    ruleSchool: WesternAstrologyEngine.metadata.rule_school,
-    confidence: 0.75,
-    computationTimeMs: Math.round(t1_western - t0_western),
-    rawInputSnapshot: { year: input.year, month: input.month, day: input.day, hour: input.hour, minute: input.minute, lat: input.geoLatitude, lon: input.geoLongitude },
-    fateVector: lifeVectorsToFateVector(westernReport.lifeVectors),
-    normalizedOutput: {
-      '太阳': WesternAstrologyEngine.getSignCN(westernReport.sunSign),
-      '月亮': WesternAstrologyEngine.getSignCN(westernReport.moonSign),
-      '上升': WesternAstrologyEngine.getSignCN(westernReport.risingSign),
-    },
-    warnings: [],
-    uncertaintyNotes: WesternAstrologyEngine.metadata.uncertainty_notes,
-  });
-
-  // ── 6. Vedic ──
-  const t0_vedic = performance.now();
-  const vedicReport = VedicAstrologyEngine.calculate(input);
-  const t1_vedic = performance.now();
-
-  engineOutputs.push({
-    engineName: 'vedic',
-    engineNameCN: '吠陀占星',
-    engineVersion: VedicAstrologyEngine.metadata.algorithm_version,
-    sourceUrls: VedicAstrologyEngine.metadata.source_urls,
-    sourceGrade: VedicAstrologyEngine.metadata.source_grade,
-    ruleSchool: VedicAstrologyEngine.metadata.rule_school,
-    confidence: 0.72,
-    computationTimeMs: Math.round(t1_vedic - t0_vedic),
-    rawInputSnapshot: { year: input.year, month: input.month, day: input.day, hour: input.hour, minute: input.minute, lat: input.geoLatitude, lon: input.geoLongitude },
-    fateVector: lifeVectorsToFateVector(vedicReport.lifeVectors),
-    normalizedOutput: { '月亮星座': vedicReport.rashiSignCN, '月宿': vedicReport.moonNakshatra.nameCN, 'Yoga': vedicReport.yogas[0] || '' },
-    warnings: [],
-    uncertaintyNotes: VedicAstrologyEngine.metadata.uncertainty_notes,
-  });
-
-  // ── 7. Numerology ──
-  const t0_num = performance.now();
-  const numerologyReport = NumerologyEngine.calculate(input);
-  const t1_num = performance.now();
-
-  engineOutputs.push({
-    engineName: 'numerology',
-    engineNameCN: '数字命理',
-    engineVersion: '1.0.0',
-    sourceUrls: ['https://en.wikipedia.org/wiki/Numerology'],
-    sourceGrade: 'B',
-    ruleSchool: 'Pythagorean + Chaldean',
-    confidence: 0.55,
-    computationTimeMs: Math.round(t1_num - t0_num),
-    rawInputSnapshot: { year: input.year, month: input.month, day: input.day },
-    fateVector: lifeVectorsToFateVector(numerologyReport.lifeVectors),
-    normalizedOutput: { '生命数': String(numerologyReport.lifePath), '含义': numerologyReport.lifePathMeaning.slice(0, 10) },
-    warnings: [],
-    uncertaintyNotes: ['数字命理评分为启发式'],
-  });
-
-  // ── 8. Mayan ──
-  const t0_mayan = performance.now();
-  const mayanReport = MayanCalendarEngine.calculate(input);
-  const t1_mayan = performance.now();
-
-  engineOutputs.push({
-    engineName: 'mayan',
-    engineNameCN: '玛雅历法',
-    engineVersion: '1.0.0',
-    sourceUrls: ['https://en.wikipedia.org/wiki/Maya_calendar'],
-    sourceGrade: 'B',
-    ruleSchool: 'Tzolkin + Haab',
-    confidence: 0.50,
-    computationTimeMs: Math.round(t1_mayan - t0_mayan),
-    rawInputSnapshot: { year: input.year, month: input.month, day: input.day },
-    fateVector: lifeVectorsToFateVector(mayanReport.lifeVectors),
-    normalizedOutput: { '日符': mayanReport.daySignCN, '银河音': String(mayanReport.galacticTone), 'Kin': String(mayanReport.kin) },
-    warnings: [],
-    uncertaintyNotes: ['玛雅能量映射为启发式'],
-  });
-
-  // ── 9. Kabbalah ──
-  const t0_kab = performance.now();
-  const kabbalahReport = KabbalahEngine.calculate(input);
-  const t1_kab = performance.now();
-
-  engineOutputs.push({
-    engineName: 'kabbalah',
-    engineNameCN: '卡巴拉',
-    engineVersion: '1.0.0',
-    sourceUrls: ['https://en.wikipedia.org/wiki/Kabbalah'],
-    sourceGrade: 'B',
-    ruleSchool: 'Tree of Life / Sephiroth',
-    confidence: 0.50,
-    computationTimeMs: Math.round(t1_kab - t0_kab),
-    rawInputSnapshot: { year: input.year, month: input.month, day: input.day },
-    fateVector: lifeVectorsToFateVector(kabbalahReport.lifeVectors),
-    normalizedOutput: { '灵魂质点': kabbalahReport.soulSephirah.nameCN, '人格质点': kabbalahReport.personalitySephirah.nameCN },
-    warnings: [],
-    uncertaintyNotes: ['卡巴拉能量映射为启发式'],
-  });
-
-  // ── Build legacy SystemAnalysis[] ──
-  const systems: SystemAnalysis[] = [
-    { id: 'tieban', name: 'Iron Plate', nameCN: '铁板神数', origin: '中国', weight: 0.15, lifeVectors: tiebanVectors, meta: { '条文基数': String(theoBase) } },
-    { id: 'bazi', name: 'BaZi', nameCN: '八字命理', origin: '中国', weight: 0.15, lifeVectors: baziVectors, meta: { '日主': `${baziProfile.dayMaster}(${baziProfile.dayMasterElement})`, '喜用': fav.join(''), '忌': unfav.join('') } },
-    { id: 'ziwei', name: 'Ziwei Doushu', nameCN: '紫微斗数', origin: '中国', weight: 0.14, lifeVectors: ziweiVectors, meta: { '命宫': ziweiReport.mingGong, '主星': mingStars, '五行局': ziweiReport.wuxingju.name } },
-    { id: 'liuyao', name: 'Liu Yao', nameCN: '六爻卦象', origin: '中国', weight: 0.10, lifeVectors: liuYaoVectors, meta: { '卦名': liuYaoResult.mainHexagram.name, '动爻': String(liuYaoResult.mainHexagram.changingLines.length) } },
-    { id: 'western', name: 'Western Astrology', nameCN: '西方占星', origin: '西方', weight: 0.12, lifeVectors: westernReport.lifeVectors, meta: { '太阳': WesternAstrologyEngine.getSignCN(westernReport.sunSign), '月亮': WesternAstrologyEngine.getSignCN(westernReport.moonSign), '上升': WesternAstrologyEngine.getSignCN(westernReport.risingSign) } },
-    { id: 'vedic', name: 'Jyotish', nameCN: '吠陀占星', origin: '印度', weight: 0.10, lifeVectors: vedicReport.lifeVectors, meta: { '月亮星座': vedicReport.rashiSignCN, '月宿': vedicReport.moonNakshatra.nameCN, 'Yoga': vedicReport.yogas[0] || '' } },
-    { id: 'numerology', name: 'Numerology', nameCN: '数字命理', origin: '西方', weight: 0.08, lifeVectors: numerologyReport.lifeVectors, meta: { '生命数': String(numerologyReport.lifePath), '含义': numerologyReport.lifePathMeaning.slice(0, 10) } },
-    { id: 'mayan', name: 'Mayan Calendar', nameCN: '玛雅历法', origin: '中美洲', weight: 0.08, lifeVectors: mayanReport.lifeVectors, meta: { '日符': mayanReport.daySignCN, '银河音': String(mayanReport.galacticTone), 'Kin': String(mayanReport.kin) } },
-    { id: 'kabbalah', name: 'Kabbalah', nameCN: '卡巴拉', origin: '希伯来', weight: 0.08, lifeVectors: kabbalahReport.lifeVectors, meta: { '灵魂质点': kabbalahReport.soulSephirah.nameCN, '人格质点': kabbalahReport.personalitySephirah.nameCN } },
-  ];
+  const t1 = performance.now();
 
   return {
-    engineOutputs,
-    rawData: { baziProfile, fullReport, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport },
-    systems,
+    eo: {
+      engineName: 'liuyao',
+      engineNameCN: '六爻卦象',
+      engineVersion: '1.0.0',
+      sourceUrls: ['https://en.wikipedia.org/wiki/I_Ching_divination'],
+      sourceGrade: 'B',
+      ruleSchool: '京房六爻',
+      confidence: 0.60,
+      computationTimeMs: Math.round(t1 - t0),
+      rawInputSnapshot: { queryTime: queryTimeUtc },
+      fateVector: lifeVectorsToFateVector(liuYaoVectors),
+      normalizedOutput: { '卦名': liuYaoResult.mainHexagram.name, '动爻': String(liuYaoResult.mainHexagram.changingLines.length) },
+      warnings: ['六爻基于起卦时间而非出生时间，适用于即时占卜'],
+      uncertaintyNotes: ['六爻结果与起卦时间强相关'],
+    },
+    liuYaoResult,
+  };
+}
+
+function runWestern(input: QuantumInput): { eo: EngineOutput; westernReport: WesternAstrologyReport } {
+  const t0 = performance.now();
+  const westernReport = WesternAstrologyEngine.calculate(input);
+  const t1 = performance.now();
+
+  return {
+    eo: {
+      engineName: 'western',
+      engineNameCN: '西方占星',
+      engineVersion: WesternAstrologyEngine.metadata.algorithm_version,
+      sourceUrls: WesternAstrologyEngine.metadata.source_urls,
+      sourceGrade: WesternAstrologyEngine.metadata.source_grade,
+      ruleSchool: WesternAstrologyEngine.metadata.rule_school,
+      confidence: 0.75,
+      computationTimeMs: Math.round(t1 - t0),
+      rawInputSnapshot: { year: input.year, month: input.month, day: input.day, hour: input.hour, minute: input.minute, lat: input.geoLatitude, lon: input.geoLongitude },
+      fateVector: lifeVectorsToFateVector(westernReport.lifeVectors),
+      normalizedOutput: {
+        '太阳': WesternAstrologyEngine.getSignCN(westernReport.sunSign),
+        '月亮': WesternAstrologyEngine.getSignCN(westernReport.moonSign),
+        '上升': WesternAstrologyEngine.getSignCN(westernReport.risingSign),
+      },
+      warnings: [],
+      uncertaintyNotes: WesternAstrologyEngine.metadata.uncertainty_notes,
+    },
+    westernReport,
+  };
+}
+
+function runVedic(input: QuantumInput): { eo: EngineOutput; vedicReport: VedicReport } {
+  const t0 = performance.now();
+  const vedicReport = VedicAstrologyEngine.calculate(input);
+  const t1 = performance.now();
+
+  return {
+    eo: {
+      engineName: 'vedic',
+      engineNameCN: '吠陀占星',
+      engineVersion: VedicAstrologyEngine.metadata.algorithm_version,
+      sourceUrls: VedicAstrologyEngine.metadata.source_urls,
+      sourceGrade: VedicAstrologyEngine.metadata.source_grade,
+      ruleSchool: VedicAstrologyEngine.metadata.rule_school,
+      confidence: 0.72,
+      computationTimeMs: Math.round(t1 - t0),
+      rawInputSnapshot: { year: input.year, month: input.month, day: input.day, hour: input.hour, minute: input.minute, lat: input.geoLatitude, lon: input.geoLongitude },
+      fateVector: lifeVectorsToFateVector(vedicReport.lifeVectors),
+      normalizedOutput: { '月亮星座': vedicReport.rashiSignCN, '月宿': vedicReport.moonNakshatra.nameCN, 'Yoga': vedicReport.yogas[0] || '' },
+      warnings: [],
+      uncertaintyNotes: VedicAstrologyEngine.metadata.uncertainty_notes,
+    },
+    vedicReport,
+  };
+}
+
+function runNumerology(input: QuantumInput): { eo: EngineOutput; numerologyReport: NumerologyReport } {
+  const t0 = performance.now();
+  const numerologyReport = NumerologyEngine.calculate(input);
+  const t1 = performance.now();
+
+  return {
+    eo: {
+      engineName: 'numerology',
+      engineNameCN: '数字命理',
+      engineVersion: '1.0.0',
+      sourceUrls: ['https://en.wikipedia.org/wiki/Numerology'],
+      sourceGrade: 'B',
+      ruleSchool: 'Pythagorean + Chaldean',
+      confidence: 0.55,
+      computationTimeMs: Math.round(t1 - t0),
+      rawInputSnapshot: { year: input.year, month: input.month, day: input.day },
+      fateVector: lifeVectorsToFateVector(numerologyReport.lifeVectors),
+      normalizedOutput: { '生命数': String(numerologyReport.lifePath), '含义': numerologyReport.lifePathMeaning.slice(0, 10) },
+      warnings: [],
+      uncertaintyNotes: ['数字命理评分为启发式'],
+    },
+    numerologyReport,
+  };
+}
+
+function runMayan(input: QuantumInput): { eo: EngineOutput; mayanReport: MayanReport } {
+  const t0 = performance.now();
+  const mayanReport = MayanCalendarEngine.calculate(input);
+  const t1 = performance.now();
+
+  return {
+    eo: {
+      engineName: 'mayan',
+      engineNameCN: '玛雅历法',
+      engineVersion: '1.0.0',
+      sourceUrls: ['https://en.wikipedia.org/wiki/Maya_calendar'],
+      sourceGrade: 'B',
+      ruleSchool: 'Tzolkin + Haab',
+      confidence: 0.50,
+      computationTimeMs: Math.round(t1 - t0),
+      rawInputSnapshot: { year: input.year, month: input.month, day: input.day },
+      fateVector: lifeVectorsToFateVector(mayanReport.lifeVectors),
+      normalizedOutput: { '日符': mayanReport.daySignCN, '银河音': String(mayanReport.galacticTone), 'Kin': String(mayanReport.kin) },
+      warnings: [],
+      uncertaintyNotes: ['玛雅能量映射为启发式'],
+    },
+    mayanReport,
+  };
+}
+
+function runKabbalah(input: QuantumInput): { eo: EngineOutput; kabbalahReport: KabbalahReport } {
+  const t0 = performance.now();
+  const kabbalahReport = KabbalahEngine.calculate(input);
+  const t1 = performance.now();
+
+  return {
+    eo: {
+      engineName: 'kabbalah',
+      engineNameCN: '卡巴拉',
+      engineVersion: '1.0.0',
+      sourceUrls: ['https://en.wikipedia.org/wiki/Kabbalah'],
+      sourceGrade: 'B',
+      ruleSchool: 'Tree of Life / Sephiroth',
+      confidence: 0.50,
+      computationTimeMs: Math.round(t1 - t0),
+      rawInputSnapshot: { year: input.year, month: input.month, day: input.day },
+      fateVector: lifeVectorsToFateVector(kabbalahReport.lifeVectors),
+      normalizedOutput: { '灵魂质点': kabbalahReport.soulSephirah.nameCN, '人格质点': kabbalahReport.personalitySephirah.nameCN },
+      warnings: [],
+      uncertaintyNotes: ['卡巴拉能量映射为启发式'],
+    },
+    kabbalahReport,
   };
 }
 
 // ═══════════════════════════════════════════════
-// P1 Orchestrator: orchestrate()
+// P1.1 Orchestrator: orchestrate() — StandardizedInput as sole entry
 // ═══════════════════════════════════════════════
 
-function buildStandardizedInput(input: QuantumInput, queryType: QueryType = 'natalAnalysis'): StandardizedInput {
-  const utcMs = Date.UTC(input.year, input.month - 1, input.day, input.hour, input.minute, 0)
-    - input.timezoneOffsetMinutes * 60_000;
-  const utcDate = new Date(utcMs);
-
-  return {
-    birthLocalDateTime: {
-      year: input.year,
-      month: input.month,
-      day: input.day,
-      hour: input.hour,
-      minute: input.minute,
-    },
-    birthUtcDateTime: utcDate.toISOString(),
-    geoLatitude: input.geoLatitude,
-    geoLongitude: input.geoLongitude,
-    timezoneIana: '',
-    timezoneOffsetMinutesAtBirth: input.timezoneOffsetMinutes,
-    gender: input.gender,
-    normalizedLocationName: '',
-    queryType,
-    queryTimeUtc: new Date().toISOString(),
-    sourceMetadata: {
-      provider: 'user_input',
-      confidence: 1,
-      normalizedLocationName: '',
-      timezoneIana: '',
-    },
+interface OrchestrationResult {
+  unifiedResult: UnifiedPredictionResult;
+  rawData: {
+    baziProfile: BaZiProfile;
+    fullReport: FullDestinyReport;
+    ziweiReport: ZiweiReport;
+    liuYaoResult: LiuYaoResult;
+    westernReport: WesternAstrologyReport;
+    vedicReport: VedicReport;
+    numerologyReport: NumerologyReport;
+    mayanReport: MayanReport;
+    kabbalahReport: KabbalahReport;
   };
+  systems: SystemAnalysis[];
 }
 
 function orchestrate(
-  input: QuantumInput,
+  standardizedInput: StandardizedInput,
   systemOffset: number = 0,
-  queryType: QueryType = 'natalAnalysis',
-): { unifiedResult: UnifiedPredictionResult; engineOutputs: EngineOutput[]; rawData: ReturnType<typeof buildEngineOutputs>['rawData']; systems: SystemAnalysis[] } {
-  const standardizedInput = buildStandardizedInput(input, queryType);
+): OrchestrationResult {
+  const queryType = standardizedInput.queryType;
+  const activeEngineNames = getActiveEngines(queryType);
+  const skippedEngineList = getSkippedEngines(queryType);
+  const activationSummary = buildActivationSummary(queryType);
+  const isActive = (name: EngineName) => activeEngineNames.includes(name);
 
-  // Build all engine outputs
-  const { engineOutputs, rawData, systems } = buildEngineOutputs(input, systemOffset);
+  // Convert to legacy input for engine APIs
+  const qi = standardizedToQuantumInput(standardizedInput);
 
-  // Get dynamic weights for this queryType
-  const weightConfigs = getWeightsForQueryType(queryType);
+  const engineOutputs: EngineOutput[] = [];
+  // We need all raw data for legacy paths; run all engines but only include active ones in outputs
+  let tiebanVectors: Record<string, number> = {};
+  for (const a of ALL_ASPECTS) tiebanVectors[a] = 50;
+  let baziVectors: Record<string, number> = {};
+
+  // ── Tieban (always run internally for BaZi dependency, but only include output if active) ──
+  const tiebanResult = runTieban(qi, systemOffset);
+  tiebanVectors = tiebanResult.tiebanVectors;
+  if (isActive('tieban')) engineOutputs.push(tiebanResult.eo);
+
+  // ── BaZi ──
+  const baziResult = runBazi(qi, tiebanResult.baziProfile, tiebanVectors);
+  baziVectors = baziResult.baziVectors;
+  if (isActive('bazi')) engineOutputs.push(baziResult.eo);
+
+  // ── Ziwei ──
+  const ziweiResult = runZiwei(qi);
+  if (isActive('ziwei')) engineOutputs.push(ziweiResult.eo);
+
+  // ── LiuYao — only run if active; use queryTimeUtc for deterministic replay ──
+  let liuYaoResult: LiuYaoResult;
+  if (isActive('liuyao')) {
+    const lyResult = runLiuYao(standardizedInput.queryTimeUtc);
+    engineOutputs.push(lyResult.eo);
+    liuYaoResult = lyResult.liuYaoResult;
+  } else {
+    // Generate a dummy result for legacy paths (not used in unified output)
+    liuYaoResult = calculateLiuYaoHexagram(new Date(standardizedInput.birthUtcDateTime));
+  }
+
+  // ── Western ──
+  const westernResult = runWestern(qi);
+  if (isActive('western')) engineOutputs.push(westernResult.eo);
+
+  // ── Vedic ──
+  const vedicResult = runVedic(qi);
+  if (isActive('vedic')) engineOutputs.push(vedicResult.eo);
+
+  // ── Numerology ──
+  const numResult = runNumerology(qi);
+  if (isActive('numerology')) engineOutputs.push(numResult.eo);
+
+  // ── Mayan ──
+  const mayanResult = runMayan(qi);
+  if (isActive('mayan')) engineOutputs.push(mayanResult.eo);
+
+  // ── Kabbalah ──
+  const kabResult = runKabbalah(qi);
+  if (isActive('kabbalah')) engineOutputs.push(kabResult.eo);
+
+  // ── Dynamic weights (filtered to active engines only) ──
+  const activeNames = engineOutputs.map(e => e.engineName);
+  const weightConfigs = getWeightsForQueryType(queryType, activeNames);
   const weightsUsed: WeightEntry[] = weightConfigs.map(w => ({
     engineName: w.engineName,
     weight: w.weight,
     reason: w.reason,
   }));
 
-  // Detect conflicts
+  // ── Conflict detection ──
   const conflicts = detectConflicts(engineOutputs, weightsUsed);
 
-  // Fuse fate vectors
+  // ── Fuse FateVectors ──
   const fusedFateVector = fuseFateVectors(engineOutputs, weightsUsed, conflicts);
 
-  // Calculate final confidence
+  // ── Final confidence ──
   const avgConfidence = engineOutputs.reduce((s, e) => s + e.confidence, 0) / engineOutputs.length;
   const conflictPenalty = Math.min(0.3, conflicts.length * 0.03);
   const finalConfidence = Math.max(0.1, avgConfidence - conflictPenalty);
 
-  // Build causal summary
+  // ── Causal summary ──
   const topDim = ALL_FATE_DIMENSIONS.reduce((best, d) =>
     fusedFateVector[d] > fusedFateVector[best] ? d : best, 'life' as FateDimension);
   const weakDim = ALL_FATE_DIMENSIONS.reduce((worst, d) =>
     fusedFateVector[d] < fusedFateVector[worst] ? d : worst, 'life' as FateDimension);
 
   const causalSummary =
-    `九大命理体系统一编排完成。` +
+    `${activeNames.length}大命理体系统一编排完成（${queryType}）。` +
     `最强维度：${FATE_DIMENSION_LABELS[topDim]}(${fusedFateVector[topDim]}分)，` +
     `最弱维度：${FATE_DIMENSION_LABELS[weakDim]}(${fusedFateVector[weakDim]}分)。` +
     `检测到${conflicts.length}个体系冲突，` +
     `综合置信度${Math.round(finalConfidence * 100)}%。` +
     (conflicts.length > 0 ? `主要分歧：${conflicts[0].explanation}` : '各体系高度共振。');
 
-  // Prediction ID
-  const hex = ((input.year * 13 + input.month * 7 + input.day * 3 + input.hour) % 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+  // ── Prediction ID ──
+  const { year, month, day, hour } = standardizedInput.birthLocalDateTime;
+  const hex = ((year * 13 + month * 7 + day * 3 + hour) % 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
   const predictionId = `UPR-${hex}-${Date.now().toString(36)}`;
 
   const unifiedResult: UnifiedPredictionResult = {
@@ -605,10 +722,44 @@ function orchestrate(
     finalConfidence,
     causalSummary,
     generatedAt: new Date().toISOString(),
-    algorithmVersion: '3.0.0',
+    algorithmVersion: '3.1.0',
+    activeEngines: activeNames,
+    skippedEngines: skippedEngineList,
+    activationReasonSummary: activationSummary,
   };
 
-  return { unifiedResult, engineOutputs, rawData, systems };
+  // ── Legacy SystemAnalysis[] ──
+  const fav = tiebanResult.baziProfile.favorableElements;
+  const unfav = tiebanResult.baziProfile.unfavorableElements;
+  const mingStars = ziweiResult.ziweiReport.palaces.find(p => p.isMing)?.stars.map(s => s.name).join('、') || '无';
+
+  const systems: SystemAnalysis[] = [
+    { id: 'tieban', name: 'Iron Plate', nameCN: '铁板神数', origin: '中国', weight: 0.15, lifeVectors: tiebanVectors, meta: { '条文基数': String(tiebanResult.theoBase) } },
+    { id: 'bazi', name: 'BaZi', nameCN: '八字命理', origin: '中国', weight: 0.15, lifeVectors: baziVectors, meta: { '日主': `${tiebanResult.baziProfile.dayMaster}(${tiebanResult.baziProfile.dayMasterElement})`, '喜用': fav.join(''), '忌': unfav.join('') } },
+    { id: 'ziwei', name: 'Ziwei Doushu', nameCN: '紫微斗数', origin: '中国', weight: 0.14, lifeVectors: {}, meta: { '命宫': ziweiResult.ziweiReport.mingGong, '主星': mingStars, '五行局': ziweiResult.ziweiReport.wuxingju.name } },
+    { id: 'liuyao', name: 'Liu Yao', nameCN: '六爻卦象', origin: '中国', weight: 0.10, lifeVectors: {}, meta: { '卦名': liuYaoResult.mainHexagram.name, '动爻': String(liuYaoResult.mainHexagram.changingLines.length) } },
+    { id: 'western', name: 'Western Astrology', nameCN: '西方占星', origin: '西方', weight: 0.12, lifeVectors: westernResult.westernReport.lifeVectors, meta: { '太阳': WesternAstrologyEngine.getSignCN(westernResult.westernReport.sunSign), '月亮': WesternAstrologyEngine.getSignCN(westernResult.westernReport.moonSign), '上升': WesternAstrologyEngine.getSignCN(westernResult.westernReport.risingSign) } },
+    { id: 'vedic', name: 'Jyotish', nameCN: '吠陀占星', origin: '印度', weight: 0.10, lifeVectors: vedicResult.vedicReport.lifeVectors, meta: { '月亮星座': vedicResult.vedicReport.rashiSignCN, '月宿': vedicResult.vedicReport.moonNakshatra.nameCN, 'Yoga': vedicResult.vedicReport.yogas[0] || '' } },
+    { id: 'numerology', name: 'Numerology', nameCN: '数字命理', origin: '西方', weight: 0.08, lifeVectors: numResult.numerologyReport.lifeVectors, meta: { '生命数': String(numResult.numerologyReport.lifePath), '含义': numResult.numerologyReport.lifePathMeaning.slice(0, 10) } },
+    { id: 'mayan', name: 'Mayan Calendar', nameCN: '玛雅历法', origin: '中美洲', weight: 0.08, lifeVectors: mayanResult.mayanReport.lifeVectors, meta: { '日符': mayanResult.mayanReport.daySignCN, '银河音': String(mayanResult.mayanReport.galacticTone), 'Kin': String(mayanResult.mayanReport.kin) } },
+    { id: 'kabbalah', name: 'Kabbalah', nameCN: '卡巴拉', origin: '希伯来', weight: 0.08, lifeVectors: kabResult.kabbalahReport.lifeVectors, meta: { '灵魂质点': kabResult.kabbalahReport.soulSephirah.nameCN, '人格质点': kabResult.kabbalahReport.personalitySephirah.nameCN } },
+  ];
+
+  return {
+    unifiedResult,
+    rawData: {
+      baziProfile: tiebanResult.baziProfile,
+      fullReport: tiebanResult.fullReport,
+      ziweiReport: ziweiResult.ziweiReport,
+      liuYaoResult,
+      westernReport: westernResult.westernReport,
+      vedicReport: vedicResult.vedicReport,
+      numerologyReport: numResult.numerologyReport,
+      mayanReport: mayanResult.mayanReport,
+      kabbalahReport: kabResult.kabbalahReport,
+    },
+    systems,
+  };
 }
 
 // ═══════════════════════════════════════════════
@@ -989,13 +1140,14 @@ function clamp(v: number): number {
 
 export const QuantumPredictionEngine = {
   /**
-   * Legacy predict() — returns old QuantumPredictionResult with embedded UnifiedPredictionResult.
+   * Legacy predict() — builds StandardizedInput internally, returns old QuantumPredictionResult.
    */
   predict(input: QuantumInput, systemOffset: number = 0): QuantumPredictionResult {
     const timestamp = new Date();
+    const si = quantumInputToStandardized(input);
 
-    // P1: Run unified orchestration
-    const { unifiedResult, rawData, systems } = orchestrate(input, systemOffset);
+    // P1.1: Run unified orchestration with StandardizedInput
+    const { unifiedResult, rawData, systems } = orchestrate(si, systemOffset);
     const { baziProfile, fullReport, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport } = rawData;
 
     // Legacy Phase 2-4
@@ -1025,11 +1177,17 @@ export const QuantumPredictionEngine = {
   },
 
   /**
-   * P1: New orchestrate() — returns only the UnifiedPredictionResult.
+   * P1.1: New orchestrate() — accepts StandardizedInput as sole entry point.
+   * Returns only the UnifiedPredictionResult.
    */
-  orchestrate(input: QuantumInput, systemOffset: number = 0, queryType: QueryType = 'natalAnalysis'): UnifiedPredictionResult {
-    return orchestrate(input, systemOffset, queryType).unifiedResult;
+  orchestrate(standardizedInput: StandardizedInput, systemOffset: number = 0): UnifiedPredictionResult {
+    return orchestrate(standardizedInput, systemOffset).unifiedResult;
   },
+
+  /**
+   * Helper to build StandardizedInput from legacy QuantumInput (for callers migrating).
+   */
+  buildStandardizedInput: quantumInputToStandardized,
 
   getAspectLabel(aspect: LifeAspect): string {
     return ASPECT_LABELS[aspect];

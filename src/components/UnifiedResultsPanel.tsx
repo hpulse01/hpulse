@@ -1,9 +1,10 @@
 /**
  * Unified Prediction Results Panel
  *
- * Displays the P1 UnifiedPredictionResult:
+ * Displays the P1.1 UnifiedPredictionResult:
  * - Fused 6-dimensional FateVector radar/bar
  * - Per-engine confidence & weight
+ * - Active/skipped engines
  * - Detected conflicts with explanations
  * - Causal summary
  * - Uncertainty notes
@@ -12,11 +13,11 @@
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { UnifiedPredictionResult, FateDimension, PredictionConflict, EngineOutput, WeightEntry } from '@/types/prediction';
+import type { UnifiedPredictionResult, FateDimension, PredictionConflict } from '@/types/prediction';
 import { ALL_FATE_DIMENSIONS, FATE_DIMENSION_LABELS } from '@/types/prediction';
 import {
   BarChart3, AlertTriangle, Sparkles, Shield, Info, ChevronRight,
-  TrendingUp, Activity, Brain, Heart, Coins, Sun,
+  TrendingUp, Activity, Brain, Heart, Coins, Sun, CheckCircle, XCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -66,7 +67,7 @@ function FateVectorDisplay({ result }: { result: UnifiedPredictionResult }) {
           <BarChart3 className="w-4 h-4" />融合命运向量
         </h3>
         <Badge variant="outline" className="text-[9px] border-violet-500/20 text-violet-300/70">
-          {result.engineOutputs.length}系融合
+          {result.activeEngines.length}系融合
         </Badge>
       </div>
       {ALL_FATE_DIMENSIONS.map(dim => {
@@ -90,6 +91,33 @@ function FateVectorDisplay({ result }: { result: UnifiedPredictionResult }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function EngineActivationDisplay({ result }: { result: UnifiedPredictionResult }) {
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-serif text-violet-300 flex items-center gap-1.5">
+        <CheckCircle className="w-4 h-4" />引擎激活策略
+      </h3>
+      <p className="text-[10px] text-muted-foreground">{result.activationReasonSummary}</p>
+      <div className="space-y-1">
+        {result.engineOutputs.map(eo => (
+          <div key={eo.engineName} className="flex items-center gap-2 text-xs">
+            <CheckCircle className="w-3 h-3 text-emerald-400" />
+            <span className="text-foreground">{eo.engineNameCN}</span>
+            <span className="text-muted-foreground text-[10px]">v{eo.engineVersion}</span>
+          </div>
+        ))}
+        {result.skippedEngines.map(se => (
+          <div key={se.engineName} className="flex items-center gap-2 text-xs">
+            <XCircle className="w-3 h-3 text-muted-foreground/50" />
+            <span className="text-muted-foreground">{se.engineName}</span>
+            <span className="text-muted-foreground/60 text-[10px]">— {se.reason}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -141,7 +169,7 @@ function ConflictList({ conflicts }: { conflicts: PredictionConflict[] }) {
     return (
       <div className="p-4 text-center text-xs text-muted-foreground">
         <Sparkles className="w-5 h-5 mx-auto mb-2 text-emerald-400" />
-        九大体系高度共振，未检测到显著冲突
+        各活跃体系高度共振，未检测到显著冲突
       </div>
     );
   }
@@ -327,7 +355,8 @@ export function UnifiedResultsPanel({ result }: UnifiedResultsPanelProps) {
         <p className="text-xs text-muted-foreground leading-relaxed">{result.causalSummary}</p>
         <div className="flex flex-wrap gap-3 mt-2 text-[10px] text-muted-foreground">
           <span>综合置信度: <strong className={scoreColor(result.finalConfidence * 100)}>{Math.round(result.finalConfidence * 100)}%</strong></span>
-          <span>引擎数: <strong className="text-violet-300">{result.engineOutputs.length}</strong></span>
+          <span>活跃引擎: <strong className="text-violet-300">{result.activeEngines.length}</strong></span>
+          <span>跳过引擎: <strong className="text-muted-foreground">{result.skippedEngines.length}</strong></span>
           <span>冲突数: <strong className={result.conflicts.length > 3 ? 'text-rose-400' : 'text-emerald-400'}>{result.conflicts.length}</strong></span>
           <span>版本: <strong className="text-violet-300">{result.algorithmVersion}</strong></span>
         </div>
@@ -335,9 +364,12 @@ export function UnifiedResultsPanel({ result }: UnifiedResultsPanelProps) {
 
       {/* Tabbed content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 bg-violet-950/30 border border-violet-500/20 h-auto">
+        <TabsList className="grid w-full grid-cols-5 bg-violet-950/30 border border-violet-500/20 h-auto">
           <TabsTrigger value="vector" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
             命运向量
+          </TabsTrigger>
+          <TabsTrigger value="activation" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
+            激活策略
           </TabsTrigger>
           <TabsTrigger value="engines" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
             引擎详情
@@ -358,6 +390,12 @@ export function UnifiedResultsPanel({ result }: UnifiedResultsPanelProps) {
             <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4">
               <EngineVectorComparison result={result} />
             </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="activation" className="mt-4">
+          <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4">
+            <EngineActivationDisplay result={result} />
           </div>
         </TabsContent>
 
