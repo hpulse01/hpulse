@@ -4,20 +4,21 @@
  * Tropical zodiac system: Sun sign, Moon sign, Rising sign,
  * planetary house placements, and major aspects.
  *
- * REFACTORED: Now uses astronomy-engine via shared celestial layer
- * for sub-arcsecond precision planetary positions.
- * Previous version used linear mean-motion approximation (error up to ±30°).
+ * REFACTORED v2.1: Uses real GAST-based Ascendant/MC from shared celestial layer.
+ * Requires UTC datetime + geographic coordinates for accurate Rising sign.
  *
  * @source_urls
  *   - https://github.com/cosinekitty/astronomy (astronomy-engine, NASA JPL)
+ *   - Meeus, "Astronomical Algorithms", 2nd ed. (Ascendant/MC formulas)
  *   - https://en.wikipedia.org/wiki/Astrological_aspect
  *   - https://en.wikipedia.org/wiki/Domicile_(astrology)
  * @source_grade A (astronomical calculations), B (aspect interpretation rules)
- * @algorithm_version 2.0.0
+ * @algorithm_version 2.1.0
  * @rule_school Tropical zodiac, Whole Sign houses
  * @uncertainty_notes
  *   - Planetary longitudes: sub-arcsecond (astronomy-engine + JPL DE405)
- *   - Ascendant: ~1° accuracy without geographic latitude input
+ *   - Ascendant: ~0.5° with correct UTC time + geographic coordinates
+ *   - Without geo coords, defaults to 0°N 0°E (Rising sign WILL be wrong)
  *   - House system: Whole Sign (simplest, no interpolation needed)
  *   - Aspect orbs follow common Western astrology convention (varies by school)
  *   - Life vector scoring is heuristic modeling, not a traditional astrological method
@@ -37,8 +38,10 @@ export interface WesternAstrologyInput {
   year: number;
   month: number;
   day: number;
-  hour: number;
-  minute: number;
+  hour: number;       // UTC hour (0-23)
+  minute: number;     // UTC minute (0-59)
+  geoLatitude?: number;   // degrees, north positive
+  geoLongitude?: number;  // degrees, east positive
 }
 
 export interface PlanetPosition {
@@ -170,11 +173,15 @@ function toPlanetPosition(cp: CelestialPosition, ascSignIdx: number): PlanetPosi
 export const WesternAstrologyEngine = {
   calculate(input: WesternAstrologyInput): WesternAstrologyReport {
     // Get precise planetary positions from shared astronomy layer
+    // Passes geographic coordinates for real Ascendant/MC calculation
     const snapshot = getCelestialSnapshot(
-      input.year, input.month, input.day, input.hour, input.minute,
+      input.year, input.month, input.day,
+      input.hour, input.minute,
+      input.geoLatitude ?? 0,
+      input.geoLongitude ?? 0,
     );
 
-    // Ascendant sign
+    // Ascendant sign (computed from real GAST + geographic coordinates)
     const ascSignIdx = Math.floor(snapshot.ascendantLongitude / 30) % 12;
     const risingSign = SIGNS[ascSignIdx];
 
@@ -231,7 +238,7 @@ export const WesternAstrologyEngine = {
       'https://en.wikipedia.org/wiki/Domicile_(astrology)',
     ],
     source_grade: 'A' as const,
-    algorithm_version: '2.0.0',
+    algorithm_version: '2.1.0',
     rule_school: 'Tropical Zodiac, Whole Sign Houses',
     uncertainty_notes: [
       ...CELESTIAL_LAYER_METADATA.uncertainty_notes,
