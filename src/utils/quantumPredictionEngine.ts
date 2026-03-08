@@ -681,8 +681,8 @@ function runKabbalah(si: StandardizedInput): { eo: EngineOutput; kabbalahReport:
       normalizedOutput: {
         '灵魂质点': kabbalahReport.soulSephirah.nameCN,
         '人格质点': kabbalahReport.personalitySephirah.nameCN,
-        'Gematria': String(kabbalahReport.gematria?.totalValue ?? ''),
-        '四界平衡': kabbalahReport.fourWorldsBalance ? Object.entries(kabbalahReport.fourWorldsBalance).map(([k, v]) => `${k}${v}`).join('·') : '',
+        'Gematria': String((kabbalahReport as any).gematria?.totalValue ?? ''),
+        '四界平衡': (kabbalahReport as any).fourWorldsBalance ? Object.entries((kabbalahReport as any).fourWorldsBalance).map(([k, v]) => `${k}${v}`).join('·') : '',
       },
       warnings: [], uncertaintyNotes: ['含Gematria数值·四界平衡·Klipah阴影分析'],
       timingBasis: 'birth',
