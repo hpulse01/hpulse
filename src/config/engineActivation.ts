@@ -48,6 +48,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     numerology: { active: true,  reason: '数字月度参考' },
     mayan:      { active: true,  reason: '玛雅Uinal周期' },
     kabbalah:   { active: true,  reason: '卡巴拉月度参考' },
+    meihua:     { active: true,  reason: '梅花易数可用于月度感应占断，低权重' },
   },
   dailyForecast: {
     tieban:     { active: false, reason: '铁板不具备日度精度' },
