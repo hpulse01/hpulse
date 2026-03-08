@@ -648,7 +648,7 @@ function runVedic(si: StandardizedInput): { eo: EngineOutput; vedicReport: Vedic
       computationTimeMs: Math.round(t1 - t0),
       rawInputSnapshot: { year: input.year, month: input.month, day: input.day, hour: input.hour, minute: input.minute, lat: input.geoLatitude, lon: input.geoLongitude },
       fateVector: lifeVectorsToFateVector(vedicReport.lifeVectors),
-      normalizedOutput: { '月亮星座': vedicReport.rashiSignCN, '月宿': vedicReport.moonNakshatra.nameCN, 'Yoga': vedicReport.yogas[0] || '' },
+      normalizedOutput: { '月亮星座': vedicReport.rashiSignCN, '月宿': vedicReport.moonNakshatra.nameCN, 'Yoga': vedicReport.yogas[0]?.name || '' },
       warnings: [],
       uncertaintyNotes: VedicAstrologyEngine.metadata.uncertainty_notes,
       timingBasis: 'birth',
