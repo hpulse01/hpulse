@@ -1268,7 +1268,7 @@ export const QuantumPredictionEngine = {
         }
         // Instant engine events
         if (['liuyao', 'meihua', 'qimen', 'liuren', 'taiyi'].includes(eo.engineName)) {
-          allSeeds.push(...extractInstantEvents(eo, si.queryTimeUtc));
+          allSeeds.push(...extractInstantEvents(eo, si.queryTimeUtc, input.year));
         }
       }
 

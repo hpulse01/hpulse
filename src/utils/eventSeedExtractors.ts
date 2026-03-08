@@ -997,20 +997,20 @@ export function extractNumerologyEvents(
   // Personal year cycles → yearly events
   for (const py of report.personalYears) {
     if (py.age < 20 || py.age > 70) continue;
-    if (py.energy < 30 || py.energy > 75) {
+      if (py.energy < 30 || py.energy > 75) {
       seeds.push({
         id: seedId('numerology', 'turning_point', py.age, `py-${py.year}`),
         engineName: 'numerology', engineVersion: '1.0.0', timingBasis: 'birth',
         category: py.energy > 60 ? 'career' : 'health',
-        subcategory: `个人年${py.personalYear}`,
-        description: `数字命理${py.year}年(${py.age}岁)个人年${py.personalYear}：${py.energy > 60 ? '能量充沛' : '低能量期需休整'}`,
+        subcategory: `个人年${py.number}`,
+        description: `数字命理${py.year}年(${py.age}岁)个人年${py.number}：${py.energy > 60 ? '能量充沛' : '低能量期需休整'}`,
         earliestAge: py.age, latestAge: py.age,
         probability: 0.4, intensity: 'minor',
-        causalFactors: [`个人年数${py.personalYear}`, `能量${py.energy}`],
+        causalFactors: [`个人年数${py.number}`, `能量${py.energy}`],
         triggerConditions: [], deathRelated: false,
         mergeKey: `age-${py.age}-${py.energy > 60 ? 'career' : 'health'}`,
         fateImpact: py.energy > 60 ? { life: 3 } : { life: -3 },
-        sourceDetail: `数字命理个人年${py.personalYear}`,
+        sourceDetail: `数字命理个人年${py.number}`,
       });
     }
   }
