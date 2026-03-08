@@ -158,6 +158,7 @@ export interface QuantumPredictionResult {
 
   // Raw system data for detail panel
   baziProfile: BaZiProfile;
+  fullReport: FullDestinyReport;
   ziweiReport: ZiweiReport;
   liuYaoResult: LiuYaoResult;
   westernReport: WesternAstrologyReport;
