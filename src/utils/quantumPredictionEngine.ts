@@ -620,9 +620,9 @@ function runNumerology(si: StandardizedInput): { eo: EngineOutput; numerologyRep
       normalizedOutput: {
         '生命数': String(numerologyReport.lifePath),
         '含义': numerologyReport.lifePathMeaning.slice(0, 20),
-        '灵魂数': String(numerologyReport.soulNumber ?? ''),
-        '人格数': String(numerologyReport.personalityNumber ?? ''),
-        '成熟数': String(numerologyReport.maturityNumber ?? ''),
+        '灵魂数': String((numerologyReport as any).soulNumber ?? ''),
+        '人格数': String((numerologyReport as any).personalityNumber ?? ''),
+        '成熟数': String((numerologyReport as any).maturityNumber ?? ''),
       },
       warnings: [], uncertaintyNotes: ['含业力债数·成熟数·生命路径周期'],
       timingBasis: 'birth',
