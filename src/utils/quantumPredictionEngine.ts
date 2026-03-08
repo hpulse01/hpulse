@@ -1261,12 +1261,24 @@ export const QuantumPredictionEngine = {
       if (rawData.ziweiReport) {
         allSeeds.push(...extractZiweiEvents(rawData.ziweiReport, input.year));
       }
-      // Generic events from western, vedic, numerology, mayan, kabbalah
+      // Specific extractors for world system engines
+      if (rawData.westernReport) {
+        allSeeds.push(...extractWesternEvents(rawData.westernReport, input.year));
+      }
+      if (rawData.vedicReport) {
+        allSeeds.push(...extractVedicEvents(rawData.vedicReport, input.year));
+      }
+      if (rawData.numerologyReport) {
+        allSeeds.push(...extractNumerologyEvents(rawData.numerologyReport, input.year));
+      }
+      if (rawData.mayanReport) {
+        allSeeds.push(...extractMayanEvents(rawData.mayanReport, input.year));
+      }
+      if (rawData.kabbalahReport) {
+        allSeeds.push(...extractKabbalahEvents(rawData.kabbalahReport, input.year));
+      }
+      // Instant engine events
       for (const eo of unifiedResult.engineOutputs) {
-        if (['western', 'vedic', 'numerology', 'mayan', 'kabbalah'].includes(eo.engineName)) {
-          allSeeds.push(...extractGenericEvents(eo, input.year));
-        }
-        // Instant engine events
         if (['liuyao', 'meihua', 'qimen', 'liuren', 'taiyi'].includes(eo.engineName)) {
           allSeeds.push(...extractInstantEvents(eo, si.queryTimeUtc, input.year));
         }
