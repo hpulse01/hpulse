@@ -32,7 +32,7 @@ import {
 } from '@/utils/quantumPredictionEngine';
 import { QuantumField } from '@/components/quantum/QuantumField';
 import { useToast } from '@/hooks/use-toast';
-import { Atom, RotateCcw, Sparkles, Scroll, Zap, TreePine, Target, Layers, Shield, Activity } from 'lucide-react';
+import { Atom, RotateCcw, Sparkles, Scroll, Zap, TreePine, Target, Layers, Shield, Activity, AlertTriangle } from 'lucide-react';
 
 type AppStep = 'input' | 'calculating' | 'verification' | 'projecting' | 'result';
 
