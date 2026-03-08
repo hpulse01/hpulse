@@ -515,6 +515,7 @@ export function UnifiedResultsPanel({ result }: UnifiedResultsPanelProps) {
               <EngineConfidenceList result={result} />
               <MeihuaDetail result={result} />
               <QimenDetail result={result} />
+              <LiuRenDetail result={result} />
             </ScrollArea>
           </div>
         </TabsContent>
