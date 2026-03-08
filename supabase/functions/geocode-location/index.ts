@@ -92,7 +92,6 @@ function refineOffsetForDate(ianaTimezone: string, standardOffset: number, _birt
   // TODO: Add DST detection using timeapi.io conversion API for DST-affected zones.
   return standardOffset;
 }
-}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
