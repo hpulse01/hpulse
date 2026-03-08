@@ -33,23 +33,38 @@ import { KeywordParser, type ParsedKeywords } from '@/utils/KeywordParser';
 import { Input } from '@/components/ui/input';
 import { Sparkles, Users, Minus, Plus, Crown, Star, Calendar, CheckCircle2, AlertCircle, Search, Lightbulb } from 'lucide-react';
 
+import zodiacRat from '@/assets/zodiac/rat.png';
+import zodiacOx from '@/assets/zodiac/ox.png';
+import zodiacTiger from '@/assets/zodiac/tiger.png';
+import zodiacRabbit from '@/assets/zodiac/rabbit.png';
+import zodiacDragon from '@/assets/zodiac/dragon.png';
+import zodiacSnake from '@/assets/zodiac/snake.png';
+import zodiacHorse from '@/assets/zodiac/horse.png';
+import zodiacGoat from '@/assets/zodiac/goat.png';
+import zodiacMonkey from '@/assets/zodiac/monkey.png';
+import zodiacRooster from '@/assets/zodiac/rooster.png';
+import zodiacDog from '@/assets/zodiac/dog.png';
+import zodiacPig from '@/assets/zodiac/pig.png';
+
 // ==========================================
 // CONSTANTS
 // ==========================================
 
+const ZODIAC_ICONS = [zodiacRat, zodiacOx, zodiacTiger, zodiacRabbit, zodiacDragon, zodiacSnake, zodiacHorse, zodiacGoat, zodiacMonkey, zodiacRooster, zodiacDog, zodiacPig];
+
 const ZODIAC_OPTIONS = [
-  { value: 0, emoji: '🐭', branch: '子', name: '鼠', english: 'Rat' },
-  { value: 1, emoji: '🐮', branch: '丑', name: '牛', english: 'Ox' },
-  { value: 2, emoji: '🐯', branch: '寅', name: '虎', english: 'Tiger' },
-  { value: 3, emoji: '🐰', branch: '卯', name: '兔', english: 'Rabbit' },
-  { value: 4, emoji: '🐲', branch: '辰', name: '龙', english: 'Dragon' },
-  { value: 5, emoji: '🐍', branch: '巳', name: '蛇', english: 'Snake' },
-  { value: 6, emoji: '🐴', branch: '午', name: '马', english: 'Horse' },
-  { value: 7, emoji: '🐑', branch: '未', name: '羊', english: 'Goat' },
-  { value: 8, emoji: '🐵', branch: '申', name: '猴', english: 'Monkey' },
-  { value: 9, emoji: '🐔', branch: '酉', name: '鸡', english: 'Rooster' },
-  { value: 10, emoji: '🐕', branch: '戌', name: '狗', english: 'Dog' },
-  { value: 11, emoji: '🐷', branch: '亥', name: '猪', english: 'Pig' },
+  { value: 0, branch: '子', name: '鼠', english: 'Rat' },
+  { value: 1, branch: '丑', name: '牛', english: 'Ox' },
+  { value: 2, branch: '寅', name: '虎', english: 'Tiger' },
+  { value: 3, branch: '卯', name: '兔', english: 'Rabbit' },
+  { value: 4, branch: '辰', name: '龙', english: 'Dragon' },
+  { value: 5, branch: '巳', name: '蛇', english: 'Snake' },
+  { value: 6, branch: '午', name: '马', english: 'Horse' },
+  { value: 7, branch: '未', name: '羊', english: 'Goat' },
+  { value: 8, branch: '申', name: '猴', english: 'Monkey' },
+  { value: 9, branch: '酉', name: '鸡', english: 'Rooster' },
+  { value: 10, branch: '戌', name: '狗', english: 'Dog' },
+  { value: 11, branch: '亥', name: '猪', english: 'Pig' },
 ];
 
 const PARENTS_STATUS_OPTIONS = [
