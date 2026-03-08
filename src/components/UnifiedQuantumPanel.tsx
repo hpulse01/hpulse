@@ -59,6 +59,7 @@ const EVENT_TYPE_COLORS: Record<string, string> = {
 // ─── Sub-components ───
 
 function EventCard({ event, currentAge }: { event: CollapsedEvent; currentAge: number }) {
+  const { lang } = useI18n();
   const isCurrent = event.age === currentAge;
   const isPast = event.age < currentAge;
   const typeCN = QuantumPredictionEngine.getEventTypeCN(event.eventType);
@@ -68,15 +69,15 @@ function EventCard({ event, currentAge }: { event: CollapsedEvent; currentAge: n
     <div className={`p-3 rounded-lg border transition-all ${isCurrent ? 'ring-2 ring-violet-500/50 shadow-lg shadow-violet-500/10 ' : ''} ${isPast ? 'opacity-60 ' : ''} ${typeColor}`}>
       <div className="flex items-start gap-3">
         <div className="text-center min-w-[48px]">
-          <div className={`text-lg font-serif ${isCurrent ? 'text-violet-300' : 'text-foreground'}`}>{event.age}<span className="text-[10px] text-muted-foreground">岁</span></div>
+          <div className={`text-lg font-serif ${isCurrent ? 'text-violet-300' : 'text-foreground'}`}>{event.age}<span className="text-[10px] text-muted-foreground">{lang === 'zh' ? '岁' : ''}</span></div>
           <div className="text-[10px] text-muted-foreground">{event.year}</div>
           <div className="text-[10px] text-violet-300/60">{event.ganZhi}</div>
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap mb-1">
             <span className="text-sm font-serif text-foreground">{event.title}</span>
-            <Badge variant="outline" className="text-[9px] px-1 py-0 border-violet-500/30 text-violet-300">{typeCN}</Badge>
-            {event.convergence > 0.4 && <Badge variant="outline" className="text-[9px] px-1 py-0 border-fuchsia-500/30 text-fuchsia-300">{event.systemVotes.length}系共振</Badge>}
+            <span className="text-[9px] px-1 py-0 border border-violet-500/30 text-violet-300 rounded">{typeCN}</span>
+            {event.convergence > 0.4 && <span className="text-[9px] px-1 py-0 border border-fuchsia-500/30 text-fuchsia-300 rounded">{event.systemVotes.length}{lang === 'zh' ? '系共振' : ' resonance'}</span>}
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">{event.description}</p>
           <div className="flex items-center gap-2 mt-1.5">
