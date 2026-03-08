@@ -49,6 +49,30 @@ export interface QimenPattern {
   palace?: number;
 }
 
+/** v3.0: 空亡信息 */
+export interface KongWangInfo {
+  branches: [string, string];
+  affectedPalaces: number[];
+  interpretation: string;
+}
+
+/** v3.0: 马星信息 */
+export interface MaXingInfo {
+  branch: string;
+  palace: number;
+  isActive: boolean;
+  interpretation: string;
+}
+
+/** v3.0: 用神分析 */
+export interface YongShenAnalysis {
+  category: string;
+  yongShenPalace: number;
+  palaceGate: string;
+  palaceStar: string;
+  assessment: string;
+}
+
 export interface QimenResult {
   chart: QimenChart;
   score: number;
@@ -58,6 +82,12 @@ export interface QimenResult {
   patterns: QimenPattern[];
   /** v2.0: Hour stem palace analysis */
   hourPalaceAnalysis: string;
+  /** v3.0: 空亡 */
+  kongWang: KongWangInfo;
+  /** v3.0: 马星 */
+  maXing: MaXingInfo;
+  /** v3.0: 用神分析 */
+  yongShenAnalysis: YongShenAnalysis[];
 }
 
 export interface QimenInput {
