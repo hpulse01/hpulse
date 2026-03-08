@@ -2,17 +2,10 @@
  * P1 Engine Activation Strategy
  *
  * Defines which engines are activated for each queryType.
- * Key rules:
- * - natalAnalysis does NOT activate liuyao (breaks determinism)
- * - instantDecision heavily relies on liuyao
- * - Deterministic queryTypes must produce stable outputs
  */
 
 import type { QueryType, EngineName, EngineActivationRule } from '@/types/prediction';
 
-/**
- * Activation table: for each queryType, which engines are active.
- */
 const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; reason: string }>> = {
   natalAnalysis: {
     tieban:     { active: true,  reason: '铁板神数为本命推算核心' },
@@ -26,6 +19,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     kabbalah:   { active: true,  reason: '卡巴拉提供灵性维度补充' },
     meihua:     { active: false, reason: '梅花易数为即时感应体系，不适用于本命分析' },
     qimen:      { active: false, reason: '奇门遁甲为时态决策体系，不适用于本命分析' },
+    liuren:     { active: false, reason: '大六壬为即时问事体系，不适用于确定性本命分析' },
   },
   annualForecast: {
     tieban:     { active: true,  reason: '铁板流年条文为年度预测核心' },
@@ -39,6 +33,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     kabbalah:   { active: true,  reason: '卡巴拉灵性参考' },
     meihua:     { active: false, reason: '梅花易数不适用于年度确定性预测' },
     qimen:      { active: false, reason: '奇门遁甲不适用于年度确定性预测' },
+    liuren:     { active: false, reason: '大六壬不适用于年度确定性预测' },
   },
   monthlyForecast: {
     tieban:     { active: true,  reason: '铁板流月条文可用但精度有限' },
@@ -52,6 +47,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     kabbalah:   { active: true,  reason: '卡巴拉月度参考' },
     meihua:     { active: true,  reason: '梅花易数可用于月度感应占断，低权重' },
     qimen:      { active: true,  reason: '奇门遁甲可用于月度时态分析，低权重' },
+    liuren:     { active: true,  reason: '大六壬可用于月度问事占断，低权重' },
   },
   dailyForecast: {
     tieban:     { active: false, reason: '铁板不具备日度精度' },
@@ -65,6 +61,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     kabbalah:   { active: false, reason: '卡巴拉日度参考有限' },
     meihua:     { active: true,  reason: '梅花易数可用于日度感应占断' },
     qimen:      { active: true,  reason: '奇门遁甲时家盘与日度决策高度相关' },
+    liuren:     { active: true,  reason: '大六壬日课占断与日度分析相关' },
   },
   instantDecision: {
     tieban:     { active: false, reason: '铁板不适用即时决策' },
@@ -78,21 +75,15 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     kabbalah:   { active: true,  reason: '卡巴拉即时参考' },
     meihua:     { active: true,  reason: '梅花易数为即时感应占断核心体系' },
     qimen:      { active: true,  reason: '奇门遁甲时家盘为即时决策核心体系' },
+    liuren:     { active: true,  reason: '大六壬为即时问事占断核心体系' },
   },
 };
 
-/**
- * Whether a given queryType is deterministic (same input → same output).
- * Non-deterministic types allow time-dependent engines like liuyao.
- */
 export const DETERMINISTIC_QUERY_TYPES: Set<QueryType> = new Set([
   'natalAnalysis',
   'annualForecast',
 ]);
 
-/**
- * Get activation rules for a given queryType.
- */
 export function getEngineActivation(queryType: QueryType): EngineActivationRule[] {
   const table = ACTIVATION_TABLE[queryType] ?? ACTIVATION_TABLE.natalAnalysis;
   return Object.entries(table).map(([engine, rule]) => ({
@@ -102,27 +93,18 @@ export function getEngineActivation(queryType: QueryType): EngineActivationRule[
   }));
 }
 
-/**
- * Get active engine names for a queryType.
- */
 export function getActiveEngines(queryType: QueryType): EngineName[] {
   return getEngineActivation(queryType)
     .filter(r => r.active)
     .map(r => r.engine);
 }
 
-/**
- * Get skipped engines with reasons for a queryType.
- */
 export function getSkippedEngines(queryType: QueryType): Array<{ engineName: string; reason: string }> {
   return getEngineActivation(queryType)
     .filter(r => !r.active)
     .map(r => ({ engineName: r.engine, reason: r.reason }));
 }
 
-/**
- * Build a human-readable activation summary.
- */
 export function buildActivationSummary(queryType: QueryType): string {
   const active = getActiveEngines(queryType);
   const skipped = getSkippedEngines(queryType);
