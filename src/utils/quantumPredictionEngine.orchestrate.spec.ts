@@ -32,7 +32,7 @@ describe('QuantumPredictionEngine.orchestrate', () => {
     expect(result.skippedEngines).toBeDefined();
     expect(result.activationReasonSummary).toBeTruthy();
     expect(result.fusedFateVector).toBeDefined();
-    expect(result.algorithmVersion).toBe('4.1.0');
+    expect(result.algorithmVersion).toBe('5.0.0');
   });
 
   it('natalAnalysis activates all 13 engines including liuyao (low weight)', () => {

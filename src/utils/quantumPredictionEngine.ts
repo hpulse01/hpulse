@@ -48,8 +48,10 @@ import type {
   TimingBasis,
 } from '@/types/prediction';
 import { ALL_FATE_DIMENSIONS, FATE_DIMENSION_LABELS } from '@/types/prediction';
-import { getWeightsForQueryType } from '@/config/engineWeights';
-import { detectConflicts, fuseFateVectors } from '@/utils/conflictResolver';
+import { calculateDynamicWeights, getWeightsForQueryType } from '@/config/engineWeights';
+import { detectConflicts, fuseFateVectors, generateConflictReport } from '@/utils/conflictResolver';
+import { generateCollapseSeed, quantumCollapsePipeline, calculateFateVectorCoherence } from '@/utils/quantumMath';
+import type { WorldLineInput } from '@/utils/quantumMath';
 import {
   getActiveEngines,
   getSkippedEngines,
@@ -764,12 +766,17 @@ function orchestrate(
   const liurenResultWrapped = executeEngine('liuren', 'query', () => buildLiuRenEngineOutput(standardizedInput));
   const taiyiResultWrapped = executeEngine('taiyi', 'query', () => buildTaiyiEngineOutput(standardizedInput));
 
-  // Dynamic weights
-  const executedNames = engineOutputs.map(e => e.engineName);
-  const weightConfigs = getWeightsForQueryType(queryType, executedNames);
-  const weightsUsed: WeightEntry[] = weightConfigs.map(w => ({
-    engineName: w.engineName, weight: w.weight, reason: w.reason,
-  }));
+    // Dynamic weights W(t, e, d)
+    const executedNames = engineOutputs.map(e => e.engineName);
+    const currentAge = new Date().getFullYear() - standardizedInput.birthLocalDateTime.year;
+    const dynamicResult = calculateDynamicWeights({
+      queryType,
+      age: currentAge,
+      activeEngines: executedNames,
+    });
+    const weightsUsed: WeightEntry[] = dynamicResult.weights.map(w => ({
+      engineName: w.engineName, weight: w.weight, reason: w.reason,
+    }));
 
   // Conflict detection & fusion
   const conflicts = detectConflicts(engineOutputs, weightsUsed);
@@ -815,7 +822,7 @@ function orchestrate(
     finalConfidence,
     causalSummary,
     generatedAt: new Date().toISOString(),
-    algorithmVersion: '4.1.0',
+    algorithmVersion: '5.0.0',
     activeEngines: activeEngineNames,
     executedEngines,
     skippedEngines: skippedEngineList,
