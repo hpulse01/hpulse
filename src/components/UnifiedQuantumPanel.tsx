@@ -214,7 +214,7 @@ export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelPr
                             <div className="flex-1 h-1 bg-secondary/50 rounded-full overflow-hidden">
                               <div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-400 transition-all duration-700" style={{ width: `${state.probability}%` }} />
                             </div>
-                            <div className={`flex items-center gap-0.5 ${TREND_COLORS[state.trend]}`}><TrendIcon className="w-3 h-3" /><span className="text-[9px]">{TREND_LABELS[state.trend]}</span></div>
+                            <div className={`flex items-center gap-0.5 ${TREND_COLORS[state.trend]}`}><TrendIcon className="w-3 h-3" /><span className="text-[9px]">{t(`trend.${state.trend}`)}</span></div>
                           </div>
                         </div>
                       </div>
