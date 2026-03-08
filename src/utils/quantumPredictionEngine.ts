@@ -695,6 +695,14 @@ function orchestrate(
     qimenResult = qmResult.qimenResult;
   }
 
+  // ── LiuRen (大六壬) — only run if active ──
+  let liurenResult: LiuRenResult | null = null;
+  if (isActive('liuren')) {
+    const lrResult = buildLiuRenEngineOutput(standardizedInput);
+    engineOutputs.push(lrResult.eo);
+    liurenResult = lrResult.liurenResult;
+  }
+
   // ── Dynamic weights (filtered to active engines only) ──
   const activeNames = engineOutputs.map(e => e.engineName);
   const weightConfigs = getWeightsForQueryType(queryType, activeNames);
