@@ -109,9 +109,6 @@ function refineOffsetForDate(ianaTimezone: string, standardOffset: number, birth
   // If Intl fails, return the standard offset from timeapi.io
   return standardOffset;
 }
-  const etcZone = `Etc/GMT${offsetHours <= 0 ? '+' : '-'}${Math.abs(offsetHours)}`;
-  return etcZone;
-}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
