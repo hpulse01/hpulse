@@ -1,5 +1,5 @@
 /**
- * H-Pulse Destiny Tree Type System
+ * H-Pulse Destiny Tree Type System v3.0
  *
  * Core types for the recursive destiny tree architecture:
  * DestinyEventSeed → UnifiedEventCandidate → WorldNode → RecursiveWorldTree → CollapseResult
@@ -47,6 +47,16 @@ export interface DestinyEventSeed {
   fateImpact: Partial<Record<FateDimension, number>>;
   /** Raw source data for traceability */
   sourceDetail: string;
+  /** Path in the engine's raw output that produced this seed */
+  sourceFieldPath: string;
+  /** Verbatim evidence from the engine output */
+  sourceEvidence: string;
+  /** Why this seed was extracted (mapping reasoning) */
+  reasoning: string;
+  /** 0-1 confidence in this specific extraction */
+  confidence: number;
+  /** Tags for conflict detection with other seeds */
+  conflictTags: string[];
 }
 
 // ═══════════════════════════════════════════════
@@ -78,10 +88,43 @@ export interface UnifiedEventCandidate {
   prerequisiteEventIds: string[];
   /** Events that conflict with this one */
   conflictingEventIds: string[];
+  /** Events that enhance this one (boost probability) */
+  enhancedByEventIds: string[];
+  /** Events this transforms into under certain conditions */
+  transformsToEventId: string | null;
 }
 
 // ═══════════════════════════════════════════════
-// 3. World Node — single node in the destiny tree
+// 3. Death Candidate types
+// ═══════════════════════════════════════════════
+
+export type DeathStrength = 'strong' | 'weak' | 'illness_only';
+
+export interface DeathCandidate {
+  eventId: string;
+  mergeKey: string;
+  strength: DeathStrength;
+  estimatedAge: number;
+  ageWindow: [number, number];
+  fusedProbability: number;
+  engines: string[];
+  consensusCount: number;
+  cause: DeathCause;
+  causalChain: string[];
+  description: string;
+}
+
+export interface DeathFusionResult {
+  candidates: DeathCandidate[];
+  strongCandidates: DeathCandidate[];
+  weakCandidates: DeathCandidate[];
+  illnessOnly: DeathCandidate[];
+  primaryDeath: DeathCandidate;
+  fusionReasoning: string;
+}
+
+// ═══════════════════════════════════════════════
+// 4. World Node — single node in the destiny tree
 // ═══════════════════════════════════════════════
 
 export type DeathCause =
@@ -115,12 +158,21 @@ export interface WorldNode {
   collapseWeight: number;
   /** Why this branch exists */
   branchReason: string;
+  /** Parent causal chain (inherited + local) */
+  parentCausalChain: string[];
+  /** Event relationship metadata */
+  eventRelationships: {
+    dependenciesMet: string[];
+    exclusionsApplied: string[];
+    enhancementsReceived: string[];
+    transformationsTriggered: string[];
+  };
   /** Children nodes */
   children: WorldNode[];
 }
 
 // ═══════════════════════════════════════════════
-// 4. Recursive World Tree
+// 5. Recursive World Tree
 // ═══════════════════════════════════════════════
 
 export interface RecursiveWorldTree {
@@ -134,10 +186,12 @@ export interface RecursiveWorldTree {
   generatedAt: string;
   birthYear: number;
   gender: string;
+  /** Death fusion result used for tree generation */
+  deathFusion: DeathFusionResult;
 }
 
 // ═══════════════════════════════════════════════
-// 5. Collapse Result
+// 6. Collapse Result
 // ═══════════════════════════════════════════════
 
 export interface CollapsedPathNode {
@@ -156,6 +210,8 @@ export interface RejectedBranchSummary {
   branchEvent: string;
   reason: string;
   probability: number;
+  /** Why this branch was rejected */
+  rejectedReason: string;
 }
 
 export interface CollapseResult {
@@ -175,10 +231,18 @@ export interface CollapseResult {
   finalLifeSummary: string;
   /** How many total paths were considered */
   totalPathsConsidered: number;
+  /** Why this specific path was selected */
+  selectedReason: string;
+  /** Which engines dominated the selection */
+  dominantEngines: string[];
+  /** How conflicts were resolved during collapse */
+  conflictResolutionNotes: string[];
+  /** Why the death boundary was placed here */
+  deathBoundaryReason: string;
 }
 
 // ═══════════════════════════════════════════════
-// 6. Engine Event Extractor interface
+// 7. Engine Event Extractor interface
 // ═══════════════════════════════════════════════
 
 export interface EngineEventExtraction {
@@ -189,7 +253,7 @@ export interface EngineEventExtraction {
 }
 
 // ═══════════════════════════════════════════════
-// 7. Event Fusion Result
+// 8. Event Fusion Result
 // ═══════════════════════════════════════════════
 
 export interface EventFusionResult {
@@ -199,4 +263,6 @@ export interface EventFusionResult {
   deathEvents: UnifiedEventCandidate[];
   mergeLog: Array<{ mergeKey: string; mergedCount: number; engines: string[] }>;
   conflictLog: Array<{ eventA: string; eventB: string; resolution: string }>;
+  /** Death candidate fusion result */
+  deathFusion: DeathFusionResult;
 }
