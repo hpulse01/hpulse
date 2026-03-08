@@ -675,6 +675,14 @@ function orchestrate(
   const kabResult = runKabbalah(qi);
   if (isActive('kabbalah')) engineOutputs.push(kabResult.eo);
 
+  // ── Meihua (梅花易数) — only run if active ──
+  let meihuaResult: MeihuaResult | null = null;
+  if (isActive('meihua')) {
+    const mhResult = runMeihua(standardizedInput);
+    engineOutputs.push(mhResult.eo);
+    meihuaResult = mhResult.meihuaResult;
+  }
+
   // ── Dynamic weights (filtered to active engines only) ──
   const activeNames = engineOutputs.map(e => e.engineName);
   const weightConfigs = getWeightsForQueryType(queryType, activeNames);
