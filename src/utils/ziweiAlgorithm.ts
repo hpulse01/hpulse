@@ -621,10 +621,29 @@ export const ZiweiEngine = {
     auxiliaryPositions.push({ name: '火星', position: calculateHuoxing(yearZhi, hourBranchIndex) });
     auxiliaryPositions.push({ name: '铃星', position: calculateLingxing(yearZhi, hourBranchIndex) });
 
+    // v3.0: 地空地劫
+    const dikongBranch = DIKONG_TABLE[yearZhi];
+    const dijieBranch = DIJIE_TABLE[yearZhi];
+    if (dikongBranch) { const pos = PALACE_BRANCH_ORDER.indexOf(dikongBranch); if (pos >= 0) auxiliaryPositions.push({ name: '地空', position: pos }); }
+    if (dijieBranch) { const pos = PALACE_BRANCH_ORDER.indexOf(dijieBranch); if (pos >= 0) auxiliaryPositions.push({ name: '地劫', position: pos }); }
+
+    // v3.0: 博士十二神 (以禄存所在宫位为起始，顺行)
+    const lucunPos = lucunBranch ? PALACE_BRANCH_ORDER.indexOf(lucunBranch) : -1;
+    if (lucunPos >= 0) {
+      const isYangYear2 = HEAVENLY_STEMS.indexOf(yearGan) % 2 === 0;
+      for (let bi = 0; bi < 12; bi++) {
+        const boshiPos = isYangYear2 ? (lucunPos + bi) % 12 : (lucunPos - bi + 12) % 12;
+        palaceStars[boshiPos].push({
+          name: BOSHI_12_NAMES[bi], type: 'auxiliary',
+          brightness: '平', group: 'auxiliary',
+        });
+      }
+    }
+
     // Place auxiliary/sha stars with sihua
     auxiliaryPositions.forEach(({ name, position }) => {
       const branch = PALACE_BRANCH_ORDER[position];
-      const isSha = ['擎羊', '陀罗', '火星', '铃星'].includes(name);
+      const isSha = ['擎羊', '陀罗', '火星', '铃星', '地空', '地劫'].includes(name);
       const sihua = sihuaList.find(s => s.star === name)?.transform;
       palaceStars[position].push({
         name, type: isSha ? 'sha' : 'auxiliary',
