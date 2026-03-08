@@ -6,6 +6,7 @@
 
 import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { useI18n } from '@/hooks/useI18n';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { QuantumRadar } from '@/components/quantum/QuantumRadar';
