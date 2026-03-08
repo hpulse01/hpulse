@@ -52,6 +52,19 @@ export interface LifePeriodInfo {
   theme: string;
 }
 
+/** v3.0: Bridge Number */
+export interface BridgeNumber {
+  between: [string, string];
+  number: number;
+  meaning: string;
+}
+
+/** v3.0: Missing Number */
+export interface MissingNumber {
+  number: number;
+  lesson: string;
+}
+
 export interface NumerologyReport {
   lifePath: number;
   lifePathMeaning: string;
@@ -65,6 +78,10 @@ export interface NumerologyReport {
   challenges: ChallengeInfo[];
   lifePeriods: LifePeriodInfo[];
   personalYears: PersonalYearInfo[];
+  /** v3.0 */
+  bridgeNumbers: BridgeNumber[];
+  missingNumbers: MissingNumber[];
+  subconciousSelf: number;
   lifeVectors: Record<string, number>;
 }
 
