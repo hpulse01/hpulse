@@ -822,12 +822,16 @@ export function performDeepBaZiAnalysis(
   const elementBalance = calculateElementBalance(fourPillars, hiddenStems);
   const twelveStages = calculateTwelveStages(fourPillars, dayGan);
   const shenSha = calculateShenSha(fourPillars, dayGan);
+  // v3.0
+  const branchInteractions = calculateBranchInteractions(fourPillars);
+  const stemCombinations = calculateStemCombinations(fourPillars, monthBranch);
+  const kongWang = calculateKongWang(fourPillars);
 
   // Layer 3 computations
   const strengthResult = calculateDayMasterStrength(fourPillars, dayElement, monthBranch, twelveStages);
   const { favorable, unfavorable } = calculateFavorableElements(dayElement, strengthResult.level, elementBalance);
   const pattern = determinePattern(tenGods, strengthResult.level, elementBalance);
-  const summary = generateSummary(dayGan, dayElement, dayYinYang, strengthResult, pattern, favorable, unfavorable, shenSha);
+  const summary = generateSummary(dayGan, dayElement, dayYinYang, strengthResult, pattern, favorable, unfavorable, shenSha, branchInteractions, stemCombinations, kongWang);
 
   // Build three-layer output
   const rawParams: BaZiRawParams = {
@@ -847,6 +851,9 @@ export function performDeepBaZiAnalysis(
     elementBalance,
     twelveStages,
     shenSha,
+    branchInteractions,
+    stemCombinations,
+    kongWang,
   };
 
   const dayMaster = {
@@ -882,6 +889,9 @@ export function performDeepBaZiAnalysis(
     unfavorable,
     pattern,
     summary,
+    branchInteractions,
+    stemCombinations,
+    kongWang,
   };
 }
 
