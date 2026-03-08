@@ -390,7 +390,7 @@ export function generateWorldTree(
 }
 
 // ═══════════════════════════════════════════════
-// Quantum Collapse Engine v3.0
+// Quantum Collapse Engine v4.0 (Amplitude-Based)
 // ═══════════════════════════════════════════════
 
 function extractPath(root: WorldNode, targetId: string): WorldNode[] {
@@ -420,64 +420,68 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
     };
   }
 
-  interface ScoredPath {
+  // Build world line inputs for quantum collapse
+  interface PathData {
     terminal: WorldNode;
     path: WorldNode[];
-    score: number;
     engineCounts: Record<string, number>;
   }
-
-  const scoredPaths: ScoredPath[] = [];
+  
+  const pathDataList: PathData[] = [];
+  const worldLineInputs: WorldLineInput[] = [];
 
   for (const term of terminals) {
     const path = extractPath(tree.root, term.id);
     if (path.length === 0) continue;
 
-    let score = term.cumulativeProbability;
-
-    // Engine consensus bonus
     const engineCounts: Record<string, number> = {};
-    const totalConsensus = path.reduce((s, n) => {
+    let totalConsensus = 0;
+    for (const n of path) {
       for (const e of n.engineSupports) {
         engineCounts[e] = (engineCounts[e] || 0) + 1;
       }
-      return s + n.dominantEvent.consensusCount;
-    }, 0);
-    score *= 1 + totalConsensus * 0.05;
-
-    // Mainline bonus
-    const mainlineCount = path.filter(n => n.dominantEvent.isMainline).length;
-    score *= 1 + mainlineCount * 0.1;
-
-    // Enhancement bonus: paths with more met enhancements score higher
-    const enhCount = path.reduce((s, n) => s + n.eventRelationships.enhancementsReceived.length, 0);
-    score *= 1 + enhCount * 0.03;
-
-    // Dependency fulfillment bonus
-    const depCount = path.reduce((s, n) => s + n.eventRelationships.dependenciesMet.length, 0);
-    score *= 1 + depCount * 0.02;
-
-    // Coherence penalty
-    let coherencePenalty = 0;
-    for (let i = 1; i < path.length; i++) {
-      const prev = path[i - 1].localFateVector;
-      const curr = path[i].localFateVector;
-      for (const dim of ALL_FATE_DIMENSIONS) {
-        coherencePenalty += Math.abs(curr[dim] - prev[dim]) * 0.001;
-      }
+      totalConsensus += n.dominantEvent.consensusCount;
     }
-    score *= Math.max(0.3, 1 - coherencePenalty);
 
-    // Death age preference
-    const deathAge = term.age;
-    if (deathAge >= 70 && deathAge <= 85) score *= 1.1;
+    // Build engine supports for quantum amplitude calculation
+    const engineSupports: EngineSupport[] = Object.entries(engineCounts).map(([engine, count]) => ({
+      engineName: engine,
+      weight: count / path.length,
+      probability: Math.min(0.95, term.cumulativeProbability * (1 + count * 0.05)),
+    }));
 
-    scoredPaths.push({ terminal: term, path, score, engineCounts });
+    // Mainline and enhancement bonuses baked into collapse weight
+    const mainlineCount = path.filter(n => n.dominantEvent.isMainline).length;
+    const enhCount = path.reduce((s, n) => s + n.eventRelationships.enhancementsReceived.length, 0);
+    const depCount = path.reduce((s, n) => s + n.eventRelationships.dependenciesMet.length, 0);
+    
+    const collapseWeight = term.collapseWeight
+      * (1 + mainlineCount * 0.1)
+      * (1 + enhCount * 0.03)
+      * (1 + depCount * 0.02);
+
+    pathDataList.push({ terminal: term, path, engineCounts });
+    worldLineInputs.push({
+      id: term.id,
+      engineSupports,
+      collapseWeight,
+      consensusCount: totalConsensus,
+    });
   }
 
-  scoredPaths.sort((a, b) => b.score - a.score);
-  const winner = scoredPaths[0];
-  const rejected = scoredPaths.slice(1, 6);
+  // Generate deterministic collapse seed from birth data
+  const collapseSeed = generateCollapseSeed(
+    tree.birthYear, 1, 1, 0, 0,
+    tree.gender as 'male' | 'female',
+    0, 0,
+  );
+
+  // Run quantum collapse pipeline
+  const collapseDistribution = quantumCollapsePipeline(worldLineInputs, collapseSeed);
+  
+  const winnerIdx = collapseDistribution.collapsedIndex;
+  const winner = pathDataList[winnerIdx >= 0 ? winnerIdx : 0];
+  const rejected = pathDataList.filter((_, i) => i !== winnerIdx).slice(0, 5);
 
   // Determine dominant engines
   const sortedEngines = Object.entries(winner.engineCounts).sort((a, b) => b[1] - a[1]);
@@ -495,16 +499,23 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
     deathCause: node.deathCause,
   }));
 
-  const rejectedBranches: RejectedBranchSummary[] = rejected.map(r => ({
-    branchAge: r.terminal.age,
-    branchEvent: r.terminal.dominantEvent.description.slice(0, 60),
-    reason: `坍缩评分${r.score.toFixed(3)} < 主线${winner.score.toFixed(3)}`,
-    probability: r.terminal.cumulativeProbability,
-    rejectedReason: `评分差${(winner.score - r.score).toFixed(3)}，${
-      r.terminal.age < winner.terminal.age ? '寿命偏短' : 
-      Object.keys(r.engineCounts).length < Object.keys(winner.engineCounts).length ? '引擎支持不足' : '路径一致性偏低'
-    }`,
-  }));
+  const winnerAmplitude = collapseDistribution.worldLines[winnerIdx >= 0 ? winnerIdx : 0];
+  const winnerProb = winnerAmplitude?.probability ?? 0;
+
+  const rejectedBranches: RejectedBranchSummary[] = rejected.map((r, i) => {
+    const rIdx = pathDataList.indexOf(r);
+    const rAmplitude = collapseDistribution.worldLines[rIdx];
+    return {
+      branchAge: r.terminal.age,
+      branchEvent: r.terminal.dominantEvent.description.slice(0, 60),
+      reason: `量子振幅P=${(rAmplitude?.probability ?? 0).toFixed(4)} < 主线P=${winnerProb.toFixed(4)}`,
+      probability: r.terminal.cumulativeProbability,
+      rejectedReason: `波函数|Ψ|²较低，${
+        r.terminal.age < winner.terminal.age ? '寿命偏短' :
+        Object.keys(r.engineCounts).length < Object.keys(winner.engineCounts).length ? '引擎共振不足' : '命理势能偏高'
+      }`,
+    };
+  });
 
   // Conflict resolution notes
   const conflictResolutionNotes: string[] = [];
@@ -514,14 +525,14 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
     }
   }
 
-  // Selected reason
+  // Selected reason with quantum details
   const selectedReason =
-    `选择此路径因为：引擎共识度最高(${dominantEngines.join('+')}主导)，` +
-    `${winner.path.filter(n => n.dominantEvent.isMainline).length}个主线事件，` +
-    `${winner.path.reduce((s, n) => s + n.eventRelationships.enhancementsReceived.length, 0)}个增强效应，` +
-    `坍缩评分${winner.score.toFixed(4)}为最高`;
+    `量子坍缩选择此路径：波函数振幅P=${winnerProb.toFixed(4)}，` +
+    `命理势能E=${winnerAmplitude?.fatePotential?.toFixed(3) ?? 'N/A'}，` +
+    `引擎共识(${dominantEngines.join('+')}主导)，` +
+    `配分函数Z=${collapseDistribution.partitionFunction.toFixed(3)}，` +
+    `信息熵H=${collapseDistribution.entropy.toFixed(3)}bit`;
 
-  // Death boundary reason
   const deathNode = winner.terminal;
   const deathBoundaryReason =
     `死亡终点${deathNode.age}岁：${deathNode.branchReason}。` +
@@ -530,11 +541,12 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
     `强度${tree.deathFusion.primaryDeath.strength})`;
 
   const collapseReasoning =
-    `从${scoredPaths.length}条命运路径中坍缩出唯一确定态。` +
-    `主线路径经过${winner.path.length}个命运节点，` +
-    `${winner.path.filter(n => n.dominantEvent.isMainline).length}个主线事件，` +
-    `终止于${deathNode.age}岁(${deathNode.deathCause || '自然'})。` +
-    `坍缩基于多引擎共振度、事件依赖链、因果连续性和命运向量稳定性综合评分。`;
+    `量子坍缩v4.0：从${pathDataList.length}条世界线中，通过波函数振幅计算(Ψ=Ae^{-E/kT})，` +
+    `配分函数归一化(Z=${collapseDistribution.partitionFunction.toFixed(3)})，` +
+    `确定性种子PRNG(seed=${collapseSeed.toString(16).slice(0,8)}...)坍缩出唯一命运路径。` +
+    `有效温度T=${collapseDistribution.effectiveTemperature.toFixed(2)}，` +
+    `坍缩置信度${Math.round(collapseDistribution.collapseConfidence * 100)}%。` +
+    `终止于${deathNode.age}岁(${deathNode.deathCause || '自然'})。`;
 
   const majorEvents = winner.path.filter(n => n.dominantEvent.intensity === 'critical' || n.dominantEvent.intensity === 'life_defining');
   const finalLifeSummary =
@@ -551,9 +563,9 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
     deathDescription: deathNode.branchReason,
     rejectedBranches,
     collapseReasoning,
-    collapseConfidence: Math.min(0.95, winner.score),
+    collapseConfidence: Math.min(0.95, collapseDistribution.collapseConfidence),
     finalLifeSummary,
-    totalPathsConsidered: scoredPaths.length,
+    totalPathsConsidered: pathDataList.length,
     selectedReason,
     dominantEngines,
     conflictResolutionNotes,
