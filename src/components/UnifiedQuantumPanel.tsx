@@ -94,6 +94,7 @@ function EventCard({ event, currentAge }: { event: CollapsedEvent; currentAge: n
 
 function PhaseSection({ phase, currentAge }: { phase: DestinyPhase; currentAge: number }) {
   const [expanded, setExpanded] = useState(phase.events.some(e => e.age === currentAge) || phase.startAge <= 12);
+  const { lang } = useI18n();
   const significantEvents = phase.events.filter(e => e.convergence > 0.3 || e.eventType === 'turning_point' || e.eventType === 'milestone');
   const displayEvents = expanded ? phase.events : significantEvents.slice(0, 3);
 
@@ -106,7 +107,7 @@ function PhaseSection({ phase, currentAge }: { phase: DestinyPhase; currentAge: 
           </div>
           <div className="text-left">
             <h4 className="text-sm font-serif text-violet-200">{phase.name} · {phase.theme}</h4>
-            <p className="text-[10px] text-muted-foreground">{phase.startAge}-{phase.endAge}岁 · 能量 {phase.overallEnergy}</p>
+            <p className="text-[10px] text-muted-foreground">{phase.startAge}-{phase.endAge}{lang === 'zh' ? '岁' : ''} · {lang === 'zh' ? '能量' : 'Energy'} {phase.overallEnergy}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -121,7 +122,7 @@ function PhaseSection({ phase, currentAge }: { phase: DestinyPhase; currentAge: 
           {displayEvents.map(e => <EventCard key={e.age} event={e} currentAge={currentAge} />)}
           {!expanded && phase.events.length > displayEvents.length && (
             <button onClick={() => setExpanded(true)} className="w-full text-center text-xs text-violet-400 hover:text-violet-300 py-2 transition-colors">
-              展开全部 {phase.events.length} 个事件
+              {lang === 'zh' ? `展开全部 ${phase.events.length} 个事件` : `Expand all ${phase.events.length} events`}
             </button>
           )}
         </div>
