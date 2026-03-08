@@ -18,6 +18,7 @@ import {
 import { ChevronDown, MapPin, Clock, Compass } from 'lucide-react';
 import { TiebanEngine, type TiebanInput } from '@/utils/tiebanAlgorithm';
 import { LocationSearch, type GeocodedLocation } from '@/components/LocationSearch';
+import { useI18n } from '@/hooks/useI18n';
 
 /** Extended birth data that includes P0.5 location metadata */
 export interface BirthDataWithGeo extends TiebanInput {
@@ -41,6 +42,7 @@ function formatTimezone(offsetMinutes: number): string {
 }
 
 export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
+  const { t, lang } = useI18n();
   const [formData, setFormData] = useState<TiebanInput>({
     year: 1990,
     month: 1,
@@ -71,11 +73,11 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
     setErrorText('');
 
     if (Number.isNaN(formData.geoLatitude) || formData.geoLatitude < -90 || formData.geoLatitude > 90) {
-      setErrorText('纬度必须在 -90 到 90 之间');
+      setErrorText(t('form.lat_error'));
       return;
     }
     if (Number.isNaN(formData.geoLongitude) || formData.geoLongitude < -180 || formData.geoLongitude > 180) {
-      setErrorText('经度必须在 -180 到 180 之间');
+      setErrorText(t('form.lng_error'));
       return;
     }
     if (
@@ -83,7 +85,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
       formData.timezoneOffsetMinutes < -720 ||
       formData.timezoneOffsetMinutes > 840
     ) {
-      setErrorText('时区偏移必须在 -720 到 840 分钟之间');
+      setErrorText(t('form.tz_error'));
       return;
     }
 
@@ -115,16 +117,16 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
     <form onSubmit={handleSubmit} className="space-y-7">
       {/* Header */}
       <div className="text-center pb-5 border-b border-border/30">
-        <h2 className="text-xl font-serif text-gradient-gold tracking-wider">输入生辰</h2>
+        <h2 className="text-xl font-serif text-gradient-gold tracking-wider">{t('form.title')}</h2>
         <p className="text-muted-foreground text-xs mt-2 font-sans">
-          搜索出生地自动解析经纬度与时区
+          {t('form.desc')}
         </p>
       </div>
 
       {/* Date */}
       <div className="space-y-2.5">
         <Label className="text-xs text-muted-foreground font-sans flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5" />出生日期
+          <Clock className="w-3.5 h-3.5" />{t('form.birth_date')}
         </Label>
         <div className="grid grid-cols-3 gap-2.5">
           <Select value={formData.year.toString()} onValueChange={(v) => setFormData({ ...formData, year: parseInt(v, 10) })}>
@@ -165,7 +167,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
       {/* Time */}
       <div className="space-y-2.5">
         <Label className="text-xs text-muted-foreground font-sans flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5" />出生时间
+          <Clock className="w-3.5 h-3.5" />{t('form.birth_time')}
         </Label>
         <div className="grid grid-cols-2 gap-2.5">
           <Select value={formData.hour.toString()} onValueChange={(v) => setFormData({ ...formData, hour: parseInt(v, 10) })}>
@@ -192,7 +194,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
         </div>
 
         <div className="text-center mt-2 py-2 bg-card/50 rounded-lg border border-border/20">
-          <span className="text-muted-foreground text-xs font-sans">时辰 </span>
+          <span className="text-muted-foreground text-xs font-sans">{t('form.chinese_hour')} </span>
           <span className="text-primary font-serif text-sm">{chineseHour}</span>
         </div>
       </div>
@@ -212,12 +214,12 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
         <div className="grid grid-cols-3 gap-2 text-[11px] font-sans">
           <div className="flex items-center gap-1">
             <Compass className="w-3 h-3 text-muted-foreground/50" />
-            <span className="text-muted-foreground">纬</span>
+            <span className="text-muted-foreground">{t('form.lat')}</span>
             <span className="text-foreground/70 font-mono">{formData.geoLatitude.toFixed(4)}°</span>
           </div>
           <div className="flex items-center gap-1">
             <Compass className="w-3 h-3 text-muted-foreground/50" />
-            <span className="text-muted-foreground">经</span>
+            <span className="text-muted-foreground">{t('form.lng')}</span>
             <span className="text-foreground/70 font-mono">{formData.geoLongitude.toFixed(4)}°</span>
           </div>
           <div className="flex items-center gap-1">
@@ -236,24 +238,24 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
       <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
         <CollapsibleTrigger className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors font-sans">
           <ChevronDown className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-          手动修正坐标与时区
+          {t('form.manual_coords')}
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-3">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
             <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground/60 font-sans">纬度</Label>
+              <Label className="text-[10px] text-muted-foreground/60 font-sans">{t('form.latitude')}</Label>
               <Input type="number" step="0.0001" value={formData.geoLatitude}
                 onChange={(e) => setFormData({ ...formData, geoLatitude: Number(e.target.value) })}
                 className="bg-input border-border/50 h-9 rounded-lg text-sm" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground/60 font-sans">经度</Label>
+              <Label className="text-[10px] text-muted-foreground/60 font-sans">{t('form.longitude')}</Label>
               <Input type="number" step="0.0001" value={formData.geoLongitude}
                 onChange={(e) => setFormData({ ...formData, geoLongitude: Number(e.target.value) })}
                 className="bg-input border-border/50 h-9 rounded-lg text-sm" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground/60 font-sans">时区偏移(分)</Label>
+              <Label className="text-[10px] text-muted-foreground/60 font-sans">{t('form.tz_offset')}</Label>
               <Input type="number" step="1" value={formData.timezoneOffsetMinutes}
                 onChange={(e) => setFormData({ ...formData, timezoneOffsetMinutes: Number(e.target.value) })}
                 className="bg-input border-border/50 h-9 rounded-lg text-sm" />
@@ -264,7 +266,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
 
       {/* Gender */}
       <div className="space-y-3">
-        <Label className="text-xs text-muted-foreground font-sans">性别</Label>
+        <Label className="text-xs text-muted-foreground font-sans">{t('form.gender')}</Label>
         <RadioGroup
           value={formData.gender}
           onValueChange={(v) => setFormData({ ...formData, gender: v as 'male' | 'female' })}
@@ -272,11 +274,11 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
         >
           <label htmlFor="male" className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border border-border/30 bg-card/30 hover:border-primary/30 cursor-pointer transition-all has-[data-state=checked]:border-primary/50 has-[data-state=checked]:bg-primary/5">
             <RadioGroupItem value="male" id="male" className="border-primary/40 text-primary" />
-            <span className="text-sm font-sans">乾命 (男)</span>
+            <span className="text-sm font-sans">{t('form.male')}</span>
           </label>
           <label htmlFor="female" className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border border-border/30 bg-card/30 hover:border-primary/30 cursor-pointer transition-all has-[data-state=checked]:border-primary/50 has-[data-state=checked]:bg-primary/5">
             <RadioGroupItem value="female" id="female" className="border-primary/40 text-primary" />
-            <span className="text-sm font-sans">坤命 (女)</span>
+            <span className="text-sm font-sans">{t('form.female')}</span>
           </label>
         </RadioGroup>
       </div>
@@ -292,7 +294,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
         disabled={isLoading}
         className="w-full bg-primary text-primary-foreground hover:bg-primary/85 py-6 text-base font-serif tracking-[0.2em] transition-all duration-300 hover:shadow-lg hover:shadow-primary/15 rounded-xl"
       >
-        {isLoading ? <span className="animate-pulse">推算中...</span> : '起 盘 考 刻'}
+        {isLoading ? <span className="animate-pulse">{t('form.loading')}</span> : t('form.submit')}
       </Button>
     </form>
   );

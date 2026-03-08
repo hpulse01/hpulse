@@ -6,6 +6,7 @@
 
 import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { useI18n } from '@/hooks/useI18n';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { QuantumRadar } from '@/components/quantum/QuantumRadar';
@@ -42,7 +43,6 @@ const ASPECT_COLORS: Record<LifeAspect, string> = {
 
 const TREND_ICONS = { rising: TrendingUp, stable: Minus, declining: TrendingDown };
 const TREND_COLORS = { rising: 'text-emerald-400', stable: 'text-slate-400', declining: 'text-rose-400' };
-const TREND_LABELS = { rising: '上升', stable: '平稳', declining: '下行' };
 
 const EVENT_TYPE_COLORS: Record<string, string> = {
   milestone: 'border-amber-500/40 bg-amber-500/10',
@@ -59,6 +59,7 @@ const EVENT_TYPE_COLORS: Record<string, string> = {
 // ─── Sub-components ───
 
 function EventCard({ event, currentAge }: { event: CollapsedEvent; currentAge: number }) {
+  const { lang } = useI18n();
   const isCurrent = event.age === currentAge;
   const isPast = event.age < currentAge;
   const typeCN = QuantumPredictionEngine.getEventTypeCN(event.eventType);
@@ -68,15 +69,15 @@ function EventCard({ event, currentAge }: { event: CollapsedEvent; currentAge: n
     <div className={`p-3 rounded-lg border transition-all ${isCurrent ? 'ring-2 ring-violet-500/50 shadow-lg shadow-violet-500/10 ' : ''} ${isPast ? 'opacity-60 ' : ''} ${typeColor}`}>
       <div className="flex items-start gap-3">
         <div className="text-center min-w-[48px]">
-          <div className={`text-lg font-serif ${isCurrent ? 'text-violet-300' : 'text-foreground'}`}>{event.age}<span className="text-[10px] text-muted-foreground">岁</span></div>
+          <div className={`text-lg font-serif ${isCurrent ? 'text-violet-300' : 'text-foreground'}`}>{event.age}<span className="text-[10px] text-muted-foreground">{lang === 'zh' ? '岁' : ''}</span></div>
           <div className="text-[10px] text-muted-foreground">{event.year}</div>
           <div className="text-[10px] text-violet-300/60">{event.ganZhi}</div>
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap mb-1">
             <span className="text-sm font-serif text-foreground">{event.title}</span>
-            <Badge variant="outline" className="text-[9px] px-1 py-0 border-violet-500/30 text-violet-300">{typeCN}</Badge>
-            {event.convergence > 0.4 && <Badge variant="outline" className="text-[9px] px-1 py-0 border-fuchsia-500/30 text-fuchsia-300">{event.systemVotes.length}系共振</Badge>}
+            <span className="text-[9px] px-1 py-0 border border-violet-500/30 text-violet-300 rounded">{typeCN}</span>
+            {event.convergence > 0.4 && <span className="text-[9px] px-1 py-0 border border-fuchsia-500/30 text-fuchsia-300 rounded">{event.systemVotes.length}{lang === 'zh' ? '系共振' : ' resonance'}</span>}
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">{event.description}</p>
           <div className="flex items-center gap-2 mt-1.5">
@@ -93,6 +94,7 @@ function EventCard({ event, currentAge }: { event: CollapsedEvent; currentAge: n
 
 function PhaseSection({ phase, currentAge }: { phase: DestinyPhase; currentAge: number }) {
   const [expanded, setExpanded] = useState(phase.events.some(e => e.age === currentAge) || phase.startAge <= 12);
+  const { lang } = useI18n();
   const significantEvents = phase.events.filter(e => e.convergence > 0.3 || e.eventType === 'turning_point' || e.eventType === 'milestone');
   const displayEvents = expanded ? phase.events : significantEvents.slice(0, 3);
 
@@ -105,7 +107,7 @@ function PhaseSection({ phase, currentAge }: { phase: DestinyPhase; currentAge: 
           </div>
           <div className="text-left">
             <h4 className="text-sm font-serif text-violet-200">{phase.name} · {phase.theme}</h4>
-            <p className="text-[10px] text-muted-foreground">{phase.startAge}-{phase.endAge}岁 · 能量 {phase.overallEnergy}</p>
+            <p className="text-[10px] text-muted-foreground">{phase.startAge}-{phase.endAge}{lang === 'zh' ? '岁' : ''} · {lang === 'zh' ? '能量' : 'Energy'} {phase.overallEnergy}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -120,7 +122,7 @@ function PhaseSection({ phase, currentAge }: { phase: DestinyPhase; currentAge: 
           {displayEvents.map(e => <EventCard key={e.age} event={e} currentAge={currentAge} />)}
           {!expanded && phase.events.length > displayEvents.length && (
             <button onClick={() => setExpanded(true)} className="w-full text-center text-xs text-violet-400 hover:text-violet-300 py-2 transition-colors">
-              展开全部 {phase.events.length} 个事件
+              {lang === 'zh' ? `展开全部 ${phase.events.length} 个事件` : `Expand all ${phase.events.length} events`}
             </button>
           )}
         </div>
@@ -139,7 +141,7 @@ interface UnifiedQuantumPanelProps {
 export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelProps) {
   const [selectedAspect, setSelectedAspect] = useState<LifeAspect | null>(null);
   const [activeTab, setActiveTab] = useState('timeline');
-
+  const { t, lang } = useI18n();
   const currentAge = useMemo(() => new Date().getFullYear() - birthYear, [birthYear]);
   const sortedStates = useMemo(() => [...result.states].sort((a, b) => b.probability - a.probability), [result]);
 
@@ -160,16 +162,16 @@ export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelPr
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4 bg-violet-950/30 border border-violet-500/20 h-auto">
           <TabsTrigger value="timeline" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
-            <BookOpen className="w-3 h-3 mr-1 hidden sm:inline" />命运全知
+            <BookOpen className="w-3 h-3 mr-1 hidden sm:inline" />{t('quantum.omniscience')}
           </TabsTrigger>
           <TabsTrigger value="states" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
-            <BarChart3 className="w-3 h-3 mr-1 hidden sm:inline" />量子态
+            <BarChart3 className="w-3 h-3 mr-1 hidden sm:inline" />{t('quantum.states')}
           </TabsTrigger>
           <TabsTrigger value="waveform" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
-            <Waves className="w-3 h-3 mr-1 hidden sm:inline" />能量波形
+            <Waves className="w-3 h-3 mr-1 hidden sm:inline" />{t('quantum.waveform')}
           </TabsTrigger>
           <TabsTrigger value="entangle" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
-            <Network className="w-3 h-3 mr-1 hidden sm:inline" />纠缠
+            <Network className="w-3 h-3 mr-1 hidden sm:inline" />{t('quantum.entangle')}
           </TabsTrigger>
         </TabsList>
 
@@ -188,11 +190,11 @@ export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelPr
         <TabsContent value="states" className="mt-5 space-y-5">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4 flex flex-col items-center">
-              <h3 className="text-sm font-serif text-violet-300 mb-3"><Sparkles className="w-4 h-4 inline mr-1" />十维量子态势场</h3>
+              <h3 className="text-sm font-serif text-violet-300 mb-3"><Sparkles className="w-4 h-4 inline mr-1" />{t('quantum.ten_dim_field')}</h3>
               <QuantumRadar states={result.states} size={300} />
             </div>
             <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4">
-              <h3 className="text-sm font-serif text-violet-300 mb-3">十维量子态</h3>
+              <h3 className="text-sm font-serif text-violet-300 mb-3">{t('quantum.ten_dim_states')}</h3>
               <div className="space-y-2">
                 {sortedStates.map(state => {
                   const Icon = ASPECT_ICONS[state.aspect];
@@ -212,7 +214,7 @@ export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelPr
                             <div className="flex-1 h-1 bg-secondary/50 rounded-full overflow-hidden">
                               <div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-400 transition-all duration-700" style={{ width: `${state.probability}%` }} />
                             </div>
-                            <div className={`flex items-center gap-0.5 ${TREND_COLORS[state.trend]}`}><TrendIcon className="w-3 h-3" /><span className="text-[9px]">{TREND_LABELS[state.trend]}</span></div>
+                            <div className={`flex items-center gap-0.5 ${TREND_COLORS[state.trend]}`}><TrendIcon className="w-3 h-3" /><span className="text-[9px]">{t(`trend.${state.trend}`)}</span></div>
                           </div>
                         </div>
                       </div>
@@ -236,17 +238,17 @@ export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelPr
         {/* Waveform */}
         <TabsContent value="waveform" className="mt-5 space-y-5">
           <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4">
-            <h3 className="text-sm font-serif text-violet-300 mb-1"><Waves className="w-4 h-4 inline mr-1" />一生能量波形</h3>
-            <p className="text-[10px] text-muted-foreground mb-3">九大体系量子坍缩后的确定性能量曲线</p>
+            <h3 className="text-sm font-serif text-violet-300 mb-1"><Waves className="w-4 h-4 inline mr-1" />{t('quantum.lifetime_wave')}</h3>
+            <p className="text-[10px] text-muted-foreground mb-3">{t('quantum.wave_desc')}</p>
             <QuantumWaveform timeline={waveformTimeline} height={280} />
           </div>
           <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4">
-            <h3 className="text-sm font-serif text-violet-300 mb-3">生命阶段能量</h3>
+            <h3 className="text-sm font-serif text-violet-300 mb-3">{t('quantum.phase_energy')}</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {result.destinyPhases.map((p, i) => (
                 <div key={i} className="p-3 rounded-lg bg-card/30 border border-violet-500/10 text-center">
                   <div className="text-xs font-serif text-violet-200">{p.name}</div>
-                  <div className="text-[10px] text-muted-foreground">{p.startAge}-{p.endAge}岁</div>
+                  <div className="text-[10px] text-muted-foreground">{p.startAge}-{p.endAge}{lang === 'zh' ? '岁' : ''}</div>
                   <div className={`text-xl font-mono font-bold mt-1 ${p.overallEnergy >= 65 ? 'text-emerald-400' : p.overallEnergy >= 40 ? 'text-amber-400' : 'text-rose-400'}`}>{p.overallEnergy}</div>
                   <Badge variant="outline" className="text-[9px] mt-1 border-violet-500/20 text-violet-300/70">{p.element} · {p.theme}</Badge>
                 </div>
@@ -259,11 +261,11 @@ export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelPr
         <TabsContent value="entangle" className="mt-5 space-y-5">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4">
-              <h3 className="text-sm font-serif text-violet-300 mb-3"><Network className="w-4 h-4 inline mr-1" />量子纠缠图</h3>
+              <h3 className="text-sm font-serif text-violet-300 mb-3"><Network className="w-4 h-4 inline mr-1" />{t('quantum.entangle_map')}</h3>
               <QuantumEntanglementMap entanglements={result.entanglements} />
             </div>
             <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4">
-              <h3 className="text-sm font-serif text-violet-300 mb-3">维度关联</h3>
+              <h3 className="text-sm font-serif text-violet-300 mb-3">{t('quantum.dim_correlation')}</h3>
               <div className="space-y-2">
                 {result.entanglements.sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation)).map((e, i) => {
                   const isPos = e.correlation > 0;

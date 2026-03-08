@@ -1,9 +1,10 @@
 /**
- * Prediction Overview — Top-level summary
+ * Prediction Overview — Top-level summary (bilingual)
  */
 import { Badge } from '@/components/ui/badge';
 import type { UnifiedPredictionResult, FateDimension } from '@/types/prediction';
-import { ALL_FATE_DIMENSIONS, FATE_DIMENSION_LABELS } from '@/types/prediction';
+import { ALL_FATE_DIMENSIONS } from '@/types/prediction';
+import { useI18n } from '@/hooks/useI18n';
 import {
   Sun, Coins, Heart, Activity, Brain, Sparkles,
   CheckCircle, AlertTriangle, Zap,
@@ -37,6 +38,7 @@ function sc(v: number) {
 interface Props { result: UnifiedPredictionResult }
 
 export function PredictionOverview({ result }: Props) {
+  const { t, dimLabel, lang } = useI18n();
   const fv = result.fusedFateVector;
   const birthEngines = result.engineOutputs.filter(e => e.timingBasis === 'birth').length;
   const queryEngines = result.engineOutputs.filter(e => e.timingBasis === 'query').length;
@@ -46,12 +48,12 @@ export function PredictionOverview({ result }: Props) {
       {/* Stats row */}
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
         {[
-          { label: '置信度', value: `${Math.round(result.finalConfidence * 100)}%`, color: sc(result.finalConfidence * 100) },
-          { label: '活跃引擎', value: result.activeEngines.length, color: 'text-primary' },
-          { label: '本命', value: birthEngines, color: 'text-amber-400' },
-          { label: '即时', value: queryEngines, color: 'text-blue-400' },
-          { label: '冲突', value: result.conflicts.length, color: result.conflicts.length > 3 ? 'text-rose-400' : 'text-emerald-400' },
-          { label: '失败', value: result.failedEngines.length, color: result.failedEngines.length > 0 ? 'text-rose-400' : 'text-emerald-400' },
+          { label: t('overview.confidence'), value: `${Math.round(result.finalConfidence * 100)}%`, color: sc(result.finalConfidence * 100) },
+          { label: t('overview.active_engines'), value: result.activeEngines.length, color: 'text-primary' },
+          { label: t('overview.natal'), value: birthEngines, color: 'text-amber-400' },
+          { label: t('overview.instant'), value: queryEngines, color: 'text-blue-400' },
+          { label: t('overview.conflicts'), value: result.conflicts.length, color: result.conflicts.length > 3 ? 'text-rose-400' : 'text-emerald-400' },
+          { label: t('overview.failed'), value: result.failedEngines.length, color: result.failedEngines.length > 0 ? 'text-rose-400' : 'text-emerald-400' },
         ].map(s => (
           <div key={s.label} className="glass rounded-xl p-3 text-center">
             <div className={`text-xl font-mono font-semibold ${s.color}`}>{s.value}</div>
@@ -64,7 +66,7 @@ export function PredictionOverview({ result }: Props) {
       <div className="glass-elevated rounded-2xl p-5">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-sm font-serif text-foreground flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />融合命运向量
+            <Sparkles className="w-4 h-4 text-primary" />{t('overview.fused_vector')}
           </h3>
           <span className="text-[10px] text-muted-foreground/50 font-sans">
             {result.executedEngines.length} engines · v{result.algorithmVersion}
@@ -79,7 +81,7 @@ export function PredictionOverview({ result }: Props) {
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-2.5">
                     <Icon className={`w-4 h-4 ${DIM_TEXT[dim]}`} />
-                    <span className="text-xs text-foreground/80 font-sans">{FATE_DIMENSION_LABELS[dim]}</span>
+                    <span className="text-xs text-foreground/80 font-sans">{dimLabel(dim)}</span>
                   </div>
                   <span className={`text-sm font-mono font-semibold ${sc(val)}`}>{val}</span>
                 </div>
@@ -99,13 +101,13 @@ export function PredictionOverview({ result }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="glass rounded-xl p-4">
           <h4 className="text-xs font-sans text-amber-400/80 flex items-center gap-2 mb-3">
-            <Sun className="w-3.5 h-3.5" />本命引擎
-            <span className="text-muted-foreground/40 text-[10px]">基于出生</span>
+            <Sun className="w-3.5 h-3.5" />{t('overview.natal_engines')}
+            <span className="text-muted-foreground/40 text-[10px]">{t('overview.natal_desc')}</span>
           </h4>
           <div className="flex flex-wrap gap-1.5">
             {result.engineOutputs.filter(e => e.timingBasis === 'birth').map(eo => (
               <span key={eo.engineName} className="text-[10px] px-2 py-0.5 rounded-full border border-amber-500/15 text-amber-300/70 bg-amber-500/5 font-sans">
-                {eo.engineNameCN}
+                {lang === 'zh' ? eo.engineNameCN : eo.engineName}
               </span>
             ))}
           </div>
@@ -113,13 +115,13 @@ export function PredictionOverview({ result }: Props) {
 
         <div className="glass rounded-xl p-4">
           <h4 className="text-xs font-sans text-blue-400/80 flex items-center gap-2 mb-3">
-            <Zap className="w-3.5 h-3.5" />即时引擎
-            <span className="text-muted-foreground/40 text-[10px]">基于测算时间</span>
+            <Zap className="w-3.5 h-3.5" />{t('overview.instant_engines')}
+            <span className="text-muted-foreground/40 text-[10px]">{t('overview.instant_desc')}</span>
           </h4>
           <div className="flex flex-wrap gap-1.5">
             {result.engineOutputs.filter(e => e.timingBasis === 'query').map(eo => (
               <span key={eo.engineName} className="text-[10px] px-2 py-0.5 rounded-full border border-blue-500/15 text-blue-300/70 bg-blue-500/5 font-sans">
-                {eo.engineNameCN}
+                {lang === 'zh' ? eo.engineNameCN : eo.engineName}
               </span>
             ))}
           </div>
