@@ -400,7 +400,7 @@ export const SixRelationsVerification = ({
                 {ZODIAC_OPTIONS.map((z) => (
                   <SelectItem key={z.value} value={String(z.value)} className="text-foreground">
                     <span className="flex items-center gap-2">
-                      <span>{z.emoji}</span>
+                      <img src={ZODIAC_ICONS[z.value]} alt={z.name} className="w-5 h-5 object-contain" />
                       <span>{z.branch}{z.name}</span>
                       <span className="text-muted-foreground text-xs">({z.english})</span>
                     </span>
