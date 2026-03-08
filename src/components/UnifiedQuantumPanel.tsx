@@ -43,7 +43,6 @@ const ASPECT_COLORS: Record<LifeAspect, string> = {
 
 const TREND_ICONS = { rising: TrendingUp, stable: Minus, declining: TrendingDown };
 const TREND_COLORS = { rising: 'text-emerald-400', stable: 'text-slate-400', declining: 'text-rose-400' };
-const TREND_LABELS = { rising: '上升', stable: '平稳', declining: '下行' };
 
 const EVENT_TYPE_COLORS: Record<string, string> = {
   milestone: 'border-amber-500/40 bg-amber-500/10',
