@@ -73,7 +73,15 @@ const EVENT_TYPE_COLORS: Record<string, string> = {
 
 function QuantumInputForm({ onSubmit }: { onSubmit: (d: QuantumInput) => void }) {
   const [form, setForm] = useState<QuantumInput>({
-    year: 1990, month: 1, day: 1, hour: 12, minute: 0, gender: 'male',
+    year: 1990,
+    month: 1,
+    day: 1,
+    hour: 12,
+    minute: 0,
+    gender: 'male',
+    geoLatitude: 39.9042,
+    geoLongitude: 116.4074,
+    timezoneOffsetMinutes: 480,
   });
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
@@ -87,7 +95,7 @@ function QuantumInputForm({ onSubmit }: { onSubmit: (d: QuantumInput) => void })
           量子态初始化
         </h2>
         <p className="text-muted-foreground text-xs mt-2">
-          输入阳历生辰 · 九大命理体系并行解析 · 无穷世界量子坍缩 · 命运全知
+          输入本地生辰 + 出生地经纬度 + 时区，天文层将转换到 UTC 后计算
         </p>
       </div>
 
@@ -110,7 +118,7 @@ function QuantumInputForm({ onSubmit }: { onSubmit: (d: QuantumInput) => void })
       </div>
 
       <div className="space-y-2">
-        <Label className="text-foreground/80 text-sm">出生时间</Label>
+        <Label className="text-foreground/80 text-sm">出生时间（本地）</Label>
         <div className="grid grid-cols-2 gap-3">
           <Select value={form.hour.toString()} onValueChange={v => setForm({ ...form, hour: +v })}>
             <SelectTrigger className="bg-secondary border-violet-500/20"><SelectValue /></SelectTrigger>
@@ -124,6 +132,42 @@ function QuantumInputForm({ onSubmit }: { onSubmit: (d: QuantumInput) => void })
         <div className="text-center py-1.5 bg-violet-500/10 rounded border border-violet-500/20">
           <span className="text-muted-foreground text-sm">时辰: </span>
           <span className="text-violet-300 font-medium">{chineseHour}</span>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-foreground/80 text-sm">出生地经纬度 / 时区</Label>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">纬度（北纬+）</Label>
+            <input
+              type="number"
+              step="0.0001"
+              className="w-full h-10 rounded-md border border-violet-500/20 bg-secondary px-3 text-sm"
+              value={form.geoLatitude}
+              onChange={(e) => setForm({ ...form, geoLatitude: Number(e.target.value) })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">经度（东经+）</Label>
+            <input
+              type="number"
+              step="0.0001"
+              className="w-full h-10 rounded-md border border-violet-500/20 bg-secondary px-3 text-sm"
+              value={form.geoLongitude}
+              onChange={(e) => setForm({ ...form, geoLongitude: Number(e.target.value) })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">时区偏移（分钟）</Label>
+            <input
+              type="number"
+              step="1"
+              className="w-full h-10 rounded-md border border-violet-500/20 bg-secondary px-3 text-sm"
+              value={form.timezoneOffsetMinutes}
+              onChange={(e) => setForm({ ...form, timezoneOffsetMinutes: Number(e.target.value) })}
+            />
+          </div>
         </div>
       </div>
 
