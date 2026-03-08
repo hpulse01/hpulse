@@ -248,7 +248,7 @@ export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelPr
               {result.destinyPhases.map((p, i) => (
                 <div key={i} className="p-3 rounded-lg bg-card/30 border border-violet-500/10 text-center">
                   <div className="text-xs font-serif text-violet-200">{p.name}</div>
-                  <div className="text-[10px] text-muted-foreground">{p.startAge}-{p.endAge}岁</div>
+                  <div className="text-[10px] text-muted-foreground">{p.startAge}-{p.endAge}{lang === 'zh' ? '岁' : ''}</div>
                   <div className={`text-xl font-mono font-bold mt-1 ${p.overallEnergy >= 65 ? 'text-emerald-400' : p.overallEnergy >= 40 ? 'text-amber-400' : 'text-rose-400'}`}>{p.overallEnergy}</div>
                   <Badge variant="outline" className="text-[9px] mt-1 border-violet-500/20 text-violet-300/70">{p.element} · {p.theme}</Badge>
                 </div>
