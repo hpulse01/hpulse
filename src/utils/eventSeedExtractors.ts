@@ -1732,7 +1732,7 @@ export function extractKabbalahEvents(
   });
 
   // Wealth from sephirah
-  const wealthAge = 35 + report.personalitySephirah.number;
+  const wealthAge = 35 + report.personalitySephirah.index;
   seeds.push({
     ...B, id: seedId('kabbalah', 'wealth', wealthAge, 'sephirah-wealth'),
     category: 'wealth', subcategory: '质点财运',
