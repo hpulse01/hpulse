@@ -783,6 +783,7 @@ function orchestrate(
       kabbalahReport: kabResult.kabbalahReport,
       meihuaResult,
       qimenResult,
+      liurenResult,
     },
     systems,
   };
