@@ -117,9 +117,9 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
     <form onSubmit={handleSubmit} className="space-y-7">
       {/* Header */}
       <div className="text-center pb-5 border-b border-border/30">
-        <h2 className="text-xl font-serif text-gradient-gold tracking-wider">输入生辰</h2>
+        <h2 className="text-xl font-serif text-gradient-gold tracking-wider">{t('form.title')}</h2>
         <p className="text-muted-foreground text-xs mt-2 font-sans">
-          搜索出生地自动解析经纬度与时区
+          {t('form.desc')}
         </p>
       </div>
 
