@@ -1706,8 +1706,8 @@ export function extractKabbalahEvents(
     mergeKey: `age-${msAge}-turning_point`,
     fateImpact: { life: 5, spirit: 3 },
     sourceDetail: `卡巴拉生命树阶段${milestoneIdx + 1}`,
-    sourceFieldPath: `soulSephirah.number=${report.soulSephirah.number}`,
-    sourceEvidence: `灵魂质点${report.soulSephirah.number}映射生命树第${milestoneIdx + 1}阶`,
+    sourceFieldPath: `soulSephirah.index=${report.soulSephirah.index}`,
+    sourceEvidence: `灵魂质点${report.soulSephirah.index}映射生命树第${milestoneIdx + 1}阶`,
     reasoning: '灵魂质点号映射到生命树阶段',
     confidence: 0.4, conflictTags: [`turning-point-${msAge}`],
   });
