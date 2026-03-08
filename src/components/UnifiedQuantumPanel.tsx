@@ -238,8 +238,8 @@ export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelPr
         {/* Waveform */}
         <TabsContent value="waveform" className="mt-5 space-y-5">
           <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4">
-            <h3 className="text-sm font-serif text-violet-300 mb-1"><Waves className="w-4 h-4 inline mr-1" />一生能量波形</h3>
-            <p className="text-[10px] text-muted-foreground mb-3">九大体系量子坍缩后的确定性能量曲线</p>
+            <h3 className="text-sm font-serif text-violet-300 mb-1"><Waves className="w-4 h-4 inline mr-1" />{t('quantum.lifetime_wave')}</h3>
+            <p className="text-[10px] text-muted-foreground mb-3">{t('quantum.wave_desc')}</p>
             <QuantumWaveform timeline={waveformTimeline} height={280} />
           </div>
           <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4">
