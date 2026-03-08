@@ -608,6 +608,7 @@ interface OrchestrationResult {
     mayanReport: MayanReport;
     kabbalahReport: KabbalahReport;
     meihuaResult: MeihuaResult | null;
+    qimenResult: QimenResult | null;
   };
   systems: SystemAnalysis[];
 }
