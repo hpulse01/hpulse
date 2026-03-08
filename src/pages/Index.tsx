@@ -303,7 +303,10 @@ const Index = () => {
 
               {/* Unified Result Tabs */}
               <Tabs value={activeResultTab} onValueChange={setActiveResultTab}>
-                <TabsList className="grid w-full grid-cols-3 bg-violet-950/30 border border-violet-500/20 h-auto">
+                <TabsList className="grid w-full grid-cols-4 bg-violet-950/30 border border-violet-500/20 h-auto">
+                  <TabsTrigger value="unified" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
+                    <Zap className="w-3 h-3 mr-1 hidden sm:inline" />统一编排
+                  </TabsTrigger>
                   <TabsTrigger value="destiny" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
                     <Scroll className="w-3 h-3 mr-1 hidden sm:inline" />铁板命盘
                   </TabsTrigger>
@@ -314,6 +317,13 @@ const Index = () => {
                     <Sparkles className="w-3 h-3 mr-1 hidden sm:inline" />九系解析
                   </TabsTrigger>
                 </TabsList>
+
+                {/* Tab 0: Unified Orchestration Results (P1) */}
+                <TabsContent value="unified" className="mt-5">
+                  {quantumResult.unifiedResult && (
+                    <UnifiedResultsPanel result={quantumResult.unifiedResult} />
+                  )}
+                </TabsContent>
 
                 {/* Tab 1: Iron Plate Destiny Dashboard (existing component) */}
                 <TabsContent value="destiny" className="mt-5">
