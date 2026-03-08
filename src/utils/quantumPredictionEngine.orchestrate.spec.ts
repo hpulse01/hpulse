@@ -32,18 +32,21 @@ describe('QuantumPredictionEngine.orchestrate', () => {
     expect(result.skippedEngines).toBeDefined();
     expect(result.activationReasonSummary).toBeTruthy();
     expect(result.fusedFateVector).toBeDefined();
-    expect(result.algorithmVersion).toBe('3.1.0');
+    expect(result.algorithmVersion).toBe('4.0.0');
   });
 
-  it('natalAnalysis does NOT activate liuyao', () => {
+  it('natalAnalysis activates all 13 engines including liuyao (low weight)', () => {
     const result = QuantumPredictionEngine.orchestrate(makeInput({ queryType: 'natalAnalysis' }));
-    expect(result.activeEngines).not.toContain('liuyao');
-    expect(result.skippedEngines.some(s => s.engineName === 'liuyao')).toBe(true);
+    expect(result.activeEngines).toContain('liuyao');
+    expect(result.activeEngines.length).toBe(13);
   });
 
-  it('instantDecision activates liuyao', () => {
+  it('instantDecision activates liuyao with higher weight', () => {
     const result = QuantumPredictionEngine.orchestrate(makeInput({ queryType: 'instantDecision' }));
     expect(result.activeEngines).toContain('liuyao');
+    const w = result.weightsUsed.find(w => w.engineName === 'liuyao');
+    expect(w).toBeDefined();
+    expect(w!.weight).toBeGreaterThan(0.05);
   });
 
   it('deterministic: same natalAnalysis input → same fusedFateVector', () => {
@@ -52,12 +55,6 @@ describe('QuantumPredictionEngine.orchestrate', () => {
     const r2 = QuantumPredictionEngine.orchestrate(input);
     expect(r1.fusedFateVector).toEqual(r2.fusedFateVector);
     expect(r1.activeEngines).toEqual(r2.activeEngines);
-  });
-
-  it('different queryTypes activate different engine sets', () => {
-    const natal = QuantumPredictionEngine.orchestrate(makeInput({ queryType: 'natalAnalysis' }));
-    const daily = QuantumPredictionEngine.orchestrate(makeInput({ queryType: 'dailyForecast' }));
-    expect(natal.activeEngines.sort()).not.toEqual(daily.activeEngines.sort());
   });
 
   it('weights sum to 1.0', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getActiveEngines, getSkippedEngines } from '@/config/engineActivation';
+import { getActiveEngines } from '@/config/engineActivation';
 import { getWeightsForQueryType } from '@/config/engineWeights';
 import { buildTaiyiEngineOutput } from './taiyiAlgorithm';
 import type { StandardizedInput, QueryType } from '@/types/prediction';
@@ -15,49 +15,15 @@ const MOCK_SI: StandardizedInput = {
   normalizedLocationName: '北京',
   queryType: 'instantDecision',
   queryTimeUtc: '2024-06-15T10:30:00Z',
-  sourceMetadata: {
-    provider: 'test',
-    confidence: 1,
-    normalizedLocationName: '北京',
-    timezoneIana: 'Asia/Shanghai',
-  },
+  sourceMetadata: { provider: 'test', confidence: 1, normalizedLocationName: '北京', timezoneIana: 'Asia/Shanghai' },
 };
 
 describe('taiyi integration', () => {
-  it('instantDecision 激活 taiyi', () => {
-    expect(getActiveEngines('instantDecision')).toContain('taiyi');
-  });
-
-  it('natalAnalysis 不激活 taiyi', () => {
-    expect(getActiveEngines('natalAnalysis')).not.toContain('taiyi');
-  });
-
-  it('annualForecast 激活 taiyi', () => {
-    expect(getActiveEngines('annualForecast')).toContain('taiyi');
-  });
-
-  it('dailyForecast 激活 taiyi', () => {
-    expect(getActiveEngines('dailyForecast')).toContain('taiyi');
-  });
-
-  it('monthlyForecast 激活 taiyi', () => {
-    expect(getActiveEngines('monthlyForecast')).toContain('taiyi');
-  });
-
-  it('natalAnalysis skippedEngines 包含 taiyi', () => {
-    const skipped = getSkippedEngines('natalAnalysis');
-    expect(skipped.find(s => s.engineName === 'taiyi')).toBeDefined();
-  });
-
-  it('instantDecision 中 taiyi 权重低于 meihua/qimen/liuren', () => {
-    const weights = getWeightsForQueryType('instantDecision');
-    const taiyi = weights.find(w => w.engineName === 'taiyi')!;
-    const meihua = weights.find(w => w.engineName === 'meihua')!;
-    const qimen = weights.find(w => w.engineName === 'qimen')!;
-    const liuren = weights.find(w => w.engineName === 'liuren')!;
-    expect(taiyi.weight).toBeLessThan(meihua.weight);
-    expect(taiyi.weight).toBeLessThan(qimen.weight);
-    expect(taiyi.weight).toBeLessThan(liuren.weight);
+  it('all queryTypes activate taiyi', () => {
+    const types: QueryType[] = ['natalAnalysis', 'annualForecast', 'monthlyForecast', 'dailyForecast', 'instantDecision'];
+    for (const qt of types) {
+      expect(getActiveEngines(qt)).toContain('taiyi');
+    }
   });
 
   it('权重归一化后总和为 1', () => {
