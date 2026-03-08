@@ -105,6 +105,24 @@ export interface QuantumEntanglement {
 
 // ── Phase 4 output ──
 
+export interface QuantumTimeline {
+  age: number;
+  year: number;
+  energy: number;
+  element: string;
+  phase: string;
+  ganZhi: string;
+  isCurrentAge: boolean;
+}
+
+export interface SystemContribution {
+  system: string;
+  weight: number;
+  rawScore: number;
+  normalizedScore: number;
+  detail: string;
+}
+
 export interface DestinyPhase {
   name: string;
   startAge: number;
