@@ -564,7 +564,6 @@ function runWestern(si: StandardizedInput): { eo: EngineOutput; westernReport: W
         '太阳': WesternAstrologyEngine.getSignCN(westernReport.sunSign),
         '月亮': WesternAstrologyEngine.getSignCN(westernReport.moonSign),
         '上升': WesternAstrologyEngine.getSignCN(westernReport.risingSign),
-        '品质': dignities,
         '相位格局': patterns,
       },
       warnings: [], uncertaintyNotes: ['含行星品质、大三角/T三角/群星格局检测'],
