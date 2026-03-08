@@ -266,7 +266,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
 
       {/* Gender */}
       <div className="space-y-3">
-        <Label className="text-xs text-muted-foreground font-sans">性别</Label>
+        <Label className="text-xs text-muted-foreground font-sans">{t('form.gender')}</Label>
         <RadioGroup
           value={formData.gender}
           onValueChange={(v) => setFormData({ ...formData, gender: v as 'male' | 'female' })}
