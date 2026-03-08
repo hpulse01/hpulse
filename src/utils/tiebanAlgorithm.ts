@@ -124,6 +124,9 @@ export interface TiebanInput {
   hour: number;
   minute: number;
   gender: 'male' | 'female';
+  geoLatitude: number;        // 出生地纬度（北纬为正）
+  geoLongitude: number;       // 出生地经度（东经为正）
+  timezoneOffsetMinutes: number; // 出生地时区偏移（分钟），如中国标准时间=480
 }
 
 export interface GanZhiPillars {
