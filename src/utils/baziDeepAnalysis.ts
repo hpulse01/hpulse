@@ -1212,6 +1212,9 @@ function generateSummary(
   favorable: { elements: string[]; gods: string[]; description: string },
   unfavorable: { elements: string[]; gods: string[]; description: string },
   shenSha: ShenShaInfo[],
+  branchInteractions?: BranchInteraction[],
+  stemCombinations?: StemCombination[],
+  kongWang?: KongWangInfo,
 ): string {
   const yinYangDesc = dayYinYang === '阳' ? '阳刚' : '阴柔';
   const auspicious = shenSha.filter(s => s.type === '吉星').map(s => s.name);
@@ -1223,6 +1226,31 @@ function generateSummary(
   if (unfavorable.description) text += `${unfavorable.description}。`;
   if (auspicious.length > 0) text += `命带吉星：${[...new Set(auspicious)].join('、')}。`;
   if (inauspicious.length > 0) text += `命带凶星：${[...new Set(inauspicious)].join('、')}，需注意化解。`;
+
+  // v3.0: 刑冲合害
+  if (branchInteractions && branchInteractions.length > 0) {
+    const heHe = branchInteractions.filter(i => ['六合', '三合', '半合'].includes(i.type));
+    const chongXing = branchInteractions.filter(i => ['六冲', '三刑', '六害'].includes(i.type));
+    if (heHe.length > 0) text += `地支有${heHe.map(i => i.type).join('、')}，人际关系多助力。`;
+    if (chongXing.length > 0) text += `地支见${chongXing.map(i => i.type).join('、')}，注意动荡变化。`;
+  }
+
+  // v3.0: 天干合化
+  if (stemCombinations && stemCombinations.length > 0) {
+    const wuhe = stemCombinations.filter(s => s.type === '天干五合');
+    if (wuhe.length > 0) {
+      text += wuhe.map(s => s.canTransform ? `${s.stems.join('')}合化${s.resultElement}成功。` : `${s.stems.join('')}合而不化。`).join('');
+    }
+  }
+
+  // v3.0: 空亡
+  if (kongWang) {
+    const voidPillars = kongWang.affectedPillars.filter(p => p.isVoid);
+    if (voidPillars.length > 0) {
+      text += `${voidPillars.map(p => p.pillar).join('、')}落空亡。`;
+    }
+  }
+
   return text;
 }
 
