@@ -1,10 +1,11 @@
 /**
- * H-Pulse Recursive World Tree Generator v3.0
+ * H-Pulse Recursive World Tree Generator v4.0
  *
- * Builds a recursive destiny tree from UnifiedEventCandidates.
- * v3.0: Event dependency/exclusion/enhancement/transformation.
- *       Death driven by DeathFusionResult, not hash rolls.
- *       Full causal chain and audit fields.
+ * v4.0: Quantum Math Framework integration.
+ *   - Collapse uses amplitude-based Born rule (|Ψ|²/Z)
+ *   - Deterministic seeded PRNG replaces score-sorting
+ *   - Fate potential drives world line selection
+ *   - Full quantum collapse audit trail
  */
 
 import type {
@@ -14,6 +15,11 @@ import type {
 } from '@/types/destinyTree';
 import type { FateVector, FateDimension } from '@/types/prediction';
 import { ALL_FATE_DIMENSIONS } from '@/types/prediction';
+import {
+  generateCollapseSeed, quantumCollapsePipeline,
+  calculateFatePotential, calculateCollapseConfidence,
+  type WorldLineInput, type EngineSupport,
+} from '@/utils/quantumMath';
 
 // ── Apply event impact to fate vector ──
 function applyImpact(base: FateVector, impact: Partial<Record<FateDimension, number>>): FateVector {
