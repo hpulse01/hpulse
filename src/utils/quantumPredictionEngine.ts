@@ -31,7 +31,7 @@ import { buildTaiyiEngineOutput, type TaiyiResult } from './taiyiAlgorithm';
 import { performDeepBaZiAnalysis, type DeepBaZiAnalysis } from './baziDeepAnalysis';
 
 // Destiny Tree imports
-import { extractTiebanEvents, extractBaziEvents, extractZiweiEvents, extractGenericEvents, extractInstantEvents } from './eventSeedExtractors';
+import { extractTiebanEvents, extractBaziEvents, extractZiweiEvents, extractWesternEvents, extractVedicEvents, extractNumerologyEvents, extractMayanEvents, extractKabbalahEvents, extractInstantEvents } from './eventSeedExtractors';
 import { fuseEventSeeds } from './eventFusion';
 import { generateWorldTree, collapseWorldTree } from './worldTreeGenerator';
 import type { RecursiveWorldTree, CollapseResult, DestinyEventSeed } from '@/types/destinyTree';
