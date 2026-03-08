@@ -82,7 +82,7 @@ export function UserMenu() {
           <ChevronDown className="w-3 h-3 ml-1" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 bg-card border-primary/20">
+      <DropdownMenuContent align="end" className="w-56 glass-elevated border-primary/20">
         <DropdownMenuLabel className="flex flex-col gap-1">
           <span className="font-normal text-muted-foreground text-xs">
             {user?.email}

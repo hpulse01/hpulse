@@ -137,23 +137,23 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-card border-primary/20 z-50" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-md glass-elevated border-primary/20 z-50" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader className="text-center">
-          <DialogTitle className="text-2xl font-serif text-primary tracking-wider">
-            铁板神数
+          <DialogTitle className="text-2xl font-serif text-gradient-gold tracking-[0.15em]">
+            H-Pulse
           </DialogTitle>
-          <DialogDescription>
-            登录解锁更多功能
+          <DialogDescription className="text-muted-foreground/70 text-xs tracking-widest uppercase mt-1">
+            Quantum Destiny Prediction · 登录解锁高级功能
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'login' | 'register')}>
-          <TabsList className="grid w-full grid-cols-2 bg-secondary/50">
-            <TabsTrigger value="login" className="font-serif">
+          <TabsList className="grid w-full grid-cols-2 bg-card/60 border border-border/30 h-auto p-1 rounded-xl">
+            <TabsTrigger value="login" className="font-sans text-xs tracking-wider rounded-lg data-[state=active]:bg-primary/15 data-[state=active]:text-primary py-2.5">
               <LogIn className="w-4 h-4 mr-2" />
               登录
             </TabsTrigger>
-            <TabsTrigger value="register" className="font-serif">
+            <TabsTrigger value="register" className="font-sans text-xs tracking-wider rounded-lg data-[state=active]:bg-primary/15 data-[state=active]:text-primary py-2.5">
               <UserPlus className="w-4 h-4 mr-2" />
               注册
             </TabsTrigger>
@@ -257,18 +257,18 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         </Tabs>
 
         {/* Level Info */}
-        <div className="mt-4 pt-4 border-t border-border/50">
-          <p className="text-xs text-muted-foreground text-center mb-3">会员等级说明</p>
+        <div className="mt-4 pt-4 border-t border-border/30">
+          <p className="text-[10px] text-muted-foreground/60 text-center mb-3 tracking-widest uppercase font-sans">Membership Tiers</p>
           <div className="space-y-2">
             {Object.entries(LEVEL_CONFIG).map(([key, config]) => {
               const Icon = config.icon;
               return (
-                <div key={key} className="flex items-center justify-between text-xs">
+                <div key={key} className="flex items-center justify-between text-xs px-2 py-1.5 rounded-lg hover:bg-card/50 transition-colors">
                   <div className="flex items-center gap-2">
-                    <Icon className={`w-4 h-4 ${config.color}`} />
-                    <span className={config.color}>{config.label}</span>
+                    <Icon className={`w-3.5 h-3.5 ${config.color}`} />
+                    <span className={`${config.color} font-sans text-[11px]`}>{config.label}</span>
                   </div>
-                  <span className="text-muted-foreground">{config.description}</span>
+                  <span className="text-muted-foreground/60 text-[10px] font-sans">{config.description}</span>
                 </div>
               );
             })}
