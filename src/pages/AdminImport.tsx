@@ -1,14 +1,19 @@
 import { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { useSuperAdmin } from '@/hooks/useSuperAdmin';
 import { importClausesFromJson, getClauseCount } from '@/services/SupabaseService';
 import clausesData from '@/data/tieban-clauses.json';
 
 /**
  * Admin page for importing clauses data
- * Access this at /admin-import
+ * Access this at /admin-import — restricted to super admins
  */
 export default function AdminImport() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isSuperAdmin, isChecking } = useSuperAdmin();
   const [isImporting, setIsImporting] = useState(false);
   const [result, setResult] = useState<{
     success?: boolean;
@@ -17,8 +22,19 @@ export default function AdminImport() {
     errors?: string[];
   } | null>(null);
   const [clauseCount, setClauseCount] = useState<number | null>(null);
-
   const { toast } = useToast();
+
+  // Auth gate
+  if (authLoading || isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">验证权限中...</div>
+      </div>
+    );
+  }
+  if (!isAuthenticated || !isSuperAdmin) {
+    return <Navigate to="/" replace />;
+  }
 
   const handleCheckCount = async () => {
     const count = await getClauseCount();
