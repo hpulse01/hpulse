@@ -60,6 +60,23 @@ export interface ChartPattern {
 
 export type WesternElement = 'fire' | 'earth' | 'air' | 'water';
 
+/** v3.0: Mutual Reception */
+export interface MutualReceptionInfo {
+  planetA: string;
+  planetB: string;
+  signA: string;
+  signB: string;
+  significance: string;
+}
+
+/** v3.0: Singleton */
+export interface SingletonInfo {
+  planet: string;
+  type: 'element' | 'modality';
+  value: string;
+  significance: string;
+}
+
 export interface WesternAstrologyReport {
   sunSign: string;
   moonSign: string;
@@ -71,6 +88,9 @@ export interface WesternAstrologyReport {
   dominantElement: WesternElement;
   dominantModality: string;
   patterns: ChartPattern[];
+  /** v3.0 */
+  mutualReceptions: MutualReceptionInfo[];
+  singletons: SingletonInfo[];
   lifeVectors: Record<string, number>;
 }
 
