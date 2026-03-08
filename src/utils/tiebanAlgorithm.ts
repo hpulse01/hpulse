@@ -941,6 +941,10 @@ export const TiebanEngine = {
     // v2.0: Luo Shu harmony
     const luoShuHarmony = calculateLuoShuHarmony(pillars);
 
+    // v3.0: He Tu harmony + Xian Tian Gua
+    const heTuHarmony = calculateHeTuHarmony(pillars);
+    const xianTianGua = calculateXianTianGua(pillars);
+
     // v2.0: Na Yin profile
     const naYinProfile = [
       { pillar: '年柱', ganZhi: pillars.year, naYin: NA_YIN_TABLE[pillars.year] || '未知', element: NA_YIN_ELEMENT[pillars.year] || '土' },
@@ -981,14 +985,14 @@ export const TiebanEngine = {
         strongPalaces,
         weakPalaces,
         keyTurningAges,
-        lifeSummary: `铁板命局${overallGrade}等，${strongPalaces.length > 0 ? `${strongPalaces.join('、')}为强宫` : '无特强宫位'}，${weakPalaces.length > 0 ? `${weakPalaces.join('、')}需注意` : '无特弱宫位'}。洛书和谐度${luoShuHarmony.harmonyScore}分。`,
+        lifeSummary: `铁板命局${overallGrade}等，${strongPalaces.length > 0 ? `${strongPalaces.join('、')}为强宫` : '无特强宫位'}，${weakPalaces.length > 0 ? `${weakPalaces.join('、')}需注意` : '无特弱宫位'}。洛书和谐度${luoShuHarmony.harmonyScore}分。河图和谐度${heTuHarmony.harmonyScore}分。${xianTianGua.evaluation}。`,
         luoShuBalance: luoShuHarmony.evaluation,
       },
     };
 
     return {
       baziProfile, lifeCycles, flowYears, destinyProjection,
-      twelvePalaces, luoShuHarmony, threeLayerReport,
+      twelvePalaces, luoShuHarmony, heTuHarmony, xianTianGua, threeLayerReport,
     };
   },
 };
