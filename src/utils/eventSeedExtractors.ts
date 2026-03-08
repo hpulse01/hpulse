@@ -1232,16 +1232,17 @@ export function extractVedicEvents(
 
   // Yoga-based events
   for (const yoga of report.yogas.slice(0, 3)) {
-    const isWealthYoga = yoga.toLowerCase().includes('dhana') || yoga.toLowerCase().includes('lakshmi');
-    const isCareerYoga = yoga.toLowerCase().includes('raja') || yoga.toLowerCase().includes('pancha');
+    const yogaName = typeof yoga === 'string' ? yoga : yoga.name;
+    const isWealthYoga = yogaName.toLowerCase().includes('dhana') || yogaName.toLowerCase().includes('lakshmi');
+    const isCareerYoga = yogaName.toLowerCase().includes('raja') || yogaName.toLowerCase().includes('pancha');
     seeds.push({
-      ...B, id: seedId('vedic', isWealthYoga ? 'wealth' : isCareerYoga ? 'career' : 'spiritual', 35, `yoga-${yoga.slice(0, 8)}`),
+      ...B, id: seedId('vedic', isWealthYoga ? 'wealth' : isCareerYoga ? 'career' : 'spiritual', 35, `yoga-${yogaName.slice(0, 8)}`),
       category: isWealthYoga ? 'wealth' : isCareerYoga ? 'career' : 'spiritual',
-      subcategory: `Yoga:${yoga}`,
-      description: `吠陀Yoga「${yoga}」：命主具有${isWealthYoga ? '财富' : isCareerYoga ? '权力' : '灵性'}天赋`,
+      subcategory: `Yoga:${yogaName}`,
+      description: `吠陀Yoga「${yogaName}」：命主具有${isWealthYoga ? '财富' : isCareerYoga ? '权力' : '灵性'}天赋`,
       earliestAge: 20, latestAge: 50,
       probability: 0.5, intensity: 'moderate',
-      causalFactors: [yoga],
+      causalFactors: [yogaName],
       triggerConditions: [], deathRelated: false,
       mergeKey: `age-35-${isWealthYoga ? 'wealth' : isCareerYoga ? 'career' : 'spiritual'}`,
       fateImpact: isWealthYoga ? { wealth: 8 } : isCareerYoga ? { life: 8 } : { spirit: 5, wisdom: 3 },
