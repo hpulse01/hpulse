@@ -53,7 +53,7 @@ const Index = () => {
    * STEP 1: Handle birth data submission
    * Calculate base number, then go to Kao Ke verification
    */
-  const handleBirthDataSubmit = useCallback(async (birthData: TiebanInput) => {
+  const handleBirthDataSubmit = useCallback(async (birthData: BirthDataWithGeo) => {
     setStep('calculating');
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
