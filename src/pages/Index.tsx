@@ -139,6 +139,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background bg-scroll-texture">
+      {/* Mandatory Disclaimer */}
+      <DisclaimerDialog
+        open={!disclaimerAccepted}
+        onAccept={() => setDisclaimerAccepted(true)}
+      />
       {/* Header */}
       <header className="relative border-b border-border/50">
         <div className="absolute inset-0 bg-gradient-to-b from-card/80 to-transparent" />
