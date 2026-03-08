@@ -774,7 +774,7 @@ export const QuantumPredictionEngine = {
       deathAge,
       quantumSignature,
       dominantElement,
-      baziProfile, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport,
+      baziProfile, fullReport, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport,
       timestamp,
     };
   },
