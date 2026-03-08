@@ -89,9 +89,30 @@ function QuantumInputForm({ onSubmit }: { onSubmit: (d: QuantumInput) => void })
     geoLongitude: 116.4074,
     timezoneOffsetMinutes: 480,
   });
+  const [timezoneIana, setTimezoneIana] = useState('Asia/Shanghai');
+  const [locationLabel, setLocationLabel] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
   const chineseHour = TiebanEngine.getChineseHour(form.hour);
+
+  const handleLocationSelect = (loc: GeocodedLocation) => {
+    setForm(prev => ({
+      ...prev,
+      geoLatitude: loc.geoLatitude,
+      geoLongitude: loc.geoLongitude,
+      timezoneOffsetMinutes: loc.timezoneOffsetMinutesAtBirth,
+    }));
+    setTimezoneIana(loc.timezoneIana);
+    setLocationLabel(loc.normalizedLocationName.split(', ').slice(0, 2).join(', '));
+  };
+
+  const formatOffset = (m: number) => {
+    const sign = m >= 0 ? '+' : '-';
+    const abs = Math.abs(m);
+    return `UTC${sign}${Math.floor(abs / 60)}${abs % 60 > 0 ? ':' + (abs % 60).toString().padStart(2, '0') : ''}`;
+  };
 
   return (
     <form onSubmit={e => { e.preventDefault(); onSubmit(form); }} className="space-y-6">
@@ -101,7 +122,7 @@ function QuantumInputForm({ onSubmit }: { onSubmit: (d: QuantumInput) => void })
           量子态初始化
         </h2>
         <p className="text-muted-foreground text-xs mt-2">
-          输入本地生辰 + 出生地经纬度 + 时区，天文层将转换到 UTC 后计算
+          搜索出生地自动解析经纬度与时区，天文层将转换到 UTC 后计算
         </p>
       </div>
 
@@ -141,41 +162,72 @@ function QuantumInputForm({ onSubmit }: { onSubmit: (d: QuantumInput) => void })
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-foreground/80 text-sm">出生地经纬度 / 时区</Label>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">纬度（北纬+）</Label>
-            <input
-              type="number"
-              step="0.0001"
-              className="w-full h-10 rounded-md border border-violet-500/20 bg-secondary px-3 text-sm"
-              value={form.geoLatitude}
-              onChange={(e) => setForm({ ...form, geoLatitude: Number(e.target.value) })}
-            />
+      {/* Location search */}
+      <LocationSearch
+        birthYear={form.year}
+        birthMonth={form.month}
+        birthDay={form.day}
+        birthHour={form.hour}
+        onSelect={handleLocationSelect}
+        initialLocationName="北京"
+      />
+
+      {/* Resolved info */}
+      <div className="bg-violet-500/5 border border-violet-500/20 rounded p-3 space-y-1">
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          <div>
+            <span className="text-muted-foreground">纬度: </span>
+            <span className="text-foreground font-mono">{form.geoLatitude.toFixed(4)}°</span>
           </div>
-          <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">经度（东经+）</Label>
-            <input
-              type="number"
-              step="0.0001"
-              className="w-full h-10 rounded-md border border-violet-500/20 bg-secondary px-3 text-sm"
-              value={form.geoLongitude}
-              onChange={(e) => setForm({ ...form, geoLongitude: Number(e.target.value) })}
-            />
+          <div>
+            <span className="text-muted-foreground">经度: </span>
+            <span className="text-foreground font-mono">{form.geoLongitude.toFixed(4)}°</span>
           </div>
-          <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">时区偏移（分钟）</Label>
-            <input
-              type="number"
-              step="1"
-              className="w-full h-10 rounded-md border border-violet-500/20 bg-secondary px-3 text-sm"
-              value={form.timezoneOffsetMinutes}
-              onChange={(e) => setForm({ ...form, timezoneOffsetMinutes: Number(e.target.value) })}
-            />
+          <div>
+            <span className="text-muted-foreground">时区: </span>
+            <span className="text-foreground font-mono">{formatOffset(form.timezoneOffsetMinutes)}</span>
           </div>
         </div>
+        {timezoneIana && (
+          <p className="text-[11px] text-muted-foreground">
+            IANA: <span className="text-foreground">{timezoneIana}</span>
+            {locationLabel && <span> · {locationLabel}</span>}
+          </p>
+        )}
       </div>
+
+      {/* Advanced manual override */}
+      <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+        <CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+          手动修正经纬度和时区
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">纬度（北纬+）</Label>
+              <input type="number" step="0.0001"
+                className="w-full h-10 rounded-md border border-violet-500/20 bg-secondary px-3 text-sm"
+                value={form.geoLatitude}
+                onChange={(e) => setForm({ ...form, geoLatitude: Number(e.target.value) })} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">经度（东经+）</Label>
+              <input type="number" step="0.0001"
+                className="w-full h-10 rounded-md border border-violet-500/20 bg-secondary px-3 text-sm"
+                value={form.geoLongitude}
+                onChange={(e) => setForm({ ...form, geoLongitude: Number(e.target.value) })} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">时区偏移（分钟）</Label>
+              <input type="number" step="1"
+                className="w-full h-10 rounded-md border border-violet-500/20 bg-secondary px-3 text-sm"
+                value={form.timezoneOffsetMinutes}
+                onChange={(e) => setForm({ ...form, timezoneOffsetMinutes: Number(e.target.value) })} />
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       <div className="space-y-3">
         <Label className="text-foreground/80 text-sm">性别</Label>
