@@ -781,6 +781,10 @@ export interface DeepBaZiAnalysis {
   unfavorable: BaZiAnalysisConclusion['unfavorable'];
   pattern: BaZiAnalysisConclusion['pattern'];
   summary: string;
+  /** v3.0 */
+  branchInteractions: BranchInteraction[];
+  stemCombinations: StemCombination[];
+  kongWang: KongWangInfo;
 }
 
 // ═══════════════════════════════════════════════
