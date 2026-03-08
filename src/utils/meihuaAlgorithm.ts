@@ -461,7 +461,127 @@ function calculateYingQi(tiYong: TiYongRelation, seasonal: { season: string; str
 }
 
 // ═══════════════════════════════════════════════
-// 深度分析
+// v3.0: 错卦 (Inverse hexagram — all lines flipped)
+// ═══════════════════════════════════════════════
+
+function computeCuoGua(upper: Trigram, lower: Trigram): MeihuaGua {
+  const lines = trigramToLines(lower).concat(trigramToLines(upper));
+  const flipped = lines.map(l => l === 1 ? 0 : 1);
+  const cuoLower = linesToTrigram([flipped[0], flipped[1], flipped[2]]);
+  const cuoUpper = linesToTrigram([flipped[3], flipped[4], flipped[5]]);
+  return makeGua(cuoUpper, cuoLower);
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: 综卦 (Reverse hexagram — lines reversed)
+// ═══════════════════════════════════════════════
+
+function computeZongGua(upper: Trigram, lower: Trigram): MeihuaGua {
+  const lines = trigramToLines(lower).concat(trigramToLines(upper));
+  const reversed = [...lines].reverse();
+  const zongLower = linesToTrigram([reversed[0], reversed[1], reversed[2]]);
+  const zongUpper = linesToTrigram([reversed[3], reversed[4], reversed[5]]);
+  return makeGua(zongUpper, zongLower);
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: 五行力量对比
+// ═══════════════════════════════════════════════
+
+function analyzeWuXingBalance(
+  benGua: MeihuaGua, huGua: MeihuaGua, bianGua: MeihuaGua,
+  cuoGua: MeihuaGua, zongGua: MeihuaGua, month: number,
+): WuXingForceBalance {
+  const forces: Record<WuXing, number> = { '金': 0, '木': 0, '水': 0, '火': 0, '土': 0 };
+  const addForce = (el: WuXing, weight: number) => { forces[el] += weight; };
+
+  // 本卦权重最高
+  addForce(benGua.upper.element, 3); addForce(benGua.lower.element, 3);
+  // 互卦
+  addForce(huGua.upper.element, 2); addForce(huGua.lower.element, 2);
+  // 变卦
+  addForce(bianGua.upper.element, 2); addForce(bianGua.lower.element, 2);
+  // 错综卦辅助
+  addForce(cuoGua.upper.element, 1); addForce(cuoGua.lower.element, 1);
+  addForce(zongGua.upper.element, 1); addForce(zongGua.lower.element, 1);
+
+  // 季节加成
+  const season = getSeason(month);
+  const seasonElements: Record<string, WuXing> = { '春': '木', '夏': '火', '秋': '金', '冬': '水', '四季': '土' };
+  const isSiJi = [3, 6, 9, 12].includes(month);
+  const seasonEl = seasonElements[isSiJi ? '四季' : season];
+  forces[seasonEl] += 3;
+
+  const entries = Object.entries(forces) as [WuXing, number][];
+  const sorted = [...entries].sort((a, b) => b[1] - a[1]);
+  const dominant = sorted[0][0];
+  const weakest = sorted[sorted.length - 1][0];
+
+  const interpretation = `五行力量: ${sorted.map(([el, v]) => `${el}(${v})`).join(' > ')}。` +
+    `${dominant}气最盛，${weakest}气最弱。` +
+    `${SHENG[dominant] === weakest ? '强势五行泄于最弱，形成流通' : KE[dominant] === weakest ? '强势五行克制最弱，需防过激' : '五行配置较为均衡'}。`;
+
+  return { forces, dominant, weakest, interpretation };
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: 多层体用分析
+// ═══════════════════════════════════════════════
+
+function analyzeMultiLayerTiYong(
+  benGua: MeihuaGua, huGua: MeihuaGua, bianGua: MeihuaGua,
+  dongYao: number,
+): MultiLayerTiYong {
+  const benTiYong = determineTiYong(benGua, dongYao);
+
+  // 互卦体用：以本卦体卦为体，互卦上下卦为用
+  const huTiRel = wuxingRelation(benTiYong.tiGua.element, huGua.upper.element);
+  const huLowerRel = wuxingRelation(benTiYong.tiGua.element, huGua.lower.element);
+  const huTiYong: TiYongRelation = {
+    tiGua: benTiYong.tiGua,
+    yongGua: huGua.upper,
+    tiElement: benTiYong.tiElement,
+    yongElement: huGua.upper.element,
+    relation: huTiRel.rel === '生' && huTiRel.from === benTiYong.tiElement ? '体生用' :
+      huTiRel.rel === '生' ? '用生体' :
+      huTiRel.rel === '克' && huTiRel.from === benTiYong.tiElement ? '体克用' :
+      huTiRel.rel === '克' ? '用克体' : '比和',
+    tendency: huTiRel.rel === '生' && huTiRel.from !== benTiYong.tiElement ? '吉' :
+      huTiRel.rel === '克' && huTiRel.from !== benTiYong.tiElement ? '凶' : '中',
+    explanation: `互卦层：体${benTiYong.tiGua.nameCN}与互卦${huGua.upper.nameCN}${huGua.lower.nameCN}之关系反映事态发展过程。`,
+  };
+
+  // 变卦体用：以本卦体卦为体，变卦整体为用
+  const bianTiRel = wuxingRelation(benTiYong.tiElement, bianGua.upper.element);
+  const bianTiYong: TiYongRelation = {
+    tiGua: benTiYong.tiGua,
+    yongGua: bianGua.upper,
+    tiElement: benTiYong.tiElement,
+    yongElement: bianGua.upper.element,
+    relation: bianTiRel.rel === '生' && bianTiRel.from === benTiYong.tiElement ? '体生用' :
+      bianTiRel.rel === '生' ? '用生体' :
+      bianTiRel.rel === '克' && bianTiRel.from === benTiYong.tiElement ? '体克用' :
+      bianTiRel.rel === '克' ? '用克体' : '比和',
+    tendency: bianTiRel.rel === '生' && bianTiRel.from !== benTiYong.tiElement ? '大吉' :
+      bianTiRel.rel === '克' && bianTiRel.from !== benTiYong.tiElement ? '大凶' : '中',
+    explanation: `变卦层：体${benTiYong.tiGua.nameCN}与变卦${bianGua.upper.nameCN}${bianGua.lower.nameCN}之关系反映最终结局。`,
+  };
+
+  // 综合判断
+  const layers = [benTiYong.tendency, huTiYong.tendency, bianTiYong.tendency];
+  const jiCount = layers.filter(t => t === '吉' || t === '大吉').length;
+  const xiongCount = layers.filter(t => t === '凶' || t === '大凶').length;
+  const synthesis = jiCount >= 2 ? '三层体用以吉为主，整体走势向好。' :
+    xiongCount >= 2 ? '三层体用以凶为主，整体走势不利，需谨慎。' :
+    '三层体用吉凶参半，事态复杂多变。' +
+    (benTiYong.tendency.includes('吉') ? '起始有利。' : '') +
+    (bianTiYong.tendency.includes('吉') ? '终局可期。' : '');
+
+  return { benTiYong, huTiYong, bianTiYong, synthesis };
+}
+
+// ═══════════════════════════════════════════════
+// 深度分析 (v3.0 enhanced)
 // ═══════════════════════════════════════════════
 
 function performDeepAnalysis(
@@ -469,7 +589,6 @@ function performDeepAnalysis(
   tiYong: TiYongRelation, dongYao: number, month: number,
 ): GuaAnalysis {
   const tiEl = tiYong.tiElement;
-  const yongEl = tiYong.yongElement;
   const seasonal = getSeasonalStrength(tiEl, month);
 
   // 万物类象
@@ -478,17 +597,43 @@ function performDeepAnalysis(
     ...(TRIGRAM_LEI_XIANG[tiYong.yongGua.nameCN] || []),
   ];
 
-  // 互卦分析（事态发展过程）
+  // 互卦分析
   const huTiRel = wuxingRelation(tiEl, huGua.upper.element);
   const huAnalysis = `互卦${huGua.name}，五行${huGua.upper.element}${huGua.lower.element}。` +
     `与体卦${huTiRel.rel === '生' ? '相生，过程顺遂' : huTiRel.rel === '克' ? '相克，过程多阻' : '比和，平稳推进'}。`;
 
-  // 变卦趋势（最终结果）
+  // 变卦趋势
   const bianTiRel = wuxingRelation(tiEl, bianGua.upper.element);
   const bianTrend = `变卦${bianGua.name}，${bianTiRel.rel === '生' && bianTiRel.from !== tiEl ? '生体，终局有利' :
     bianTiRel.rel === '克' && bianTiRel.from !== tiEl ? '克体，终局不利' :
     bianTiRel.rel === '比' ? '比和，结局平稳' :
     bianTiRel.rel === '生' ? '泄体，需防损耗' : '体克之，可得其利'}。`;
+
+  // v3.0: 错卦分析
+  const cuoGuaHex = computeCuoGua(benGua.upper, benGua.lower);
+  const cuoRel = wuxingRelation(tiEl, cuoGuaHex.upper.element);
+  const cuoGua: CuoGuaAnalysis = {
+    gua: cuoGuaHex,
+    relation: cuoRel.rel,
+    interpretation: `错卦${cuoGuaHex.name}，反映事物对立面与隐藏矛盾。` +
+      `${cuoRel.rel === '生' ? '对立面可转化为助力' : cuoRel.rel === '克' ? '潜在矛盾激烈' : '对立面与自身同质'}。`,
+  };
+
+  // v3.0: 综卦分析
+  const zongGuaHex = computeZongGua(benGua.upper, benGua.lower);
+  const zongRel = wuxingRelation(tiEl, zongGuaHex.upper.element);
+  const zongGua: ZongGuaAnalysis = {
+    gua: zongGuaHex,
+    relation: zongRel.rel,
+    interpretation: `综卦${zongGuaHex.name}，反映换位视角与因果反转。` +
+      `${zongRel.rel === '生' ? '反转视角有利' : zongRel.rel === '克' ? '换位后不利，需自省' : '正反视角一致'}。`,
+  };
+
+  // v3.0: 多层体用
+  const multiLayerTiYong = analyzeMultiLayerTiYong(benGua, huGua, bianGua, dongYao);
+
+  // v3.0: 五行力量
+  const wuxingBalance = analyzeWuXingBalance(benGua, huGua, bianGua, cuoGuaHex, zongGuaHex, month);
 
   // 格局判定
   const patterns: string[] = [];
@@ -498,6 +643,10 @@ function performDeepAnalysis(
   if (huGua.upper.element === huGua.lower.element) patterns.push('互卦同元·内部和谐');
   if (tiEl === bianGua.upper.element || tiEl === bianGua.lower.element) patterns.push('体化入变·事可转圜');
   if (dongYao === 1 || dongYao === 6) patterns.push('初末动爻·始终之应');
+  // v3.0 patterns
+  if (cuoGuaHex.name === benGua.name) patterns.push('错卦同体·正反一致');
+  if (zongGuaHex.name === benGua.name) patterns.push('综卦不变·不倒翁格');
+  if (wuxingBalance.forces[wuxingBalance.dominant] >= 10) patterns.push(`${wuxingBalance.dominant}气独旺`);
   if (patterns.length === 0) patterns.push('常格');
 
   // 卦象意象
@@ -507,20 +656,25 @@ function performDeepAnalysis(
   // 应期
   const yingQi = calculateYingQi(tiYong, seasonal);
 
-  // 综合评语
+  // v3.0: 先天数应期
+  const xiantianYingQi: YingQi = {
+    type: '先天数应期',
+    timing: `上卦数${benGua.upper.index + 1}、下卦数${benGua.lower.index + 1}之和为${benGua.upper.index + benGua.lower.index + 2}`,
+    explanation: `可取${benGua.upper.index + benGua.lower.index + 2}日/月为应期之数。`,
+  };
+  yingQi.push(xiantianYingQi);
+
   const summary = `本卦${benGua.name}，${tiYong.relation}，${tiYong.tendency}之象。` +
     `体卦${tiEl}在${seasonal.season}${seasonal.strength === '旺' || seasonal.strength === '相' ? '得时' : '失时'}。` +
-    `${huAnalysis.includes('顺遂') ? '过程较顺' : '过程有波折'}，${bianTrend.includes('有利') ? '终局可期' : '需谨慎行事'}。`;
+    `${huAnalysis.includes('顺遂') ? '过程较顺' : '过程有波折'}，${bianTrend.includes('有利') ? '终局可期' : '需谨慎行事'}。` +
+    `错卦${cuoGuaHex.name}${cuoGua.interpretation.includes('助力') ? '，对立面可化为助力' : ''}。` +
+    `${multiLayerTiYong.synthesis}`;
 
   return {
-    imagery,
-    leiXiang,
-    seasonalStrength: seasonal,
-    yingQi,
-    huGuaAnalysis: huAnalysis,
-    bianGuaTrend: bianTrend,
-    pattern: patterns.join('·'),
-    summary,
+    imagery, leiXiang, seasonalStrength: seasonal, yingQi,
+    huGuaAnalysis: huAnalysis, bianGuaTrend: bianTrend,
+    pattern: patterns.join('·'), summary,
+    cuoGua, zongGua, multiLayerTiYong, wuxingBalance,
   };
 }
 
