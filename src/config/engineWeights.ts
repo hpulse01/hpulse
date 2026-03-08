@@ -1,12 +1,15 @@
 /**
- * P2.5 Engine Weight Configuration
- * 
- * ALL 13 engines have weights for ALL queryTypes.
- * Instant engines get low weight for natalAnalysis, high weight for instantDecision.
- * Natal engines get high weight for natalAnalysis, low weight for instantDecision.
+ * H-Pulse Dynamic Weight System W(t, e, d) v5.0
+ *
+ * Notion 文档规范实现：权重不是固定的，而是根据三个维度动态调整：
+ *   t (时间/人生阶段) — 不同体系在不同年龄段准确度不同
+ *   e (事件类型)     — 不同体系擅长预测不同领域
+ *   d (粒度)         — 不同查询粒度下体系权重差异
+ *
+ * 所有权重均自动归一化。
  */
 
-import type { QueryType } from '@/types/prediction';
+import type { QueryType, FateDimension } from '@/types/prediction';
 
 export interface WeightConfig {
   engineName: string;
@@ -14,101 +17,248 @@ export interface WeightConfig {
   reason: string;
 }
 
-const WEIGHT_TABLE: Record<QueryType, WeightConfig[]> = {
-  natalAnalysis: [
-    { engineName: 'tieban',     weight: 0.16, reason: '铁板神数为本命推算核心体系' },
-    { engineName: 'bazi',       weight: 0.16, reason: '八字命理为中国传统本命分析主体系' },
-    { engineName: 'ziwei',      weight: 0.15, reason: '紫微斗数宫位体系与本命高度相关' },
-    { engineName: 'western',    weight: 0.12, reason: '西方占星提供独立视角的本命分析' },
-    { engineName: 'vedic',      weight: 0.12, reason: '吠陀占星Dasha体系对终身运势有参考价值' },
-    { engineName: 'numerology', weight: 0.06, reason: '数字命理提供补充维度' },
-    { engineName: 'mayan',      weight: 0.05, reason: '玛雅历法提供独特时间周期视角' },
-    { engineName: 'kabbalah',   weight: 0.05, reason: '卡巴拉提供灵性维度补充' },
-    // Instant engines at low weight for natal
-    { engineName: 'liuyao',     weight: 0.03, reason: '六爻即时参考，低权重' },
-    { engineName: 'meihua',     weight: 0.03, reason: '梅花即时参考，低权重' },
-    { engineName: 'qimen',      weight: 0.03, reason: '奇门即时参考，低权重' },
-    { engineName: 'liuren',     weight: 0.02, reason: '六壬即时参考，低权重' },
-    { engineName: 'taiyi',      weight: 0.02, reason: '太乙即时参考，低权重' },
-  ],
-  annualForecast: [
-    { engineName: 'tieban',     weight: 0.14, reason: '铁板流年条文为年度预测核心' },
-    { engineName: 'bazi',       weight: 0.14, reason: '八字大运流年为年度分析主体系' },
-    { engineName: 'ziwei',      weight: 0.12, reason: '紫微流年盘提供宫位年度变化' },
-    { engineName: 'western',    weight: 0.10, reason: '西方占星行星过运与年度预测相关' },
-    { engineName: 'vedic',      weight: 0.12, reason: '吠陀Dasha分期在年度预测中权重较高' },
-    { engineName: 'numerology', weight: 0.05, reason: '个人年数字对年度预测有参考' },
-    { engineName: 'mayan',      weight: 0.04, reason: '玛雅周期参考' },
-    { engineName: 'kabbalah',   weight: 0.04, reason: '卡巴拉灵性参考' },
-    { engineName: 'liuyao',     weight: 0.04, reason: '六爻年度占卜参考' },
-    { engineName: 'meihua',     weight: 0.04, reason: '梅花年度感应' },
-    { engineName: 'qimen',      weight: 0.05, reason: '奇门年度时态' },
-    { engineName: 'liuren',     weight: 0.04, reason: '大六壬年度问事' },
-    { engineName: 'taiyi',      weight: 0.08, reason: '太乙神数提供年度趋势与应期参考' },
-  ],
-  monthlyForecast: [
-    { engineName: 'tieban',     weight: 0.06, reason: '铁板流月条文可用但精度有限' },
-    { engineName: 'bazi',       weight: 0.12, reason: '八字流月天干地支分析为月度核心' },
-    { engineName: 'ziwei',      weight: 0.10, reason: '紫微流月盘对月度运势分析较强' },
-    { engineName: 'liuyao',     weight: 0.08, reason: '六爻月度占卜有一定参考价值' },
-    { engineName: 'western',    weight: 0.08, reason: '西方占星月亮周期与月度高度相关' },
-    { engineName: 'vedic',      weight: 0.07, reason: '吠陀月宿与月度分析相关' },
-    { engineName: 'numerology', weight: 0.04, reason: '数字月度参考' },
-    { engineName: 'mayan',      weight: 0.04, reason: '玛雅Uinal周期' },
-    { engineName: 'kabbalah',   weight: 0.03, reason: '卡巴拉月度参考' },
-    { engineName: 'meihua',     weight: 0.08, reason: '梅花易数月度感应占断' },
-    { engineName: 'qimen',      weight: 0.10, reason: '奇门遁甲月度时态分析' },
-    { engineName: 'liuren',     weight: 0.08, reason: '大六壬月度问事占断' },
-    { engineName: 'taiyi',      weight: 0.06, reason: '太乙神数月度趋势参考' },
-  ],
-  dailyForecast: [
-    { engineName: 'tieban',     weight: 0.03, reason: '铁板日度参考有限' },
-    { engineName: 'bazi',       weight: 0.10, reason: '八字日柱与流日天干关系为日度核心' },
-    { engineName: 'ziwei',      weight: 0.06, reason: '紫微流日参考' },
-    { engineName: 'liuyao',     weight: 0.12, reason: '六爻日占为即时预测强项' },
-    { engineName: 'western',    weight: 0.06, reason: '西方占星每日行星相位' },
-    { engineName: 'vedic',      weight: 0.04, reason: '吠陀日宿参考' },
-    { engineName: 'numerology', weight: 0.04, reason: '数字日度参考' },
-    { engineName: 'mayan',      weight: 0.05, reason: '玛雅Kin日签高度相关' },
-    { engineName: 'kabbalah',   weight: 0.03, reason: '卡巴拉日度参考' },
-    { engineName: 'meihua',     weight: 0.11, reason: '梅花易数日度感应占断' },
-    { engineName: 'qimen',      weight: 0.14, reason: '奇门遁甲时家盘与日度决策高度相关' },
-    { engineName: 'liuren',     weight: 0.12, reason: '大六壬日课占断与日度分析高度相关' },
-    { engineName: 'taiyi',      weight: 0.07, reason: '太乙神数日度趋势参考' },
-  ],
-  instantDecision: [
-    { engineName: 'tieban',     weight: 0.02, reason: '铁板提供基底参考' },
-    { engineName: 'bazi',       weight: 0.04, reason: '八字提供基底参考' },
-    { engineName: 'ziwei',      weight: 0.04, reason: '紫微提供基底参考' },
-    { engineName: 'liuyao',     weight: 0.15, reason: '六爻为即时占卜首选体系' },
-    { engineName: 'western',    weight: 0.03, reason: '西方占星卜卦盘' },
-    { engineName: 'vedic',      weight: 0.03, reason: '吠陀Prashna占星术' },
-    { engineName: 'numerology', weight: 0.02, reason: '数字即时参考' },
-    { engineName: 'mayan',      weight: 0.02, reason: '玛雅当日能量' },
-    { engineName: 'kabbalah',   weight: 0.02, reason: '卡巴拉即时参考' },
-    { engineName: 'meihua',     weight: 0.18, reason: '梅花易数为即时感应占断核心体系' },
-    { engineName: 'qimen',      weight: 0.17, reason: '奇门遁甲时家盘为即时决策核心体系' },
-    { engineName: 'liuren',     weight: 0.16, reason: '大六壬为即时问事占断核心体系' },
-    { engineName: 'taiyi',      weight: 0.09, reason: '太乙神数提供趋势与应期补充' },
-  ],
+// ═══════════════════════════════════════════════
+// 1. Base Weight Table (queryType = granularity d)
+// ═══════════════════════════════════════════════
+
+const BASE_WEIGHT_TABLE: Record<QueryType, Record<string, number>> = {
+  natalAnalysis: {
+    tieban: 0.16, bazi: 0.16, ziwei: 0.15,
+    western: 0.12, vedic: 0.12, numerology: 0.06, mayan: 0.05, kabbalah: 0.05,
+    liuyao: 0.03, meihua: 0.03, qimen: 0.03, liuren: 0.02, taiyi: 0.02,
+  },
+  annualForecast: {
+    tieban: 0.14, bazi: 0.14, ziwei: 0.12,
+    western: 0.10, vedic: 0.12, numerology: 0.05, mayan: 0.04, kabbalah: 0.04,
+    liuyao: 0.04, meihua: 0.04, qimen: 0.05, liuren: 0.04, taiyi: 0.08,
+  },
+  monthlyForecast: {
+    tieban: 0.06, bazi: 0.12, ziwei: 0.10,
+    western: 0.08, vedic: 0.07, numerology: 0.04, mayan: 0.04, kabbalah: 0.03,
+    liuyao: 0.08, meihua: 0.08, qimen: 0.10, liuren: 0.08, taiyi: 0.06,
+  },
+  dailyForecast: {
+    tieban: 0.03, bazi: 0.10, ziwei: 0.06,
+    western: 0.06, vedic: 0.04, numerology: 0.04, mayan: 0.05, kabbalah: 0.03,
+    liuyao: 0.12, meihua: 0.11, qimen: 0.14, liuren: 0.12, taiyi: 0.07,
+  },
+  instantDecision: {
+    tieban: 0.02, bazi: 0.04, ziwei: 0.04,
+    western: 0.03, vedic: 0.03, numerology: 0.02, mayan: 0.02, kabbalah: 0.02,
+    liuyao: 0.15, meihua: 0.18, qimen: 0.17, liuren: 0.16, taiyi: 0.09,
+  },
 };
+
+// ═══════════════════════════════════════════════
+// 2. Life Stage Modifier — W_t(age)
+//    不同体系在不同年龄段准确度不同
+// ═══════════════════════════════════════════════
+
+interface LifeStage {
+  name: string;
+  minAge: number;
+  maxAge: number;
+}
+
+const LIFE_STAGES: LifeStage[] = [
+  { name: '童年期', minAge: 0, maxAge: 12 },
+  { name: '青少年期', minAge: 13, maxAge: 22 },
+  { name: '开拓期', minAge: 23, maxAge: 35 },
+  { name: '建设期', minAge: 36, maxAge: 48 },
+  { name: '成熟期', minAge: 49, maxAge: 60 },
+  { name: '智慧期', minAge: 61, maxAge: 72 },
+  { name: '圆融期', minAge: 73, maxAge: 100 },
+];
+
+/**
+ * 人生阶段权重修正因子。
+ * >1.0 = 该阶段增强此引擎权重，<1.0 = 该阶段削弱。
+ * 
+ * 原理（Notion）：
+ * - 紫微擅长格局（早中年），八字擅长大运（中晚年），铁板擅长细节
+ * - 占星擅长感情（青年），六爻擅长决策（壮年），奇门擅长时机
+ */
+const LIFE_STAGE_MODIFIERS: Record<string, Record<string, number>> = {
+  // engine → { stageName: modifier }
+  tieban:     { '童年期': 0.8, '青少年期': 0.9, '开拓期': 1.1, '建设期': 1.2, '成熟期': 1.3, '智慧期': 1.1, '圆融期': 1.0 },
+  bazi:       { '童年期': 0.7, '青少年期': 0.9, '开拓期': 1.0, '建设期': 1.2, '成熟期': 1.3, '智慧期': 1.2, '圆融期': 1.1 },
+  ziwei:      { '童年期': 1.0, '青少年期': 1.1, '开拓期': 1.2, '建设期': 1.1, '成熟期': 1.0, '智慧期': 0.9, '圆融期': 0.8 },
+  western:    { '童年期': 0.9, '青少年期': 1.2, '开拓期': 1.2, '建设期': 1.0, '成熟期': 0.9, '智慧期': 0.8, '圆融期': 0.7 },
+  vedic:      { '童年期': 0.8, '青少年期': 1.0, '开拓期': 1.0, '建设期': 1.1, '成熟期': 1.2, '智慧期': 1.3, '圆融期': 1.2 },
+  numerology: { '童年期': 1.0, '青少年期': 1.0, '开拓期': 1.0, '建设期': 1.0, '成熟期': 1.0, '智慧期': 1.0, '圆融期': 1.0 },
+  mayan:      { '童年期': 1.1, '青少年期': 1.0, '开拓期': 1.0, '建设期': 1.0, '成熟期': 1.0, '智慧期': 1.1, '圆融期': 1.2 },
+  kabbalah:   { '童年期': 0.8, '青少年期': 0.9, '开拓期': 1.0, '建设期': 1.0, '成熟期': 1.1, '智慧期': 1.2, '圆融期': 1.3 },
+  liuyao:     { '童年期': 0.7, '青少年期': 0.8, '开拓期': 1.1, '建设期': 1.2, '成熟期': 1.1, '智慧期': 1.0, '圆融期': 0.9 },
+  meihua:     { '童年期': 0.8, '青少年期': 0.9, '开拓期': 1.1, '建设期': 1.1, '成熟期': 1.0, '智慧期': 1.0, '圆融期': 0.9 },
+  qimen:      { '童年期': 0.6, '青少年期': 0.8, '开拓期': 1.2, '建设期': 1.3, '成熟期': 1.1, '智慧期': 0.9, '圆融期': 0.8 },
+  liuren:     { '童年期': 0.6, '青少年期': 0.8, '开拓期': 1.1, '建设期': 1.2, '成熟期': 1.1, '智慧期': 1.0, '圆融期': 0.9 },
+  taiyi:      { '童年期': 0.8, '青少年期': 0.9, '开拓期': 1.0, '建设期': 1.1, '成熟期': 1.2, '智慧期': 1.2, '圆融期': 1.1 },
+};
+
+function getLifeStage(age: number): string {
+  for (const stage of LIFE_STAGES) {
+    if (age >= stage.minAge && age <= stage.maxAge) return stage.name;
+  }
+  return '圆融期';
+}
+
+function getLifeStageModifier(engineName: string, age: number): number {
+  const stageName = getLifeStage(age);
+  return LIFE_STAGE_MODIFIERS[engineName]?.[stageName] ?? 1.0;
+}
+
+// ═══════════════════════════════════════════════
+// 3. Event/Dimension Modifier — W_e(dimension)
+//    不同体系擅长预测不同领域
+//    Notion: "让最擅长的体系主导对应领域"
+// ═══════════════════════════════════════════════
+
+/**
+ * 每个引擎对6个FateVector维度的擅长系数。
+ * >1.0 表示该引擎在此维度特别擅长，<1.0 表示弱。
+ */
+const DIMENSION_EXPERTISE: Record<string, Record<FateDimension, number>> = {
+  tieban:     { life: 1.4, wealth: 1.1, relation: 1.2, health: 1.0, wisdom: 0.9, spirit: 0.8 },
+  bazi:       { life: 1.3, wealth: 1.3, relation: 1.0, health: 1.2, wisdom: 1.0, spirit: 0.7 },
+  ziwei:      { life: 1.2, wealth: 1.2, relation: 1.3, health: 0.9, wisdom: 1.1, spirit: 0.9 },
+  western:    { life: 0.9, wealth: 0.8, relation: 1.4, health: 0.8, wisdom: 1.2, spirit: 1.1 },
+  vedic:      { life: 1.0, wealth: 0.9, relation: 1.1, health: 1.3, wisdom: 1.1, spirit: 1.4 },
+  numerology: { life: 1.0, wealth: 0.9, relation: 0.8, health: 0.7, wisdom: 1.2, spirit: 1.1 },
+  mayan:      { life: 1.0, wealth: 0.7, relation: 0.8, health: 0.7, wisdom: 1.0, spirit: 1.3 },
+  kabbalah:   { life: 0.8, wealth: 0.7, relation: 0.9, health: 0.6, wisdom: 1.3, spirit: 1.5 },
+  liuyao:     { life: 1.1, wealth: 1.2, relation: 1.1, health: 1.1, wisdom: 1.0, spirit: 0.9 },
+  meihua:     { life: 1.0, wealth: 1.0, relation: 1.0, health: 0.9, wisdom: 1.1, spirit: 1.0 },
+  qimen:      { life: 1.0, wealth: 1.3, relation: 0.8, health: 0.8, wisdom: 1.0, spirit: 1.0 },
+  liuren:     { life: 1.0, wealth: 1.1, relation: 1.0, health: 1.0, wisdom: 1.0, spirit: 0.9 },
+  taiyi:      { life: 1.1, wealth: 0.9, relation: 0.8, health: 0.9, wisdom: 1.1, spirit: 1.2 },
+};
+
+function getDimensionModifier(engineName: string, dimension: FateDimension): number {
+  return DIMENSION_EXPERTISE[engineName]?.[dimension] ?? 1.0;
+}
+
+// ═══════════════════════════════════════════════
+// 4. Dynamic Weight Calculator W(t, e, d)
+// ═══════════════════════════════════════════════
+
+export interface DynamicWeightContext {
+  queryType: QueryType;         // d: granularity
+  age?: number;                 // t: life stage age
+  dimension?: FateDimension;    // e: fate dimension being evaluated
+  activeEngines?: string[];     // filter to active engines only
+}
+
+export interface DynamicWeightResult {
+  weights: WeightConfig[];
+  context: {
+    queryType: QueryType;
+    lifeStage: string;
+    dimension: FateDimension | 'all';
+    normalizedTotal: number;
+  };
+}
+
+/**
+ * Core dynamic weight function: W(t, e, d)
+ * 
+ * W_final(engine) = W_base(d) × W_t(age) × W_e(dim) / Z
+ *   where Z is the normalization constant
+ */
+export function calculateDynamicWeights(ctx: DynamicWeightContext): DynamicWeightResult {
+  const { queryType, age = 35, dimension, activeEngines } = ctx;
+  const baseWeights = BASE_WEIGHT_TABLE[queryType] || BASE_WEIGHT_TABLE.natalAnalysis;
+  const stageName = getLifeStage(age);
+
+  const rawWeights: WeightConfig[] = [];
+  for (const [engineName, baseW] of Object.entries(baseWeights)) {
+    if (activeEngines && !activeEngines.includes(engineName)) continue;
+
+    const tMod = getLifeStageModifier(engineName, age);
+    const eMod = dimension ? getDimensionModifier(engineName, dimension) : 1.0;
+    const raw = baseW * tMod * eMod;
+
+    rawWeights.push({
+      engineName,
+      weight: raw,
+      reason: buildWeightReason(engineName, queryType, stageName, dimension, tMod, eMod),
+    });
+  }
+
+  // Normalize
+  const total = rawWeights.reduce((s, w) => s + w.weight, 0);
+  if (total > 0) {
+    for (const w of rawWeights) w.weight = w.weight / total;
+  }
+
+  return {
+    weights: rawWeights,
+    context: {
+      queryType,
+      lifeStage: stageName,
+      dimension: dimension || 'all',
+      normalizedTotal: 1.0,
+    },
+  };
+}
+
+function buildWeightReason(
+  engine: string, queryType: QueryType, stage: string,
+  dimension: FateDimension | undefined, tMod: number, eMod: number,
+): string {
+  const parts: string[] = [];
+  if (tMod !== 1.0) parts.push(`${stage}阶段${tMod > 1 ? '增强' : '削弱'}(×${tMod.toFixed(1)})`);
+  if (dimension && eMod !== 1.0) parts.push(`${dimension}维度${eMod > 1 ? '专长' : '非专长'}(×${eMod.toFixed(1)})`);
+  return parts.length > 0 ? parts.join('；') : `${queryType}基准权重`;
+}
+
+// ═══════════════════════════════════════════════
+// 5. Per-Dimension Weight Calculator
+//    为每个FateVector维度独立计算权重
+// ═══════════════════════════════════════════════
+
+export interface PerDimensionWeights {
+  dimension: FateDimension;
+  weights: WeightConfig[];
+}
+
+/**
+ * Calculate weights for ALL 6 dimensions simultaneously.
+ * Each dimension has its own weight distribution based on engine expertise.
+ */
+export function calculatePerDimensionWeights(
+  queryType: QueryType, age: number = 35, activeEngines?: string[],
+): PerDimensionWeights[] {
+  const dimensions: FateDimension[] = ['life', 'wealth', 'relation', 'health', 'wisdom', 'spirit'];
+  return dimensions.map(dim => {
+    const result = calculateDynamicWeights({ queryType, age, dimension: dim, activeEngines });
+    return { dimension: dim, weights: result.weights };
+  });
+}
+
+// ═══════════════════════════════════════════════
+// 6. Legacy API compatibility
+// ═══════════════════════════════════════════════
 
 export const CONFLICT_THRESHOLD = 25;
 
 export function getWeightsForQueryType(queryType: QueryType, activeEngines?: string[]): WeightConfig[] {
-  const raw = WEIGHT_TABLE[queryType] || WEIGHT_TABLE.natalAnalysis;
-  const filtered = activeEngines
-    ? raw.filter(w => activeEngines.includes(w.engineName))
-    : raw;
-  const total = filtered.reduce((s, w) => s + w.weight, 0);
-  if (total === 0) return filtered;
-  return filtered.map(w => ({
-    ...w,
-    weight: w.weight / total,
-  }));
+  return calculateDynamicWeights({ queryType, activeEngines }).weights;
 }
 
 export function getEngineWeight(queryType: QueryType, engineName: string): number {
   const weights = getWeightsForQueryType(queryType);
   return weights.find(w => w.engineName === engineName)?.weight ?? 0;
 }
+
+/**
+ * Get dimension-aware weight for a specific engine on a specific dimension.
+ */
+export function getDimensionAwareWeight(
+  queryType: QueryType, engineName: string, dimension: FateDimension, age: number = 35,
+): number {
+  const result = calculateDynamicWeights({ queryType, age, dimension });
+  return result.weights.find(w => w.engineName === engineName)?.weight ?? 0;
+}
+
+// Export for testing
+export { LIFE_STAGES, DIMENSION_EXPERTISE, LIFE_STAGE_MODIFIERS, getLifeStage };
