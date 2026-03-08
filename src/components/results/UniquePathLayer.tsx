@@ -1,35 +1,34 @@
 /**
- * Unique Path Layer — Final timeline, turning points, terminus
+ * Unique Path Layer — Final timeline, turning points, terminus (bilingual)
  */
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { CollapseResult } from '@/types/destinyTree';
+import { useI18n } from '@/hooks/useI18n';
 import { ArrowRight, Skull, Sparkles, Target } from 'lucide-react';
-
-const DEATH_LABELS: Record<string, string> = {
-  natural_aging: '自然寿终', illness: '疾病', accident: '意外',
-  violence: '暴力', sudden: '突发', lifespan_limit: '寿限',
-};
 
 interface Props { collapse: CollapseResult; birthYear: number }
 
 export function UniquePathLayer({ collapse, birthYear }: Props) {
+  const { t, lang } = useI18n();
   const events = collapse.collapsedPath.filter(n => n.age > 0);
   const turningPoints = events.filter(n =>
     n.event.intensity === 'major' || n.event.intensity === 'critical' || n.event.intensity === 'life_defining'
   );
+
+  const deathLabel = (cause: string) => t(`death.${cause}`) !== `death.${cause}` ? t(`death.${cause}`) : cause;
 
   return (
     <div className="space-y-5">
       {/* Summary */}
       <div className="glass-elevated rounded-2xl p-5">
         <h3 className="text-sm font-serif text-foreground flex items-center gap-2 mb-3">
-          <Target className="w-4 h-4 text-primary" />唯一命运路径
+          <Target className="w-4 h-4 text-primary" />{t('path.unique_path')}
         </h3>
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground/50 font-sans">
-          <span>节点 <strong className="text-foreground/70">{events.length}</strong></span>
-          <span>转折 <strong className="text-primary">{turningPoints.length}</strong></span>
-          <span>终局 <strong className="text-accent">{collapse.deathAge}岁 ({DEATH_LABELS[collapse.deathCause]})</strong></span>
-          <span>路径 <strong className="text-foreground/70">{collapse.totalPathsConsidered}</strong></span>
+          <span>{t('path.nodes')} <strong className="text-foreground/70">{events.length}</strong></span>
+          <span>{t('path.turning_points')} <strong className="text-primary">{turningPoints.length}</strong></span>
+          <span>{t('path.terminus')} <strong className="text-accent">{collapse.deathAge}{t('common.age')} ({deathLabel(collapse.deathCause)})</strong></span>
+          <span>{t('path.considered')} <strong className="text-foreground/70">{collapse.totalPathsConsidered}</strong></span>
         </div>
       </div>
 
@@ -37,16 +36,18 @@ export function UniquePathLayer({ collapse, birthYear }: Props) {
       {turningPoints.length > 0 && (
         <div className="glass rounded-2xl p-5">
           <h4 className="text-xs font-sans text-amber-400/70 flex items-center gap-2 mb-4">
-            <Target className="w-3.5 h-3.5" />关键转折
+            <Target className="w-3.5 h-3.5" />{t('path.key_turns')}
           </h4>
           <div className="space-y-2.5">
             {turningPoints.map((tp, i) => (
               <div key={i} className="p-3.5 rounded-xl border border-amber-500/10 bg-amber-500/3 hover:bg-amber-500/5 transition-colors">
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-sm font-serif text-foreground">{tp.age}岁</span>
+                    <span className="text-sm font-serif text-foreground">{tp.age}{lang === 'zh' ? '岁' : ''}</span>
                     <span className="text-[10px] text-muted-foreground/30 font-sans">{tp.year}</span>
-                    <span className="text-[8px] px-1.5 py-0.5 rounded-full border border-amber-500/15 text-amber-400/60 font-sans">{tp.event.intensity}</span>
+                    <span className="text-[8px] px-1.5 py-0.5 rounded-full border border-amber-500/15 text-amber-400/60 font-sans">
+                      {t(`intensity.${tp.event.intensity}`) !== `intensity.${tp.event.intensity}` ? t(`intensity.${tp.event.intensity}`) : tp.event.intensity}
+                    </span>
                   </div>
                   {tp.engineSupports.length > 0 && (
                     <span className="text-[9px] text-muted-foreground/30 font-sans">{tp.engineSupports.join(' · ')}</span>
@@ -63,7 +64,7 @@ export function UniquePathLayer({ collapse, birthYear }: Props) {
       <div className="glass-elevated rounded-2xl p-5">
         <ScrollArea className="h-[450px]">
           <h4 className="text-xs font-sans text-foreground/50 mb-4 flex items-center gap-2">
-            <ArrowRight className="w-3.5 h-3.5 text-primary/40" />完整时间线
+            <ArrowRight className="w-3.5 h-3.5 text-primary/40" />{t('path.full_timeline')}
           </h4>
           <div className="space-y-1">
             {events.map((node, i) => (
@@ -101,7 +102,7 @@ export function UniquePathLayer({ collapse, birthYear }: Props) {
       <div className="glass rounded-2xl p-5 border-primary/10">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="w-4 h-4 text-primary/50" />
-          <span className="text-sm font-serif text-foreground/80">命运总评</span>
+          <span className="text-sm font-serif text-foreground/80">{t('path.life_summary')}</span>
         </div>
         <p className="text-xs text-foreground/50 leading-relaxed font-sans">{collapse.finalLifeSummary}</p>
       </div>

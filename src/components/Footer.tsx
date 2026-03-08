@@ -1,4 +1,8 @@
+import { useI18n } from '@/hooks/useI18n';
+
 export function Footer() {
+  const { t } = useI18n();
+
   return (
     <footer className="mt-auto border-t border-border/20">
       <div className="container max-w-4xl mx-auto px-4 py-6">
@@ -9,7 +13,7 @@ export function Footer() {
             <div className="h-px w-10 bg-gradient-to-l from-transparent to-primary/20" />
           </div>
           <p className="text-muted-foreground/40 text-[10px] font-sans leading-relaxed max-w-md mx-auto">
-            Quantum Destiny Prediction System · 十三大命理体系量子预测
+            Quantum Destiny Prediction System · {t('footer.desc')}
           </p>
           <p className="text-muted-foreground/30 text-[10px] font-sans">
             <a href="mailto:001@hpulse.me" className="hover:text-primary/50 transition-colors">001@hpulse.me</a>
