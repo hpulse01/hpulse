@@ -243,7 +243,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
         <CollapsibleContent className="pt-3">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
             <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground/60 font-sans">纬度</Label>
+              <Label className="text-[10px] text-muted-foreground/60 font-sans">{t('form.latitude')}</Label>
               <Input type="number" step="0.0001" value={formData.geoLatitude}
                 onChange={(e) => setFormData({ ...formData, geoLatitude: Number(e.target.value) })}
                 className="bg-input border-border/50 h-9 rounded-lg text-sm" />
