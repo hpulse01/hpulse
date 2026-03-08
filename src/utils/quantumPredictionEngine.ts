@@ -766,12 +766,17 @@ function orchestrate(
   const liurenResultWrapped = executeEngine('liuren', 'query', () => buildLiuRenEngineOutput(standardizedInput));
   const taiyiResultWrapped = executeEngine('taiyi', 'query', () => buildTaiyiEngineOutput(standardizedInput));
 
-  // Dynamic weights
-  const executedNames = engineOutputs.map(e => e.engineName);
-  const weightConfigs = getWeightsForQueryType(queryType, executedNames);
-  const weightsUsed: WeightEntry[] = weightConfigs.map(w => ({
-    engineName: w.engineName, weight: w.weight, reason: w.reason,
-  }));
+    // Dynamic weights W(t, e, d)
+    const executedNames = engineOutputs.map(e => e.engineName);
+    const currentAge = new Date().getFullYear() - standardizedInput.birthLocalDateTime.year;
+    const dynamicResult = calculateDynamicWeights({
+      queryType,
+      age: currentAge,
+      activeEngines: executedNames,
+    });
+    const weightsUsed: WeightEntry[] = dynamicResult.weights.map(w => ({
+      engineName: w.engineName, weight: w.weight, reason: w.reason,
+    }));
 
   // Conflict detection & fusion
   const conflicts = detectConflicts(engineOutputs, weightsUsed);
