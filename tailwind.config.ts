@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
+        sans: ['"Inter"', 'system-ui', 'sans-serif'],
         serif: ['"Noto Serif SC"', 'serif'],
-        display: ['"Ma Shan Zheng"', 'cursive'],
+        display: ['"Noto Serif SC"', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -61,13 +62,12 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        // Temple-specific colors
+        "gold-glow": "hsl(var(--gold-glow))",
         cinnabar: "hsl(var(--cinnabar))",
         jade: "hsl(var(--jade))",
         ink: "hsl(var(--ink))",
         bronze: "hsl(var(--bronze))",
         parchment: "hsl(var(--parchment))",
-        scroll: "hsl(var(--scroll))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -84,34 +84,34 @@ export default {
           to: { height: "0" },
         },
         "fade-in-up": {
-          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "0%": { opacity: "0", transform: "translateY(12px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         "pulse-glow": {
-          "0%, 100%": { boxShadow: "0 0 20px hsl(43 74% 49% / 0.2)" },
-          "50%": { boxShadow: "0 0 40px hsl(43 74% 49% / 0.4)" },
+          "0%, 100%": { boxShadow: "0 0 20px hsl(40 65% 55% / 0.15)" },
+          "50%": { boxShadow: "0 0 40px hsl(40 65% 55% / 0.3)" },
         },
-        "ink-spread": {
-          "0%": { clipPath: "inset(0 100% 0 0)" },
-          "100%": { clipPath: "inset(0 0 0 0)" },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-4px)" },
         },
         "quantum-pulse": {
-          "0%, 100%": { boxShadow: "0 0 20px rgba(139,92,246,0.15)", opacity: "0.8" },
-          "50%": { boxShadow: "0 0 50px rgba(139,92,246,0.35)", opacity: "1" },
-        },
-        "quantum-float": {
-          "0%, 100%": { transform: "translateY(0px)" },
-          "50%": { transform: "translateY(-6px)" },
+          "0%, 100%": { boxShadow: "0 0 20px hsl(40 65% 55% / 0.1)", opacity: "0.8" },
+          "50%": { boxShadow: "0 0 40px hsl(40 65% 55% / 0.25)", opacity: "1" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in-up": "fade-in-up 0.8s ease-out forwards",
+        "fade-in-up": "fade-in-up 0.6s ease-out forwards",
         "pulse-glow": "pulse-glow 3s ease-in-out infinite",
-        "ink-spread": "ink-spread 1.5s ease-out forwards",
+        shimmer: "shimmer 3s ease-in-out infinite",
+        float: "float 6s ease-in-out infinite",
         "quantum-pulse": "quantum-pulse 4s ease-in-out infinite",
-        "quantum-float": "quantum-float 6s ease-in-out infinite",
       },
     },
   },
