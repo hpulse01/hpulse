@@ -1726,7 +1726,7 @@ export function extractKabbalahEvents(
     fateImpact: { relation: 5 },
     sourceDetail: '卡巴拉质点情感推算',
     sourceFieldPath: 'soulSephirah+personalitySephirah',
-    sourceEvidence: `灵魂${report.soulSephirah.number}+人格${report.personalitySephirah.number}`,
+    sourceEvidence: `灵魂${report.soulSephirah.index}+人格${report.personalitySephirah.index}`,
     reasoning: `24 + (灵魂+人格)%8 = ${relAge}`,
     confidence: 0.4, conflictTags: ['relationship-kabbalah'],
   });
