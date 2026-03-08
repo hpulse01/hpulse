@@ -16,17 +16,19 @@ describe('engineWeights', () => {
     expect(weights.find(w => w.engineName === 'liuyao')).toBeUndefined();
   });
 
-  it('instantDecision includes liuyao and meihua with top weights', () => {
+  it('instantDecision includes liuyao, meihua, and qimen with top weights', () => {
     const weights = getWeightsForQueryType('instantDecision');
     const ly = weights.find(w => w.engineName === 'liuyao');
     const mh = weights.find(w => w.engineName === 'meihua');
+    const qm = weights.find(w => w.engineName === 'qimen');
     expect(ly).toBeDefined();
     expect(mh).toBeDefined();
-    // meihua and liuyao should be the two highest weights
+    expect(qm).toBeDefined();
     const sorted = [...weights].sort((a, b) => b.weight - a.weight);
-    const topTwo = sorted.slice(0, 2).map(w => w.engineName);
-    expect(topTwo).toContain('meihua');
-    expect(topTwo).toContain('liuyao');
+    const topThree = sorted.slice(0, 3).map(w => w.engineName);
+    expect(topThree).toContain('meihua');
+    expect(topThree).toContain('liuyao');
+    expect(topThree).toContain('qimen');
   });
 
   it('filtered weights re-normalize to 1.0', () => {
