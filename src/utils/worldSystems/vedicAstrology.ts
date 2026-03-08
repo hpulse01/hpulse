@@ -4,9 +4,9 @@
  * Sidereal zodiac (Lahiri ayanamsa), Nakshatras (27 lunar mansions),
  * Vimshottari Dasha periods, and Yoga combinations.
  *
- * REFACTORED: Now uses astronomy-engine via shared celestial layer
- * for precise tropical positions, then applies Lahiri ayanamsa correction.
- * Previous version used linear mean-motion approximation (error up to ±30°).
+ * REFACTORED v2.1: Uses real GAST-based Ascendant from shared celestial layer.
+ * Fixed Budhaditya Yoga to correctly check Sun-Mercury (not Sun-Moon).
+ * Requires UTC datetime + geographic coordinates.
  *
  * @source_urls
  *   - https://github.com/cosinekitty/astronomy (astronomy-engine)
@@ -14,15 +14,17 @@
  *   - Indian Astronomical Ephemeris (Government of India)
  *   - https://en.wikipedia.org/wiki/Nakshatra
  *   - https://en.wikipedia.org/wiki/Dasha_(astrology)
+ *   - Brihat Parashara Hora Shastra (BPHS) — Yoga definitions
  * @source_grade A (planetary positions + ayanamsa), B (Yoga detection rules)
- * @algorithm_version 2.0.0
+ * @algorithm_version 2.1.0
  * @rule_school Parashari (mainstream Vedic), Lahiri/Chitrapaksha ayanamsa
  * @uncertainty_notes
  *   - Sidereal positions: sub-arcsecond + Lahiri polynomial (±0.01° for 1900-2100)
  *   - Nakshatra boundaries: exact (360°/27 = 13°20' per nakshatra, 4 padas)
  *   - Vimshottari Dasha: standard 120-year cycle, starting from Moon nakshatra ruler
- *   - Yoga detection: simplified (only a few major yogas checked)
- *   - Ascendant: approximate without geographic coordinates
+ *   - Yoga detection: simplified (only major yogas checked)
+ *   - Budhaditya Yoga: Sun and Mercury in same rashi (BPHS definition)
+ *   - Without geo coords, Lagna defaults to 0°N 0°E (will be inaccurate)
  */
 
 import {
@@ -40,8 +42,10 @@ export interface VedicInput {
   year: number;
   month: number;
   day: number;
-  hour: number;
-  minute: number;
+  hour: number;       // UTC hour (0-23)
+  minute: number;     // UTC minute (0-59)
+  geoLatitude?: number;   // degrees, north positive
+  geoLongitude?: number;  // degrees, east positive
 }
 
 export interface NakshatraInfo {
@@ -91,7 +95,7 @@ const RASHI_CN: Record<string, string> = {
 
 /**
  * 27 Nakshatras with ruling planets and deities.
- * Order and rulers follow standard Parashari texts.
+ * Order and rulers follow standard Parashari texts (BPHS).
  * Each nakshatra spans 13°20' (360/27).
  */
 const NAKSHATRAS: { name: string; nameCN: string; ruler: string; deity: string }[] = [
@@ -211,25 +215,46 @@ function calculateDashas(moonNakshatra: NakshatraInfo, moonSiderealLong: number)
 }
 
 // ═══════════════════════════════════════════════
-// Yoga detection (simplified)
+// Yoga detection
 // ═══════════════════════════════════════════════
 
+/**
+ * Detect major Vedic yogas.
+ *
+ * @param sunRashiIdx   - Sun's sidereal rashi index (0-11)
+ * @param moonRashiIdx  - Moon's sidereal rashi index (0-11)
+ * @param mercuryRashiIdx - Mercury's sidereal rashi index (0-11)
+ * @param lagnaIdx      - Lagna (Ascendant) rashi index (0-11)
+ * @param jupiterRashiIdx - Jupiter's sidereal rashi index (0-11)
+ *
+ * @source_urls
+ *   - Brihat Parashara Hora Shastra (BPHS), chapters on Yoga
+ *   - https://en.wikipedia.org/wiki/Yoga_(Hindu_astrology)
+ */
 function detectYogas(
   sunRashiIdx: number,
   moonRashiIdx: number,
+  mercuryRashiIdx: number,
   lagnaIdx: number,
   jupiterRashiIdx: number,
 ): string[] {
   const yogas: string[] = [];
 
   // Gajakesari Yoga: Jupiter in kendra (1,4,7,10) from Moon
+  // Source: BPHS — "If Jupiter is in a kendra from the Moon, Gajakesari Yoga is formed"
   const jupMoonDiff = ((jupiterRashiIdx - moonRashiIdx + 12) % 12);
   if ([0, 3, 6, 9].includes(jupMoonDiff)) {
     yogas.push('Gajakesari Yoga (象王格·智慧与名望)');
   }
 
-  // Budhaditya Yoga: Sun and Mercury in same sign
-  // (We check Sun-Moon conjunction as a proxy since we have those readily)
+  // Budhaditya Yoga: Sun and Mercury in the SAME rashi
+  // Source: BPHS — "When Sun and Mercury are conjunct in a house, Budhaditya Yoga is formed"
+  // FIXED v2.1: Previously incorrectly checked Sun-Moon conjunction
+  if (sunRashiIdx === mercuryRashiIdx) {
+    yogas.push('Budhaditya Yoga (日水合·智识聪慧)');
+  }
+
+  // Chandra-Surya Yoga: Sun and Moon in same rashi (Amavasya / New Moon vicinity)
   if (sunRashiIdx === moonRashiIdx) {
     yogas.push('Chandra-Surya Yoga (日月合·意志与情感统一)');
   }
@@ -239,15 +264,22 @@ function detectYogas(
     yogas.push('Chandra-Lagna Yoga (月亮合命·情感敏锐)');
   }
 
-  // Kesari Yoga: Moon in kendra from Jupiter
+  // Kesari Yoga: Moon in kendra from Jupiter (subset of Gajakesari)
   const moonJupDiff = ((moonRashiIdx - jupiterRashiIdx + 12) % 12);
   if ([0, 3, 6, 9].includes(moonJupDiff) && !yogas.some(y => y.includes('Gajakesari'))) {
     yogas.push('Kesari Yoga (狮吼格·领导力)');
   }
 
-  // Fallback
+  // Hamsa Yoga: Jupiter in kendra from Lagna AND in own/exaltation sign
+  // Jupiter own signs: Dhanu(8), Meena(11); exaltation: Karka(3)
+  const jupLagnaDiff = ((jupiterRashiIdx - lagnaIdx + 12) % 12);
+  if ([0, 3, 6, 9].includes(jupLagnaDiff) && [3, 8, 11].includes(jupiterRashiIdx)) {
+    yogas.push('Hamsa Yoga (天鹅格·高贵智慧)');
+  }
+
+  // Fallback: if no yoga detected, don't fabricate one
   if (yogas.length === 0) {
-    yogas.push('Parivartana Yoga (交换格·灵活变通)');
+    yogas.push('无特殊瑜伽组合 (No major yoga detected)');
   }
 
   return yogas;
@@ -260,8 +292,12 @@ function detectYogas(
 export const VedicAstrologyEngine = {
   calculate(input: VedicInput): VedicReport {
     // 1. Get precise tropical positions from shared layer
+    //    Passes geographic coordinates for real Ascendant calculation
     const snapshot = getCelestialSnapshot(
-      input.year, input.month, input.day, input.hour, input.minute,
+      input.year, input.month, input.day,
+      input.hour, input.minute,
+      input.geoLatitude ?? 0,
+      input.geoLongitude ?? 0,
     );
 
     // 2. Convert to sidereal using Lahiri ayanamsa
@@ -269,6 +305,7 @@ export const VedicAstrologyEngine = {
 
     const moonSidereal = tropicalToSidereal(snapshot.moon.longitude, input.year, input.month);
     const sunSidereal = tropicalToSidereal(snapshot.sun.longitude, input.year, input.month);
+    const mercurySidereal = tropicalToSidereal(snapshot.mercury.longitude, input.year, input.month);
     const jupiterSidereal = tropicalToSidereal(snapshot.jupiter.longitude, input.year, input.month);
 
     // 3. Rashi (Moon sign in sidereal zodiac)
@@ -286,10 +323,11 @@ export const VedicAstrologyEngine = {
     // 6. Dasha sequence
     const dashas = calculateDashas(moonNakshatra, moonSidereal);
 
-    // 7. Yogas
+    // 7. Yogas (now with Mercury for Budhaditya fix)
     const sunRashiIdx = Math.floor(sunSidereal / 30) % 12;
+    const mercuryRashiIdx = Math.floor(mercurySidereal / 30) % 12;
     const jupiterRashiIdx = Math.floor(jupiterSidereal / 30) % 12;
-    const yogas = detectYogas(sunRashiIdx, rashiIdx, lagnaIdx, jupiterRashiIdx);
+    const yogas = detectYogas(sunRashiIdx, rashiIdx, mercuryRashiIdx, lagnaIdx, jupiterRashiIdx);
 
     // 8. Life vectors (heuristic scoring based on dasha balance + nakshatra ruler)
     const beneficDashaYears = dashas.filter(d => d.quality === 'benefic').reduce((s, d) => s + d.years, 0);
@@ -332,9 +370,10 @@ export const VedicAstrologyEngine = {
       'https://en.wikipedia.org/wiki/Ayanamsa',
       'https://en.wikipedia.org/wiki/Nakshatra',
       'https://en.wikipedia.org/wiki/Dasha_(astrology)',
+      'Brihat Parashara Hora Shastra (BPHS)',
     ],
     source_grade: 'A' as const,
-    algorithm_version: '2.0.0',
+    algorithm_version: '2.1.0',
     rule_school: 'Parashari (mainstream Vedic), Lahiri/Chitrapaksha ayanamsa',
     uncertainty_notes: [
       ...CELESTIAL_LAYER_METADATA.uncertainty_notes,
@@ -342,7 +381,9 @@ export const VedicAstrologyEngine = {
       'Nakshatra boundaries: exact mathematical division (360/27)',
       'Vimshottari Dasha: standard 120-year cycle',
       'Yoga detection: simplified, only major yogas checked',
+      'Budhaditya Yoga: Sun-Mercury conjunction per BPHS (v2.1 fix)',
       'Life vector scoring is heuristic modeling',
+      'Without geo coords, Lagna defaults to 0°N 0°E (inaccurate)',
     ],
   },
 };
