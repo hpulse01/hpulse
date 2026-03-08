@@ -779,6 +779,7 @@ function orchestrate(
       mayanReport: mayanResult.mayanReport,
       kabbalahReport: kabResult.kabbalahReport,
       meihuaResult,
+      qimenResult,
     },
     systems,
   };
