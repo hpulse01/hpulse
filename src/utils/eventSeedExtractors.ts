@@ -1751,7 +1751,7 @@ export function extractKabbalahEvents(
   });
 
   // Health from combined sephiroth
-  const healthAge = 50 + report.soulSephirah.number;
+  const healthAge = 50 + report.soulSephirah.index;
   seeds.push({
     ...B, id: seedId('kabbalah', 'health', healthAge, 'sephirah-health'),
     category: 'health', subcategory: '质点健康',
