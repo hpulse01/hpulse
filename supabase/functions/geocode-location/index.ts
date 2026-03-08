@@ -29,15 +29,28 @@ interface GeocodedLocation {
 
 /**
  * Compute the UTC offset in minutes for a given IANA timezone at a specific date.
- * Uses the standard Intl trick: compare toLocaleString in UTC vs local timezone.
+ * Uses Intl.DateTimeFormat.formatToParts with longOffset to extract the real offset.
  */
 function getOffsetAtDate(ianaTimezone: string, date: Date): number {
   try {
-    const utcStr = date.toLocaleString('en-US', { timeZone: 'UTC' });
-    const localStr = date.toLocaleString('en-US', { timeZone: ianaTimezone });
-    const utcDate = new Date(utcStr);
-    const localDate = new Date(localStr);
-    return Math.round((localDate.getTime() - utcDate.getTime()) / 60000);
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: ianaTimezone,
+      timeZoneName: 'longOffset',
+    });
+    const parts = formatter.formatToParts(date);
+    const tzPart = parts.find(p => p.type === 'timeZoneName');
+    if (tzPart) {
+      // Format: "GMT+08:00" or "GMT-05:00" or "GMT"
+      if (tzPart.value === 'GMT') return 0;
+      const match = tzPart.value.match(/GMT([+-])(\d{1,2}):?(\d{2})?/);
+      if (match) {
+        const sign = match[1] === '+' ? 1 : -1;
+        const hours = parseInt(match[2], 10);
+        const minutes = parseInt(match[3] || '0', 10);
+        return sign * (hours * 60 + minutes);
+      }
+    }
+    return 0;
   } catch {
     return 0;
   }
