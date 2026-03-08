@@ -1713,7 +1713,7 @@ export function extractKabbalahEvents(
   });
 
   // Relationship from personality/soul combination
-  const relAge = 24 + (report.soulSephirah.number + report.personalitySephirah.number) % 8;
+  const relAge = 24 + (report.soulSephirah.index + report.personalitySephirah.index) % 8;
   seeds.push({
     ...B, id: seedId('kabbalah', 'relationship', relAge, 'sephirah-relationship'),
     category: 'relationship', subcategory: '质点情感',
