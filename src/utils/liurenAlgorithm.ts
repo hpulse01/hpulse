@@ -364,14 +364,95 @@ function classifyKeType(siKe: LiuRenSiKe, sanChuan: LiuRenSanChuan): { keType: s
 }
 
 // ═══════════════════════════════════════════════
-// v2.0: 类神分析 (Category Spirit Analysis)
+// v3.0: 空亡计算
+// ═══════════════════════════════════════════════
+
+function calculateKongWang(riGan: string, riBranch: string, sanChuan: LiuRenSanChuan): LiuRenKongWang {
+  const ganIdx = STEM_INDEX[riGan] ?? 0;
+  const zhiIdx = BRANCH_INDEX[riBranch] ?? 0;
+  // 旬首支 = 日支 - 日干 (mod 12)
+  const xunStartZhi = ((zhiIdx - ganIdx) % 12 + 12) % 12;
+  // 空亡 = 旬首+10, 旬首+11
+  const kong1 = BRANCHES[(xunStartZhi + 10) % 12];
+  const kong2 = BRANCHES[(xunStartZhi + 11) % 12];
+
+  const chuInKong = sanChuan.chu === kong1 || sanChuan.chu === kong2;
+  const zhongInKong = sanChuan.zhong === kong1 || sanChuan.zhong === kong2;
+  const moInKong = sanChuan.mo === kong1 || sanChuan.mo === kong2;
+
+  const parts: string[] = [`旬空${kong1}${kong2}`];
+  if (chuInKong) parts.push('初传落空，起事虚浮');
+  if (zhongInKong) parts.push('中传落空，中途有变');
+  if (moInKong) parts.push('末传落空，结局未定');
+  if (!chuInKong && !zhongInKong && !moInKong) parts.push('三传不空，事可实成');
+
+  return { branches: [kong1, kong2], chuInKong, zhongInKong, moInKong, interpretation: parts.join('。') };
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: 德合分析
+// ═══════════════════════════════════════════════
+
+function analyzeDeHe(riGan: string, month: number): DeHeInfo {
+  // 日德：甲德在丙，乙德在丁...简化
+  const riDeMap: Record<string, string> = {
+    '甲': '丙', '乙': '丁', '丙': '戊', '丁': '己', '戊': '庚',
+    '己': '辛', '庚': '壬', '辛': '癸', '壬': '甲', '癸': '乙',
+  };
+  const riDe = riDeMap[riGan] || null;
+
+  // 月德：寅午戌月德在丙，申子辰月德在壬，亥卯未月德在甲，巳酉丑月德在庚
+  const monthBranch = BRANCHES[(month + 1) % 12]; // approx
+  const yueDeSanHe: Record<string, string> = {
+    '寅': '丙', '午': '丙', '戌': '丙',
+    '申': '壬', '子': '壬', '辰': '壬',
+    '亥': '甲', '卯': '甲', '未': '甲',
+    '巳': '庚', '酉': '庚', '丑': '庚',
+  };
+  const yueDe = yueDeSanHe[monthBranch] || null;
+
+  const hasDe = !!(riDe || yueDe);
+  const interpretation = hasDe
+    ? `有${riDe ? `日德(${riDe})` : ''}${yueDe ? `月德(${yueDe})` : ''}扶助，可化凶为吉。`
+    : '无德合扶助，需凭自身力量。';
+
+  return { riDe, yueDe, hasDe, interpretation };
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: 年命分析
+// ═══════════════════════════════════════════════
+
+function analyzeNianMing(birthYear: number, sanChuan: LiuRenSanChuan): NianMingAnalysis {
+  const nianZhiIdx = ((birthYear - 4) % 12 + 12) % 12;
+  const nianZhi = BRANCHES[nianZhiIdx];
+  const nianWx = BRANCH_WUXING[nianZhi];
+
+  const parts: string[] = [`年命${nianZhi}(${nianWx})`];
+
+  // 年支与初传关系
+  if (WUXING_SHENG[nianWx] === sanChuan.chuElement) parts.push('年命生初传，事由自身发起');
+  else if (WUXING_SHENG[sanChuan.chuElement] === nianWx) parts.push('初传生年命，外力助我');
+  else if (WUXING_KE[nianWx] === sanChuan.chuElement) parts.push('年命克初传，可制约事态');
+  else if (WUXING_KE[sanChuan.chuElement] === nianWx) parts.push('初传克年命，事态对我不利');
+  else if (nianWx === sanChuan.chuElement) parts.push('年命与初传比和，自然顺遂');
+
+  // 年支在三传中
+  if ([sanChuan.chu, sanChuan.zhong, sanChuan.mo].includes(nianZhi)) {
+    parts.push('年命入传，事关自身');
+  }
+
+  return { nianZhi, relationToChuan: parts.slice(1).join('，'), interpretation: parts.join('。') };
+}
+
+// ═══════════════════════════════════════════════
+// v2.0+v3.0: 类神分析 (enhanced)
 // ═══════════════════════════════════════════════
 
 function analyzeLeishen(sanChuan: LiuRenSanChuan, tianJiang: LiuRenTianJiang, riGan: string): string {
   const riWx = STEM_WUXING[riGan];
   const parts: string[] = [];
 
-  // 初传五行与日干关系
   const chuRel = WUXING_KE[sanChuan.chuElement] === riWx ? '克我' :
     WUXING_SHENG[sanChuan.chuElement] === riWx ? '生我' :
     WUXING_SHENG[riWx] === sanChuan.chuElement ? '我生' :
@@ -379,17 +460,22 @@ function analyzeLeishen(sanChuan: LiuRenSanChuan, tianJiang: LiuRenTianJiang, ri
 
   parts.push(`初传${sanChuan.chu}(${sanChuan.chuElement})${chuRel}`);
 
-  // 三传递生递克判断
+  // 三传递生递克
   const chuToZhong = WUXING_SHENG[sanChuan.chuElement] === sanChuan.zhongElement;
   const zhongToMo = WUXING_SHENG[sanChuan.zhongElement] === sanChuan.moElement;
-  if (chuToZhong && zhongToMo) {
-    parts.push('三传递生，事渐成');
-  }
+  if (chuToZhong && zhongToMo) parts.push('三传递生，事渐成');
 
   const chuKeZhong = WUXING_KE[sanChuan.chuElement] === sanChuan.zhongElement;
   const zhongKeMo = WUXING_KE[sanChuan.zhongElement] === sanChuan.moElement;
-  if (chuKeZhong && zhongKeMo) {
-    parts.push('三传递克，事有阻');
+  if (chuKeZhong && zhongKeMo) parts.push('三传递克，事有阻');
+
+  // v3.0: 回头生/克
+  if (WUXING_SHENG[sanChuan.moElement] === sanChuan.chuElement) parts.push('末传回头生初传，终有转机');
+  if (WUXING_KE[sanChuan.moElement] === sanChuan.chuElement) parts.push('末传回头克初传，反复无常');
+
+  // v3.0: 三传同类
+  if (sanChuan.chuElement === sanChuan.zhongElement && sanChuan.zhongElement === sanChuan.moElement) {
+    parts.push(`三传同${sanChuan.chuElement}，事态单纯`);
   }
 
   // 贵人位置
@@ -397,6 +483,13 @@ function analyzeLeishen(sanChuan: LiuRenSanChuan, tianJiang: LiuRenTianJiang, ri
   if (guiGeneral) {
     const guiInChuan = [sanChuan.chu, sanChuan.zhong, sanChuan.mo].includes(guiGeneral.branch);
     if (guiInChuan) parts.push('贵人临传，有贵人助');
+  }
+
+  // v3.0: 天将冲合
+  const liuHe: Record<string, string> = { '子': '丑', '丑': '子', '寅': '亥', '亥': '寅', '卯': '戌', '戌': '卯', '辰': '酉', '酉': '辰', '巳': '申', '申': '巳', '午': '未', '未': '午' };
+  const firstGeneral = tianJiang.generals[0];
+  if (firstGeneral && liuHe[firstGeneral.branch] === sanChuan.chu) {
+    parts.push('天将与初传六合，合中有助');
   }
 
   return parts.join('。');
