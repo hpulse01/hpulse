@@ -154,6 +154,10 @@ export interface HexagramLine {
   changedBranch?: string;   // 变爻后的地支
   changedElement?: string;
   changedRelative?: string;
+  /** v3.0: 月建旺衰 */
+  monthStrength?: '旺' | '相' | '休' | '囚' | '死';
+  /** v3.0: 日辰生克 */
+  dayRelation?: string;
 }
 
 export interface Hexagram {
@@ -171,6 +175,48 @@ export interface Hexagram {
     name: string;
     description: string;
   };
+}
+
+/** v3.0: 用神体系 */
+export interface YongShenSystem {
+  /** 用神（所测事项的对应六亲） */
+  yongShen: { relative: string; positions: number[]; description: string };
+  /** 原神（生用神者） */
+  yuanShen: { relative: string; description: string };
+  /** 忌神（克用神者） */
+  jiShen: { relative: string; description: string };
+  /** 仇神（生忌神者） */
+  chouShen: { relative: string; description: string };
+  /** 用神旺衰评估 */
+  strength: '旺相' | '休囚' | '受克' | '发动' | '空亡';
+  /** 综合判断 */
+  judgment: string;
+}
+
+/** v3.0: 伏神信息 */
+export interface FuShenInfo {
+  /** 缺少的六亲 */
+  missingRelative: string;
+  /** 伏于第几爻之下 */
+  hiddenUnder: number;
+  /** 伏神地支 */
+  fuBranch: string;
+  /** 伏神五行 */
+  fuElement: string;
+  /** 飞神（上面那爻）的六亲 */
+  flyingRelative: string;
+  /** 飞伏关系 */
+  relation: '飞来生伏' | '飞来克伏' | '伏去生飞' | '伏去克飞' | '比和';
+  /** 是否可用 */
+  usable: boolean;
+  description: string;
+}
+
+/** v3.0: 反吟伏吟 */
+export interface FanFuYin {
+  type: '反吟' | '伏吟';
+  scope: '卦' | '爻';
+  description: string;
 }
 
 export interface LiuYaoResult {
@@ -193,6 +239,10 @@ export interface LiuYaoResult {
     dominantElement: string;
     overallTendency: '大吉' | '吉' | '平' | '凶' | '大凶';
     keyFindings: string[];
+    /** v3.0 */
+    yongShen?: YongShenSystem;
+    fuShen?: FuShenInfo[];
+    fanFuYin?: FanFuYin[];
   };
   // Legacy compatibility
   mainHexagram: Hexagram;
@@ -200,6 +250,214 @@ export interface LiuYaoResult {
   divineTime: Date;
   timeGanZhi: string;
   interpretation: string;
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: 月建旺衰表 (五行在各月令的旺衰)
+// ═══════════════════════════════════════════════
+
+const MONTHLY_STRENGTH: Record<string, Record<string, '旺' | '相' | '休' | '囚' | '死'>> = {
+  '寅': { '木': '旺', '火': '相', '水': '休', '金': '囚', '土': '死' },
+  '卯': { '木': '旺', '火': '相', '水': '休', '金': '囚', '土': '死' },
+  '巳': { '火': '旺', '土': '相', '木': '休', '水': '囚', '金': '死' },
+  '午': { '火': '旺', '土': '相', '木': '休', '水': '囚', '金': '死' },
+  '辰': { '土': '旺', '金': '相', '火': '休', '木': '囚', '水': '死' },
+  '戌': { '土': '旺', '金': '相', '火': '休', '木': '囚', '水': '死' },
+  '丑': { '土': '旺', '金': '相', '火': '休', '木': '囚', '水': '死' },
+  '未': { '土': '旺', '金': '相', '火': '休', '木': '囚', '水': '死' },
+  '申': { '金': '旺', '水': '相', '土': '休', '火': '囚', '木': '死' },
+  '酉': { '金': '旺', '水': '相', '土': '休', '火': '囚', '木': '死' },
+  '亥': { '水': '旺', '木': '相', '金': '休', '土': '囚', '火': '死' },
+  '子': { '水': '旺', '木': '相', '金': '休', '土': '囚', '火': '死' },
+};
+
+/** v3.0: 用神选取表 (按测事类型选用神六亲) */
+const YONGSHEN_TABLE: Record<string, { yongShen: string; desc: string }> = {
+  '财运': { yongShen: '妻财', desc: '测财以妻财为用神' },
+  '事业': { yongShen: '官鬼', desc: '测官职事业以官鬼为用神' },
+  '学业': { yongShen: '父母', desc: '测学业以父母为用神' },
+  '婚姻': { yongShen: '妻财', desc: '男测婚以妻财为用神' },
+  '健康': { yongShen: '官鬼', desc: '测疾病以官鬼为用神（病的象征）' },
+  '子女': { yongShen: '子孙', desc: '测子女以子孙为用神' },
+  '出行': { yongShen: '父母', desc: '测出行以父母为用神（车船之象）' },
+  '综合': { yongShen: '世爻', desc: '综合测以世爻为用神' },
+};
+
+/** v3.0: 六亲生克关系 */
+const RELATIVE_SHENG: Record<string, string> = {
+  '父母': '官鬼', '官鬼': '妻财', '妻财': '子孙', '子孙': '兄弟', '兄弟': '父母',
+};
+const RELATIVE_KE: Record<string, string> = {
+  '父母': '子孙', '官鬼': '兄弟', '妻财': '父母', '子孙': '官鬼', '兄弟': '妻财',
+};
+
+function getYuanShen(yongShen: string): string { return RELATIVE_SHENG[yongShen] || '未知'; }
+function getJiShen(yongShen: string): string { return RELATIVE_KE[yongShen] || '未知'; }
+function getChouShen(jiShen: string): string { return RELATIVE_SHENG[jiShen] || '未知'; }
+
+function calculateYongShen(hex: Hexagram, queryType: string = '综合'): YongShenSystem {
+  const config = YONGSHEN_TABLE[queryType] || YONGSHEN_TABLE['综合'];
+  let yongRelative = config.yongShen;
+  
+  // 世爻特殊处理
+  if (yongRelative === '世爻') {
+    const shiLine = hex.lines[hex.shiYao - 1];
+    yongRelative = shiLine?.relative || '兄弟';
+  }
+  
+  const yongPositions = hex.lines
+    .filter(l => l.relative === yongRelative)
+    .map(l => l.position);
+  
+  const yuanRelative = getYuanShen(yongRelative);
+  const jiRelative = getJiShen(yongRelative);
+  const chouRelative = getChouShen(jiRelative);
+  
+  // 用神旺衰
+  let strength: YongShenSystem['strength'] = '休囚';
+  if (yongPositions.length > 0) {
+    const yongLine = hex.lines[yongPositions[0] - 1];
+    if (yongLine.isChanging) strength = '发动';
+    else if (yongLine.monthStrength === '旺' || yongLine.monthStrength === '相') strength = '旺相';
+    else strength = '休囚';
+    // 检查是否受克
+    const jiLines = hex.lines.filter(l => l.relative === jiRelative && l.isChanging);
+    if (jiLines.length > 0) strength = '受克';
+  }
+  
+  let judgment = '';
+  if (yongPositions.length === 0) {
+    judgment = `用神${yongRelative}不现于卦中，需寻伏神。`;
+  } else if (strength === '旺相') {
+    judgment = `用神${yongRelative}旺相有力，事可成。`;
+  } else if (strength === '发动') {
+    judgment = `用神${yongRelative}发动，事情将有变化。`;
+  } else if (strength === '受克') {
+    judgment = `用神${yongRelative}受忌神${jiRelative}动克，事多阻碍。`;
+  } else {
+    judgment = `用神${yongRelative}休囚无力，事难成或需等待。`;
+  }
+
+  return {
+    yongShen: { relative: yongRelative, positions: yongPositions, description: config.desc },
+    yuanShen: { relative: yuanRelative, description: `原神${yuanRelative}生用神` },
+    jiShen: { relative: jiRelative, description: `忌神${jiRelative}克用神` },
+    chouShen: { relative: chouRelative, description: `仇神${chouRelative}生忌神` },
+    strength,
+    judgment,
+  };
+}
+
+/** v3.0: 伏神计算 */
+function calculateFuShen(hex: Hexagram): FuShenInfo[] {
+  const existingRelatives = new Set(hex.lines.map(l => l.relative));
+  const allRelatives = ['父母', '兄弟', '子孙', '妻财', '官鬼'];
+  const missing = allRelatives.filter(r => !existingRelatives.has(r));
+  
+  if (missing.length === 0) return [];
+  
+  // 伏神藏于本宫八纯卦对应爻下
+  const palaceEntry = EIGHT_PALACES.find(p => p.name === hex.palace);
+  if (!palaceEntry) return [];
+  
+  const pureNJ = NA_JIA_TABLE[hex.palace];
+  if (!pureNJ) return [];
+  
+  const pureBranches = [...pureNJ.innerBranches, ...pureNJ.outerBranches];
+  
+  return missing.map(missingRelative => {
+    // 找到八纯卦中该六亲所在爻位
+    let hiddenPos = 1;
+    let fuBranch = '';
+    for (let i = 0; i < 6; i++) {
+      const br = pureBranches[i];
+      const el = BRANCH_ELEMENTS[br];
+      const rel = getSixRelative(palaceEntry.element, el);
+      if (rel === missingRelative) {
+        hiddenPos = i + 1;
+        fuBranch = br;
+        break;
+      }
+    }
+    
+    if (!fuBranch) fuBranch = pureBranches[0];
+    
+    const fuElement = BRANCH_ELEMENTS[fuBranch] || '土';
+    const flyingLine = hex.lines[hiddenPos - 1];
+    const flyingElement = flyingLine?.element || '土';
+    const flyingRelative = flyingLine?.relative || '未知';
+    
+    // 飞伏关系
+    let relation: FuShenInfo['relation'] = '比和';
+    if (fuElement === flyingElement) relation = '比和';
+    else if (WUXING_SHENG[flyingElement] === fuElement) relation = '飞来生伏';
+    else if (WUXING_KE[flyingElement] === fuElement) relation = '飞来克伏';
+    else if (WUXING_SHENG[fuElement] === flyingElement) relation = '伏去生飞';
+    else if (WUXING_KE[fuElement] === flyingElement) relation = '伏去克飞';
+    
+    const usable = relation === '飞来生伏' || relation === '比和';
+    
+    return {
+      missingRelative, hiddenUnder: hiddenPos, fuBranch, fuElement,
+      flyingRelative, relation, usable,
+      description: `${missingRelative}伏于第${hiddenPos}爻${flyingRelative}之下，${relation}，${usable ? '伏神可用' : '伏神受制难用'}`,
+    };
+  });
+}
+
+/** v3.0: 反吟伏吟检测 */
+function detectFanFuYin(hex: Hexagram): FanFuYin[] {
+  const results: FanFuYin[] = [];
+  
+  if (!hex.targetHexagram) return results;
+  
+  // 卦级反吟：变卦与本卦六冲
+  const CHONG_MAP: Record<string, string> = {
+    '乾': '巽', '巽': '乾', '坤': '艮', '艮': '坤',
+    '离': '坎', '坎': '离', '震': '兑', '兑': '震',
+  };
+  
+  // 简化：如果上下卦都变为冲卦
+  const changingLines = hex.changingLines;
+  if (changingLines.length >= 4) {
+    results.push({
+      type: '反吟', scope: '卦',
+      description: '本卦与变卦多爻相反，为反吟之象，主事情反复不定',
+    });
+  }
+  
+  // 伏吟：变卦与本卦相同（即无变化）
+  if (changingLines.length === 0) {
+    results.push({
+      type: '伏吟', scope: '卦',
+      description: '六爻皆静为伏吟之象，主事情停滞呻吟',
+    });
+  }
+  
+  // 爻级反吟/伏吟
+  for (const line of hex.lines) {
+    if (line.isChanging && line.changedBranch) {
+      const BRANCH_CHONG: Record<string, string> = {
+        '子': '午', '午': '子', '丑': '未', '未': '丑',
+        '寅': '申', '申': '寅', '卯': '酉', '酉': '卯',
+        '辰': '戌', '戌': '辰', '巳': '亥', '亥': '巳',
+      };
+      if (BRANCH_CHONG[line.branch] === line.changedBranch) {
+        results.push({
+          type: '反吟', scope: '爻',
+          description: `第${line.position}爻${line.branch}动变${line.changedBranch}，爻反吟，该爻所代表之事反复`,
+        });
+      }
+      if (line.branch === line.changedBranch) {
+        results.push({
+          type: '伏吟', scope: '爻',
+          description: `第${line.position}爻动而不变，爻伏吟，该爻所代表之事难进`,
+        });
+      }
+    }
+  }
+  
+  return results;
 }
 
 // ═══════════════════════════════════════════════
