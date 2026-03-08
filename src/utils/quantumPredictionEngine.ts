@@ -705,6 +705,14 @@ function orchestrate(
     liurenResult = lrResult.liurenResult;
   }
 
+  // ── Taiyi (太乙神数) — only run if active ──
+  let taiyiResult: TaiyiResult | null = null;
+  if (isActive('taiyi')) {
+    const tyResult = buildTaiyiEngineOutput(standardizedInput);
+    engineOutputs.push(tyResult.eo);
+    taiyiResult = tyResult.taiyiResult;
+  }
+
   // ── Dynamic weights (filtered to active engines only) ──
   const activeNames = engineOutputs.map(e => e.engineName);
   const weightConfigs = getWeightsForQueryType(queryType, activeNames);
