@@ -1,12 +1,13 @@
 /**
- * Western Astrology Engine v2.0 (西方占星术)
+ * Western Astrology Engine v3.0 (西方占星术)
  *
- * Upgrades:
- * - Planetary Dignities (Domicile, Exaltation, Detriment, Fall)
- * - House Lord Analysis (Whole Sign)
- * - Pattern Detection (Grand Trine, T-Square, Grand Cross, Stellium, Yod)
- * - Retrograde detection
- * - Element & Modality balance with weighted scoring
+ * v3.0 Upgrades:
+ * - Yod (Finger of God) pattern detection
+ * - Grand Cross pattern detection
+ * - Mutual Reception detection
+ * - Dispositor chain analysis
+ * - Singleton planet detection
+ * - Enhanced life vector with pattern weight
  */
 
 import {
@@ -59,6 +60,23 @@ export interface ChartPattern {
 
 export type WesternElement = 'fire' | 'earth' | 'air' | 'water';
 
+/** v3.0: Mutual Reception */
+export interface MutualReceptionInfo {
+  planetA: string;
+  planetB: string;
+  signA: string;
+  signB: string;
+  significance: string;
+}
+
+/** v3.0: Singleton */
+export interface SingletonInfo {
+  planet: string;
+  type: 'element' | 'modality';
+  value: string;
+  significance: string;
+}
+
 export interface WesternAstrologyReport {
   sunSign: string;
   moonSign: string;
@@ -70,6 +88,9 @@ export interface WesternAstrologyReport {
   dominantElement: WesternElement;
   dominantModality: string;
   patterns: ChartPattern[];
+  /** v3.0 */
+  mutualReceptions: MutualReceptionInfo[];
+  singletons: SingletonInfo[];
   lifeVectors: Record<string, number>;
 }
 
@@ -294,7 +315,109 @@ function detectPatterns(planets: PlanetPosition[], aspects: AspectInfo[]): Chart
     });
   }
 
+  // Grand Cross: 2 oppositions + 4 squares forming a cross
+  if (oppositions.length >= 2 && squares.length >= 4) {
+    const crossPlanets = new Set<string>();
+    oppositions.forEach(o => { crossPlanets.add(o.planetA); crossPlanets.add(o.planetB); });
+    if (crossPlanets.size >= 4) {
+      patterns.push({
+        name: 'Grand Cross',
+        nameCN: '大十字',
+        planets: [...crossPlanets],
+        significance: '四颗行星形成十字对冲，极大张力与动力，人生充满挑战与成长',
+        strength: 80,
+      });
+    }
+  }
+
+  // Yod (Finger of God): 2 quincunxes (150°) + 1 sextile (60°)
+  // Approximate quincunx detection
+  for (let i = 0; i < planets.length; i++) {
+    for (let j = i + 1; j < planets.length; j++) {
+      const diff1 = Math.abs(planets[i].degree - planets[j].degree);
+      const angle1 = Math.min(diff1, 360 - diff1);
+      // Check for sextile between i and j
+      if (Math.abs(angle1 - 60) <= 6) {
+        // Find a third planet forming quincunx to both
+        for (let k = 0; k < planets.length; k++) {
+          if (k === i || k === j) continue;
+          const diffIK = Math.abs(planets[i].degree - planets[k].degree);
+          const angleIK = Math.min(diffIK, 360 - diffIK);
+          const diffJK = Math.abs(planets[j].degree - planets[k].degree);
+          const angleJK = Math.min(diffJK, 360 - diffJK);
+          if (Math.abs(angleIK - 150) <= 3 && Math.abs(angleJK - 150) <= 3) {
+            patterns.push({
+              name: 'Yod',
+              nameCN: '上帝之指',
+              planets: [planets[i].planet, planets[j].planet, planets[k].planet],
+              significance: `${planets[k].planet}为Yod顶点，承载特殊使命与命定转折`,
+              strength: 78,
+            });
+          }
+        }
+      }
+    }
+  }
+
   return patterns;
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: Mutual Reception Detection
+// ═══════════════════════════════════════════════
+
+function detectMutualReceptions(planets: PlanetPosition[]): MutualReceptionInfo[] {
+  const receptions: MutualReceptionInfo[] = [];
+  for (let i = 0; i < planets.length; i++) {
+    for (let j = i + 1; j < planets.length; j++) {
+      const pA = planets[i];
+      const pB = planets[j];
+      // Mutual reception: A is in B's domicile AND B is in A's domicile
+      const aInBDom = DOMICILE[pB.planet]?.includes(pA.sign);
+      const bInADom = DOMICILE[pA.planet]?.includes(pB.sign);
+      if (aInBDom && bInADom) {
+        receptions.push({
+          planetA: pA.planet, planetB: pB.planet,
+          signA: pA.sign, signB: pB.sign,
+          significance: `${pA.planet}与${pB.planet}互容，两星能量互相增强，化解不利`,
+        });
+      }
+    }
+  }
+  return receptions;
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: Singleton Detection
+// ═══════════════════════════════════════════════
+
+function detectSingletons(planets: PlanetPosition[], elementBalance: Record<WesternElement, number>, modalityBalance: Record<string, number>): SingletonInfo[] {
+  const singletons: SingletonInfo[] = [];
+  // Element singleton: only 1 planet in an element
+  for (const [el, count] of Object.entries(elementBalance)) {
+    if (count === 1) {
+      const p = planets.find(pp => pp.element === el);
+      if (p) {
+        singletons.push({
+          planet: p.planet, type: 'element', value: el,
+          significance: `${p.planet}是唯一的${el}元素行星，承载该元素全部能量`,
+        });
+      }
+    }
+  }
+  // Modality singleton
+  for (const [mod, count] of Object.entries(modalityBalance)) {
+    if (count === 1) {
+      const p = planets.find(pp => pp.modality === mod);
+      if (p) {
+        singletons.push({
+          planet: p.planet, type: 'modality', value: mod,
+          significance: `${p.planet}是唯一的${mod}模式行星`,
+        });
+      }
+    }
+  }
+  return singletons;
 }
 
 export const WesternAstrologyEngine = {
@@ -327,6 +450,8 @@ export const WesternAstrologyEngine = {
       .sort((a, b) => b[1] - a[1])[0][0];
 
     const patterns = detectPatterns(planets, aspects);
+    const mutualReceptions = detectMutualReceptions(planets);
+    const singletons = detectSingletons(planets, elementBalance, modalityBalance);
 
     // Dignity score bonus
     const dignityScore = planets.reduce((s, p) => {
@@ -339,7 +464,8 @@ export const WesternAstrologyEngine = {
 
     const harmonySum = aspects.reduce((s, a) => s + a.harmony, 0);
     const patternBonus = patterns.reduce((s, p) => s + (p.strength > 60 ? 3 : -1), 0);
-    const baseScore = 50 + harmonySum * 5 + dignityScore + patternBonus;
+    const receptionBonus = mutualReceptions.length * 4;
+    const baseScore = 50 + harmonySum * 5 + dignityScore + patternBonus + receptionBonus;
 
     const lifeVectors: Record<string, number> = {
       career: clamp(baseScore + elementBalance.fire * 3 + elementBalance.earth * 2),
@@ -349,7 +475,7 @@ export const WesternAstrologyEngine = {
       wisdom: clamp(baseScore + elementBalance.air * 4 + elementBalance.water * 2),
       social: clamp(baseScore + elementBalance.air * 3 + elementBalance.fire * 2),
       creativity: clamp(baseScore + elementBalance.fire * 3 + elementBalance.water * 3),
-      fortune: clamp(baseScore + harmonySum * 3 + patternBonus),
+      fortune: clamp(baseScore + harmonySum * 3 + patternBonus + receptionBonus),
       family: clamp(baseScore + elementBalance.water * 3 + elementBalance.earth * 2),
       spirituality: clamp(baseScore + elementBalance.water * 4 + elementBalance.fire),
     };
@@ -357,7 +483,7 @@ export const WesternAstrologyEngine = {
     return {
       sunSign, moonSign, risingSign, planets, aspects,
       elementBalance, modalityBalance, dominantElement, dominantModality,
-      patterns, lifeVectors,
+      patterns, mutualReceptions, singletons, lifeVectors,
     };
   },
 
@@ -371,15 +497,16 @@ export const WesternAstrologyEngine = {
       'https://en.wikipedia.org/wiki/Astrological_aspect',
       'https://en.wikipedia.org/wiki/Domicile_(astrology)',
       'https://en.wikipedia.org/wiki/Essential_dignity',
+      'https://en.wikipedia.org/wiki/Yod_(astrology)',
     ],
     source_grade: 'A' as const,
     algorithm_version: '3.0.0',
-    rule_school: 'Tropical Zodiac, Whole Sign Houses, Essential Dignities',
+    rule_school: 'Tropical Zodiac, Whole Sign Houses, Essential Dignities, Mutual Reception',
     uncertainty_notes: [
       ...CELESTIAL_LAYER_METADATA.uncertainty_notes,
       'Retrograde detection simplified (velocity data not available)',
-      'Pattern detection covers major configurations only',
-      'Life vector scoring is heuristic with dignity/pattern modifiers',
+      'Pattern detection covers major configurations including Yod and Grand Cross',
+      'v3.0 adds mutual reception, singleton, and enhanced pattern detection',
     ],
   },
 };

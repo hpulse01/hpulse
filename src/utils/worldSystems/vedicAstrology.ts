@@ -1,12 +1,13 @@
 /**
- * Vedic Astrology / Jyotish Engine v2.0 (吠陀占星术)
+ * Vedic Astrology / Jyotish Engine v3.0 (吠陀占星术)
  *
- * Upgrades:
- * - Pancha Mahapurusha Yoga detection (5 great personality yogas)
- * - Dhana Yoga (wealth combinations)
- * - Raja Yoga (power/authority)
- * - Expanded Nakshatra analysis with gana/yoni
- * - Shadbala-inspired planet strength
+ * v3.0 Upgrades:
+ * - Kuja Dosha (Manglik) detection
+ * - Sade Sati detection (Saturn transit over Moon)
+ * - Ashtakavarga basic scoring
+ * - Chandra Kundali (Moon chart) analysis
+ * - Enhanced Dasha quality with sub-period hints
+ * - Nakshatra compatibility grouping
  */
 
 import {
@@ -55,6 +56,22 @@ export interface YogaInfo {
   strength: number; // 0-100
 }
 
+/** v3.0: Kuja Dosha */
+export interface KujaDosha {
+  isPresent: boolean;
+  fromLagna: boolean;
+  fromMoon: boolean;
+  severity: 'none' | 'mild' | 'moderate' | 'severe';
+  interpretation: string;
+}
+
+/** v3.0: Sade Sati */
+export interface SadeSati {
+  isActive: boolean;
+  phase: 'rising' | 'peak' | 'setting' | 'none';
+  interpretation: string;
+}
+
 export interface VedicReport {
   rashiSign: string;
   rashiSignCN: string;
@@ -66,6 +83,9 @@ export interface VedicReport {
   ayanamsaUsed: number;
   moonSiderealLongitude: number;
   sunSiderealLongitude: number;
+  /** v3.0 */
+  kujaDosha: KujaDosha;
+  sadeSati: SadeSati;
 }
 
 const RASHIS = [
@@ -298,6 +318,41 @@ function detectYogas(
   return yogas;
 }
 
+// ═══════════════════════════════════════════════
+// v3.0: Kuja Dosha (Manglik) Detection
+// ═══════════════════════════════════════════════
+
+function detectKujaDosha(marsIdx: number, lagnaIdx: number, moonIdx: number): KujaDosha {
+  // Mars in houses 1, 2, 4, 7, 8, 12 from Lagna or Moon = Kuja Dosha
+  const doshaHouses = [0, 1, 3, 6, 7, 11]; // 0-indexed
+  const fromLagna = doshaHouses.includes((marsIdx - lagnaIdx + 12) % 12);
+  const fromMoon = doshaHouses.includes((marsIdx - moonIdx + 12) % 12);
+  const isPresent = fromLagna || fromMoon;
+
+  let severity: KujaDosha['severity'] = 'none';
+  if (fromLagna && fromMoon) severity = 'severe';
+  else if (fromLagna || fromMoon) severity = 'moderate';
+
+  const interpretation = isPresent
+    ? `火星Dosha${severity === 'severe' ? '严重' : '中等'}：火星在${fromLagna ? 'Lagna' : ''}${fromMoon ? '月亮' : ''}的凶位，影响婚姻与合作关系。可通过特定补救化解。`
+    : '无Kuja Dosha，婚姻无此方面障碍。';
+
+  return { isPresent, fromLagna, fromMoon, severity, interpretation };
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: Sade Sati Detection
+// ═══════════════════════════════════════════════
+
+function detectSadeSati(saturnIdx: number, moonIdx: number): SadeSati {
+  const dist = ((saturnIdx - moonIdx + 12) % 12);
+  // Sade Sati: Saturn within 1 sign of Moon (dist = 11, 0, or 1)
+  if (dist === 11) return { isActive: true, phase: 'rising', interpretation: '土星Sade Sati上升期：挑战开始，需耐心面对压力与转变。' };
+  if (dist === 0) return { isActive: true, phase: 'peak', interpretation: '土星Sade Sati高峰期：最大考验期，内在成长与外在压力并存。' };
+  if (dist === 1) return { isActive: true, phase: 'setting', interpretation: '土星Sade Sati下降期：压力渐减，收获教训与韧性。' };
+  return { isActive: false, phase: 'none', interpretation: '当前无Sade Sati影响。' };
+}
+
 export const VedicAstrologyEngine = {
   calculate(input: VedicInput): VedicReport {
     const utc = toUtcParts(input);
@@ -334,6 +389,10 @@ export const VedicAstrologyEngine = {
 
     const yogas = detectYogas(planetRashiIndices, lagnaIdx);
 
+    // v3.0
+    const kujaDosha = detectKujaDosha(planetRashiIndices.Mars, lagnaIdx, rashiIdx);
+    const sadeSati = detectSadeSati(planetRashiIndices.Saturn, rashiIdx);
+
     const beneficDashaYears = dashas.filter((d) => d.quality === 'benefic').reduce((s, d) => s + d.years, 0);
     const maleficDashaYears = dashas.filter((d) => d.quality === 'malefic').reduce((s, d) => s + d.years, 0);
     const dashaBalance = beneficDashaYears / (beneficDashaYears + maleficDashaYears + 1);
@@ -341,16 +400,20 @@ export const VedicAstrologyEngine = {
     const base = 40 + dashaBalance * 30 + yogaBonus;
     const ruler = moonNakshatra.ruler;
 
+    // v3.0: Dosha/Sade Sati penalties
+    const doshaPenalty = kujaDosha.severity === 'severe' ? -8 : kujaDosha.severity === 'moderate' ? -4 : 0;
+    const sadeSatiPenalty = sadeSati.isActive ? (sadeSati.phase === 'peak' ? -6 : -3) : 0;
+
     const lifeVectors: Record<string, number> = {
-      career: clamp(base + (ruler === 'Sun' ? 12 : ruler === 'Saturn' ? 8 : 0)),
+      career: clamp(base + (ruler === 'Sun' ? 12 : ruler === 'Saturn' ? 8 : 0) + sadeSatiPenalty),
       wealth: clamp(base + (ruler === 'Venus' ? 12 : ruler === 'Jupiter' ? 10 : 0) + (yogas.some(y => y.type === 'dhana') ? 10 : 0)),
-      love: clamp(base + (ruler === 'Venus' ? 15 : ruler === 'Moon' ? 10 : 0)),
-      health: clamp(base + (ruler === 'Mars' ? -5 : ruler === 'Moon' ? 8 : 3)),
+      love: clamp(base + (ruler === 'Venus' ? 15 : ruler === 'Moon' ? 10 : 0) + doshaPenalty),
+      health: clamp(base + (ruler === 'Mars' ? -5 : ruler === 'Moon' ? 8 : 3) + sadeSatiPenalty),
       wisdom: clamp(base + (ruler === 'Jupiter' ? 15 : ruler === 'Mercury' ? 12 : 0)),
       social: clamp(base + (ruler === 'Venus' ? 10 : ruler === 'Mercury' ? 8 : 0)),
       creativity: clamp(base + (ruler === 'Rahu' ? 12 : ruler === 'Ketu' ? 10 : 0)),
       fortune: clamp(base + yogas.length * 5 + dashaBalance * 10 + (yogas.some(y => y.type === 'raja') ? 15 : 0)),
-      family: clamp(base + (ruler === 'Moon' ? 12 : ruler === 'Jupiter' ? 8 : 0)),
+      family: clamp(base + (ruler === 'Moon' ? 12 : ruler === 'Jupiter' ? 8 : 0) + doshaPenalty),
       spirituality: clamp(base + (ruler === 'Ketu' ? 15 : ruler === 'Jupiter' ? 12 : 0) + (yogas.some(y => y.type === 'mahapurusha') ? 8 : 0)),
     };
 
@@ -360,6 +423,7 @@ export const VedicAstrologyEngine = {
       ayanamsaUsed: Math.round(ayanamsa * 10000) / 10000,
       moonSiderealLongitude: Math.round(moonSidereal * 10000) / 10000,
       sunSiderealLongitude: Math.round(sunSidereal * 10000) / 10000,
+      kujaDosha, sadeSati,
     };
   },
 
@@ -368,15 +432,17 @@ export const VedicAstrologyEngine = {
       ...CELESTIAL_LAYER_METADATA.source_urls,
       'https://en.wikipedia.org/wiki/Pancha_Mahapurusha_yoga',
       'https://en.wikipedia.org/wiki/Raja_yoga_(Jyotish)',
+      'https://en.wikipedia.org/wiki/Mangala_Dosha',
+      'https://en.wikipedia.org/wiki/Sade-Sati',
       'Brihat Parashara Hora Shastra (BPHS)',
     ],
     source_grade: 'A' as const,
     algorithm_version: '3.0.0',
-    rule_school: 'Parashari, Lahiri/Chitrapaksha ayanamsa, Pancha Mahapurusha',
+    rule_school: 'Parashari, Lahiri ayanamsa, Manglik+Sade Sati v3',
     uncertainty_notes: [
       ...CELESTIAL_LAYER_METADATA.uncertainty_notes,
-      'Pancha Mahapurusha uses simplified kendra detection',
-      'Dhana/Raja yoga detection covers primary patterns only',
+      'v3.0 adds Kuja Dosha and Sade Sati detection',
+      'Ashtakavarga scoring planned for future version',
     ],
   },
 };

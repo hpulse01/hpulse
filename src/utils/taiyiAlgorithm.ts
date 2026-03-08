@@ -1,12 +1,13 @@
 /**
- * 太乙神数引擎 v2.0.0 — Taiyi Shenshu (Supreme Unity Divine Numbers)
+ * 太乙神数引擎 v3.0.0 — Taiyi Shenshu (Supreme Unity Divine Numbers)
  *
- * v2.0 升级:
- * - 扩展十六神完整排布
- * - 增加太乙积年精确算法
- * - 增强格局检测（主客和战、太乙临宫等）
- * - 独立评估模块：趋势分级、应期推算
- * - 标准化三层输出
+ * v3.0 升级:
+ * - 三门四户系统（天门/地户/人门/鬼户）
+ * - 太乙十二运计算（太乙临宫的十二长生状态）
+ * - 计神/文昌位置分析与学业/文运判定
+ * - 主客胜负精算（含五行相数比较）
+ * - 增强太乙游行方向判断
+ * - 应期细化（含季节+五行+方位三重判定）
  */
 
 import type { StandardizedInput, FateVector, EngineOutput } from '@/types/prediction';
@@ -55,6 +56,29 @@ export interface TaiyiPattern {
   impact: number;
 }
 
+/** v3.0: 三门四户 */
+export interface SanMenSiHu {
+  tianMen: number;
+  diHu: number;
+  renMen: number;
+  guiHu: number;
+  interpretation: string;
+}
+
+/** v3.0: 太乙十二运 */
+export interface TaiyiTwelveStage {
+  stage: string;
+  strength: '旺' | '相' | '休' | '囚' | '死';
+  interpretation: string;
+}
+
+/** v3.0: 文昌分析 */
+export interface WenChangAnalysis {
+  palace: number;
+  isActive: boolean;
+  interpretation: string;
+}
+
 export interface TaiyiResult {
   chart: TaiyiChart;
   patterns: TaiyiPattern[];
@@ -64,6 +88,10 @@ export interface TaiyiResult {
   summary: string;
   /** v2.0: Detailed trend analysis */
   trendAnalysis: string;
+  /** v3.0 */
+  sanMenSiHu: SanMenSiHu;
+  twelveStage: TaiyiTwelveStage;
+  wenChang: WenChangAnalysis;
   meta: TaiyiMeta;
 }
 
@@ -277,10 +305,83 @@ function detectPatterns(chart: TaiyiChart): TaiyiPattern[] {
 }
 
 // ═══════════════════════════════════════════════
-// Evaluation & Scoring
+// v3.0: 三门四户
 // ═══════════════════════════════════════════════
 
-function assessTrend(chart: TaiyiChart, patterns: TaiyiPattern[]): {
+function calculateSanMenSiHu(juNumber: number, taiyiGong: number): SanMenSiHu {
+  const gongOrder = [1, 2, 3, 4, 6, 7, 8, 9];
+  const taiyiIdx = gongOrder.indexOf(taiyiGong);
+  // 天门：太乙顺行第三宫 / 地户：太乙逆行第三宫
+  // 人门：太乙顺行第五宫 / 鬼户：太乙逆行第五宫
+  const tianMen = gongOrder[((taiyiIdx >= 0 ? taiyiIdx : 0) + 2) % 8];
+  const diHu = gongOrder[((taiyiIdx >= 0 ? taiyiIdx : 0) - 2 + 8) % 8];
+  const renMen = gongOrder[((taiyiIdx >= 0 ? taiyiIdx : 0) + 4) % 8];
+  const guiHu = gongOrder[((taiyiIdx >= 0 ? taiyiIdx : 0) - 4 + 8) % 8];
+
+  const palaceNames = NINE_PALACES;
+  const interpretation = `天门在${palaceNames.find(p => p.number === tianMen)?.name || '?'}(宜祈福)，` +
+    `地户在${palaceNames.find(p => p.number === diHu)?.name || '?'}(宜出征)，` +
+    `人门在${palaceNames.find(p => p.number === renMen)?.name || '?'}(宜谋事)，` +
+    `鬼户在${palaceNames.find(p => p.number === guiHu)?.name || '?'}(宜避凶)。`;
+
+  return { tianMen, diHu, renMen, guiHu, interpretation };
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: 太乙十二运
+// ═══════════════════════════════════════════════
+
+function calculateTwelveStage(taiyiGong: number, juNumber: number): TaiyiTwelveStage {
+  const taiyiWx = NINE_PALACES.find(p => p.number === taiyiGong)!.wuxing;
+  // 根据局数和太乙宫五行判断十二运状态
+  const stageIdx = (juNumber + taiyiGong) % 12;
+  const stages = ['长生', '沐浴', '冠带', '临官', '帝旺', '衰', '病', '死', '墓', '绝', '胎', '养'];
+  const strengthMap: Record<string, '旺' | '相' | '休' | '囚' | '死'> = {
+    '长生': '相', '沐浴': '休', '冠带': '相', '临官': '旺', '帝旺': '旺',
+    '衰': '休', '病': '囚', '死': '死', '墓': '死', '绝': '死', '胎': '囚', '养': '休',
+  };
+  const stage = stages[stageIdx];
+  const strength = strengthMap[stage] || '休';
+
+  const interpretation = `太乙(${taiyiWx})处${stage}位，${strength === '旺' ? '气势强盛' : strength === '相' ? '生气渐起' : strength === '死' ? '气势衰竭' : '能量平稳'}。`;
+
+  return { stage, strength, interpretation };
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: 文昌分析
+// ═══════════════════════════════════════════════
+
+function analyzeWenChang(chart: TaiyiChart): WenChangAnalysis {
+  // 文昌为十六神第二位
+  const wenChangParts: string[] = [];
+  let wenChangPalace = 0;
+  for (const p of chart.palaces) {
+    if (p.spirits.includes('文昌')) {
+      wenChangPalace = p.number;
+      break;
+    }
+  }
+
+  const isInAuspicious = [6, 9, 4].includes(wenChangPalace); // 乾离巽为文运吉位
+  const isWithTaiyi = wenChangPalace === chart.taiyiGong;
+
+  if (isWithTaiyi) wenChangParts.push('文昌与太乙同宫，文运大旺');
+  else if (isInAuspicious) wenChangParts.push('文昌居吉位，利于学业文运');
+  else wenChangParts.push('文昌位置平常');
+
+  return {
+    palace: wenChangPalace,
+    isActive: isInAuspicious || isWithTaiyi,
+    interpretation: wenChangParts.join('。'),
+  };
+}
+
+// ═══════════════════════════════════════════════
+// Evaluation & Scoring (v3.0 enhanced)
+// ═══════════════════════════════════════════════
+
+function assessTrend(chart: TaiyiChart, patterns: TaiyiPattern[], twelveStage: TaiyiTwelveStage): {
   trendLevel: TaiyiResult['trendLevel'];
   auspiciousness: TaiyiResult['auspiciousness'];
   score: number;
@@ -292,6 +393,10 @@ function assessTrend(chart: TaiyiChart, patterns: TaiyiPattern[]): {
 
   // 局数奇偶微调
   if (chart.juNumber % 2 === 1) score += 2;
+
+  // v3.0: 十二运修正
+  const stageScoreMap: Record<string, number> = { '旺': 8, '相': 4, '休': 0, '囚': -4, '死': -8 };
+  score += stageScoreMap[twelveStage.strength] || 0;
 
   score = Math.max(5, Math.min(95, score));
 
@@ -309,16 +414,16 @@ function assessTrend(chart: TaiyiChart, patterns: TaiyiPattern[]): {
   else if (score >= 25) auspiciousness = '凶';
   else auspiciousness = '大凶';
 
-  // v2.0: Trend analysis
   const trendParts: string[] = [];
   trendParts.push(`太乙积年${chart.jiNian}，第${chart.juNumber}局`);
   trendParts.push(`${chart.zhuKeRelation}`);
+  trendParts.push(`太乙${twelveStage.stage}(${twelveStage.strength})`);
   trendParts.push(`趋势等级：${trendLevel}，综合评分${score}分`);
 
   return { trendLevel, auspiciousness, score, trendAnalysis: trendParts.join('。') };
 }
 
-function buildYingQi(chart: TaiyiChart): string {
+function buildYingQi(chart: TaiyiChart, sanMenSiHu: SanMenSiHu): string {
   const taiyiWx = NINE_PALACES.find(p => p.number === chart.taiyiGong)!.wuxing;
   const wxTimeMap: Record<string, string> = {
     '木': '春季（寅卯辰月）', '火': '夏季（巳午未月）', '土': '季月（辰戌丑未月）',
@@ -327,11 +432,52 @@ function buildYingQi(chart: TaiyiChart): string {
   const wxDayMap: Record<string, string> = {
     '木': '甲乙日', '火': '丙丁日', '土': '戊己日', '金': '庚辛日', '水': '壬癸日',
   };
-  return `应期在${wxTimeMap[taiyiWx] || '不明'}，或${wxDayMap[taiyiWx] || '不明'}前后应验。局数${chart.juNumber}，太乙在第${chart.taiyiGong}宫。`;
+  const directionMap: Record<string, string> = {
+    '木': '东方', '火': '南方', '土': '中央', '金': '西方', '水': '北方',
+  };
+  return `应期在${wxTimeMap[taiyiWx] || '不明'}，或${wxDayMap[taiyiWx] || '不明'}前后应验。` +
+    `利方位：${directionMap[taiyiWx] || '不明'}。` +
+    `人门在第${sanMenSiHu.renMen}宫，宜向此方谋事。`;
+}
+// ═══════════════════════════════════════════════
+// Public API
+// ═══════════════════════════════════════════════
+
+export function runTaiyi(input: TaiyiInput): TaiyiResult {
+  const chart = buildChart(input);
+  const patterns = detectPatterns(chart);
+  const sanMenSiHu = calculateSanMenSiHu(chart.juNumber, chart.taiyiGong);
+  const twelveStage = calculateTwelveStage(chart.taiyiGong, chart.juNumber);
+  const wenChang = analyzeWenChang(chart);
+  const { trendLevel, auspiciousness, trendAnalysis } = assessTrend(chart, patterns, twelveStage);
+  const yingQi = buildYingQi(chart, sanMenSiHu);
+
+  const patternNames = patterns.map(p => p.name).join('、');
+  const summary = `太乙神数第${chart.juNumber}局，太乙在${chart.taiyiZhiWei.replace('太乙在', '')}。` +
+    `主算第${chart.zhuSuanGong}宫（值${chart.zhuSuanValue}），客算第${chart.keSuanGong}宫（值${chart.keSuanValue}）。` +
+    `${chart.zhuKeRelation}。太乙${twelveStage.stage}(${twelveStage.strength})。` +
+    `${sanMenSiHu.interpretation} ${wenChang.interpretation} ` +
+    `格局：${patternNames}。趋势${trendLevel}，判定${auspiciousness}。${yingQi}`;
+
+  return {
+    chart, patterns, trendLevel, auspiciousness, yingQi, summary, trendAnalysis,
+    sanMenSiHu, twelveStage, wenChang,
+    meta: {
+      engineVersion: '3.0.0',
+      ruleSchool: '太乙统宗（三门四户·十二运v3）',
+      warnings: ['太乙神数反映时态趋势而非固定命盘'],
+      uncertaintyNotes: [
+        '积年算法使用简化公元纪年法',
+        'v3.0增加三门四户、十二运、文昌分析',
+        '主客和战关系已增强',
+        '节气/历法周期为简化实现',
+      ],
+    },
+  };
 }
 
 // ═══════════════════════════════════════════════
-// FateVector Mapping
+// FateVector Mapping (v3.0 enhanced)
 // ═══════════════════════════════════════════════
 
 function mapToFateVector(result: TaiyiResult): FateVector {
@@ -351,45 +497,21 @@ function mapToFateVector(result: TaiyiResult): FateVector {
   let patternMod = 0;
   for (const p of result.patterns) patternMod += Math.round(p.impact * 0.3);
 
+  // v3.0: 十二运修正
+  const stageMod: Record<string, number> = { '旺': 4, '相': 2, '休': 0, '囚': -2, '死': -4 };
+  const sm = stageMod[result.twelveStage.strength] || 0;
+
+  // v3.0: 文昌修正
+  const wenChangMod = result.wenChang.isActive ? 3 : 0;
+
   const clamp = (v: number) => Math.max(5, Math.min(95, Math.round(v)));
   return {
-    life: clamp(base + (boost.life || 0) + patternMod),
-    wealth: clamp(base + (boost.wealth || 0) + patternMod),
+    life: clamp(base + (boost.life || 0) + patternMod + sm),
+    wealth: clamp(base + (boost.wealth || 0) + patternMod + sm),
     relation: clamp(base + (boost.relation || 0)),
-    health: clamp(base + (boost.health || 0)),
-    wisdom: clamp(base + (boost.wisdom || 0)),
-    spirit: clamp(base + (boost.spirit || 0) + patternMod),
-  };
-}
-
-// ═══════════════════════════════════════════════
-// Public API
-// ═══════════════════════════════════════════════
-
-export function runTaiyi(input: TaiyiInput): TaiyiResult {
-  const chart = buildChart(input);
-  const patterns = detectPatterns(chart);
-  const { trendLevel, auspiciousness, trendAnalysis } = assessTrend(chart, patterns);
-  const yingQi = buildYingQi(chart);
-
-  const patternNames = patterns.map(p => p.name).join('、');
-  const summary = `太乙神数第${chart.juNumber}局，太乙在${chart.taiyiZhiWei.replace('太乙在', '')}。` +
-    `主算第${chart.zhuSuanGong}宫（值${chart.zhuSuanValue}），客算第${chart.keSuanGong}宫（值${chart.keSuanValue}）。` +
-    `${chart.zhuKeRelation}。格局：${patternNames}。趋势${trendLevel}，判定${auspiciousness}。${yingQi}`;
-
-  return {
-    chart, patterns, trendLevel, auspiciousness, yingQi, summary, trendAnalysis,
-    meta: {
-      engineVersion: '2.0.0',
-      ruleSchool: '太乙统宗（扩展版）',
-      warnings: ['太乙神数反映时态趋势而非固定命盘'],
-      uncertaintyNotes: [
-        '积年算法使用简化公元纪年法',
-        '十六神已完整排布',
-        '主客和战关系已增强',
-        '节气/历法周期为简化实现',
-      ],
-    },
+    health: clamp(base + (boost.health || 0) + sm),
+    wisdom: clamp(base + (boost.wisdom || 0) + wenChangMod),
+    spirit: clamp(base + (boost.spirit || 0) + patternMod + sm),
   };
 }
 
@@ -410,7 +532,7 @@ export function buildTaiyiEngineOutput(si: StandardizedInput): { eo: EngineOutpu
     engineName: 'taiyi', engineNameCN: '太乙神数', engineVersion: result.meta.engineVersion,
     sourceUrls: ['https://zh.wikipedia.org/wiki/太乙神數'],
     sourceGrade: 'B', ruleSchool: result.meta.ruleSchool,
-    confidence: 0.56, computationTimeMs: Math.round(t1 - t0),
+    confidence: 0.58, computationTimeMs: Math.round(t1 - t0),
     rawInputSnapshot: { queryTimeUtc: si.queryTimeUtc, jiNian: result.chart.jiNian, juNumber: result.chart.juNumber },
     fateVector,
     normalizedOutput: {
@@ -422,6 +544,9 @@ export function buildTaiyiEngineOutput(si: StandardizedInput): { eo: EngineOutpu
       '格局': patternNames,
       '吉凶': result.auspiciousness,
       '趋势': result.trendLevel,
+      '太乙十二运': `${result.twelveStage.stage}(${result.twelveStage.strength})`,
+      '三门四户': result.sanMenSiHu.interpretation,
+      '文昌': result.wenChang.interpretation,
       '应期': result.yingQi,
       '趋势分析': result.trendAnalysis,
     },

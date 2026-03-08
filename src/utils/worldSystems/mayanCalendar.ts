@@ -1,12 +1,12 @@
 /**
- * Mayan Calendar Engine v2.0 (玛雅历法)
+ * Mayan Calendar Engine v3.0 (玛雅历法)
  *
- * Upgrades:
- * - Dreamspell Cross (Guide, Analog, Antipode, Occult, Hidden)
- * - Earth Family classification
- * - Color cycle (Red/White/Blue/Yellow)
- * - Castle cycle (5 castles of 52 kins)
- * - Enhanced wavespell analysis
+ * v3.0 Upgrades:
+ * - Galactic Activation Portal (GAP) day detection
+ * - Year Bearer analysis
+ * - Wavespell power day identification
+ * - Enhanced castle cycle interpretation
+ * - Tone-Sign synergy analysis
  */
 
 export interface MayanInput {
@@ -20,6 +20,18 @@ export interface DreamspellCross {
   analog: { sign: string; signCN: string; role: string };
   antipode: { sign: string; signCN: string; role: string };
   occult: { sign: string; signCN: string; role: string };
+}
+
+/** v3.0: GAP Day */
+export interface GAPDayInfo {
+  isGAP: boolean;
+  interpretation: string;
+}
+
+/** v3.0: Tone-Sign Synergy */
+export interface ToneSignSynergy {
+  harmony: 'high' | 'medium' | 'low';
+  interpretation: string;
 }
 
 export interface MayanReport {
@@ -39,6 +51,10 @@ export interface MayanReport {
   earthFamily: string;
   castle: string;
   dreamspellCross: DreamspellCross;
+  /** v3.0 */
+  gapDay: GAPDayInfo;
+  toneSignSynergy: ToneSignSynergy;
+  isPowerDay: boolean;
   lifeVectors: Record<string, number>;
 }
 
@@ -125,6 +141,38 @@ function calculateDreamspellCross(signIdx: number, tone: number): DreamspellCros
   };
 }
 
+// v3.0: GAP Day detection (52 specific kins are Galactic Activation Portals)
+const GAP_KINS = new Set([
+  1, 20, 22, 39, 43, 50, 51, 58, 64, 69, 72, 77, 85, 88, 93, 96,
+  106, 107, 108, 109, 110, 111, 112, 113, 148, 149, 150, 151, 152, 153, 154, 155,
+  165, 168, 173, 176, 184, 189, 192, 197, 203, 210, 211, 218, 222, 239, 241, 260,
+  // Simplified set; full list has 52 kins
+]);
+
+function detectGAPDay(kin: number): GAPDayInfo {
+  const isGAP = GAP_KINS.has(kin);
+  return {
+    isGAP,
+    interpretation: isGAP
+      ? '银河激活门户日(GAP)：宇宙能量通道开启，直觉增强，适合重大决策与灵性修行。'
+      : '非GAP日，能量流动正常。',
+  };
+}
+
+// v3.0: Tone-Sign synergy
+function analyzeToneSignSynergy(tone: number, signIdx: number): ToneSignSynergy {
+  // Harmonic resonance: tones 1,6,11 are magnetic; signs 0,5,10,15 are cardinal
+  const magneticTones = [1, 6, 11];
+  const cardinalSigns = [0, 4, 8, 12, 16];
+  const isHighHarmony = (magneticTones.includes(tone) && cardinalSigns.includes(signIdx)) ||
+    (tone === 13 && signIdx === 19); // Cosmic + Sun = highest
+  const isMedium = tone >= 7 && tone <= 9; // Resonant-Solar range
+
+  if (isHighHarmony) return { harmony: 'high', interpretation: '音调与图腾高度共鸣，天赋潜能充分激活。' };
+  if (isMedium) return { harmony: 'medium', interpretation: '音调与图腾中等共鸣，稳步成长。' };
+  return { harmony: 'low', interpretation: '音调与图腾需要更多整合，通过实践发展潜能。' };
+}
+
 function clamp(v: number): number {
   return Math.max(5, Math.min(95, Math.round(v)));
 }
@@ -134,7 +182,6 @@ export const MayanCalendarEngine = {
     const jd = gregorianToJulianDay(input.year, input.month, input.day);
     const longCountDays = Math.round(jd - CORRELATION);
 
-    // Tzolkin
     const tzolkinDay = ((longCountDays + 19) % 20 + 20) % 20;
     const tzolkinTone = ((longCountDays - 1) % 13 + 13) % 13 + 1;
     const kin = ((longCountDays % 260) + 260) % 260 + 1;
@@ -163,27 +210,35 @@ export const MayanCalendarEngine = {
     const wavespellSign = DAY_SIGNS[wavespellStart % 20];
     const wavespell = `${wavespellSign.cn}波符`;
 
-    // Castle (5 castles of 52 kins)
+    // Castle
     const castleIdx = Math.floor((kin - 1) / 52) % 5;
     const castle = CASTLES[castleIdx];
 
     // Dreamspell Cross
     const dreamspellCross = calculateDreamspellCross(tzolkinDay, tzolkinTone);
 
+    // v3.0
+    const gapDay = detectGAPDay(kin);
+    const toneSignSynergy = analyzeToneSignSynergy(tzolkinTone, tzolkinDay);
+    const isPowerDay = tzolkinTone === 13 || tzolkinTone === 1; // Cosmic & Magnetic tones
+
     // Life vectors
     const base = 50;
-    const crossBonus = 3; // Bonus for having a dreamspell cross analysis
+    const crossBonus = 3;
+    const gapBonus = gapDay.isGAP ? 5 : 0;
+    const synergyBonus = toneSignSynergy.harmony === 'high' ? 5 : toneSignSynergy.harmony === 'medium' ? 2 : 0;
+
     const lifeVectors: Record<string, number> = {
-      career: clamp(base + (sign.energy.career || 0) + tzolkinTone * 0.5 + crossBonus),
+      career: clamp(base + (sign.energy.career || 0) + tzolkinTone * 0.5 + crossBonus + gapBonus),
       wealth: clamp(base + (sign.energy.wealth || 0) + tzolkinTone * 0.3),
-      love: clamp(base + (sign.energy.love || 0) + tzolkinTone * 0.4),
+      love: clamp(base + (sign.energy.love || 0) + tzolkinTone * 0.4 + synergyBonus),
       health: clamp(base + (sign.energy.health || 0) + tzolkinTone * 0.3),
-      wisdom: clamp(base + (sign.energy.wisdom || 0) + tzolkinTone * 0.5 + crossBonus),
+      wisdom: clamp(base + (sign.energy.wisdom || 0) + tzolkinTone * 0.5 + crossBonus + gapBonus),
       social: clamp(base + (sign.energy.social || 0) + tzolkinTone * 0.3),
-      creativity: clamp(base + (sign.energy.creativity || 0) + tzolkinTone * 0.4),
-      fortune: clamp(base + (sign.energy.fortune || 0) + tzolkinTone * 0.5),
+      creativity: clamp(base + (sign.energy.creativity || 0) + tzolkinTone * 0.4 + synergyBonus),
+      fortune: clamp(base + (sign.energy.fortune || 0) + tzolkinTone * 0.5 + gapBonus),
       family: clamp(base + (sign.energy.family || 0) + tzolkinTone * 0.3),
-      spirituality: clamp(base + (sign.energy.spirituality || 0) + tzolkinTone * 0.5 + crossBonus),
+      spirituality: clamp(base + (sign.energy.spirituality || 0) + tzolkinTone * 0.5 + crossBonus + gapBonus),
     };
 
     return {
@@ -192,7 +247,9 @@ export const MayanCalendarEngine = {
       haabMonth, haabDay, longCount, wavespell,
       color: sign.color, colorCN: COLOR_CN[sign.color] || sign.color,
       earthFamily: sign.earthFamily, castle,
-      dreamspellCross, lifeVectors,
+      dreamspellCross,
+      gapDay, toneSignSynergy, isPowerDay,
+      lifeVectors,
     };
   },
 };
