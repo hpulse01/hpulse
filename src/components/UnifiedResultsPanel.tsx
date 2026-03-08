@@ -403,6 +403,7 @@ export function UnifiedResultsPanel({ result }: UnifiedResultsPanelProps) {
           <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4">
             <ScrollArea className="h-[500px] pr-2">
               <EngineConfidenceList result={result} />
+              <MeihuaDetail result={result} />
             </ScrollArea>
           </div>
         </TabsContent>
