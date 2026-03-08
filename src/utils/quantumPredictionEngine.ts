@@ -186,6 +186,10 @@ export interface QuantumPredictionResult {
   kabbalahReport: KabbalahReport;
   timestamp: Date;
   unifiedResult?: UnifiedPredictionResult;
+  /** Recursive destiny tree (event-driven world generation) */
+  destinyTree?: RecursiveWorldTree;
+  /** Collapsed unique fate path from the destiny tree */
+  collapseResult?: CollapseResult;
 }
 
 // ═══════════════════════════════════════════════
