@@ -3,6 +3,7 @@ import { BirthDataForm } from '@/components/BirthDataForm';
 import { SixRelationsVerification } from '@/components/SixRelationsVerification';
 import { DestinyDashboard } from '@/components/DestinyDashboard';
 import { UnifiedQuantumPanel } from '@/components/UnifiedQuantumPanel';
+import { UnifiedResultsPanel } from '@/components/UnifiedResultsPanel';
 import { Footer } from '@/components/Footer';
 import { UserMenu } from '@/components/UserMenu';
 import { Badge } from '@/components/ui/badge';
