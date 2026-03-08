@@ -148,12 +148,12 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'login' | 'register')}>
-          <TabsList className="grid w-full grid-cols-2 bg-secondary/50">
-            <TabsTrigger value="login" className="font-serif">
+          <TabsList className="grid w-full grid-cols-2 bg-card/60 border border-border/30 h-auto p-1 rounded-xl">
+            <TabsTrigger value="login" className="font-sans text-xs tracking-wider rounded-lg data-[state=active]:bg-primary/15 data-[state=active]:text-primary py-2.5">
               <LogIn className="w-4 h-4 mr-2" />
               登录
             </TabsTrigger>
-            <TabsTrigger value="register" className="font-serif">
+            <TabsTrigger value="register" className="font-sans text-xs tracking-wider rounded-lg data-[state=active]:bg-primary/15 data-[state=active]:text-primary py-2.5">
               <UserPlus className="w-4 h-4 mr-2" />
               注册
             </TabsTrigger>
