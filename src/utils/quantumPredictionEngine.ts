@@ -767,6 +767,7 @@ function orchestrate(
       numerologyReport: numResult.numerologyReport,
       mayanReport: mayanResult.mayanReport,
       kabbalahReport: kabResult.kabbalahReport,
+      meihuaResult,
     },
     systems,
   };
