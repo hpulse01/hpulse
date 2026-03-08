@@ -1,93 +1,86 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Ma+Shan+Zheng&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* 
-  Iron Plate Destiny Engine Design System
-  "The Digital Temple" - Solemn, Minimalist, Ancient
-*/
-
 @layer base {
   :root {
-    /* Core Temple Palette */
-    --background: 0 0% 10%; /* Deep Obsidian #1a1a1a */
-    --foreground: 50 14% 95%; /* Parchment Silk #f5f5f0 */
+    /* Deep space palette — blue-black with warm gold accents */
+    --background: 225 20% 7%;
+    --foreground: 45 10% 92%;
 
-    --card: 0 0% 12%;
-    --card-foreground: 50 14% 95%;
+    --card: 225 18% 10%;
+    --card-foreground: 45 10% 92%;
 
-    --popover: 0 0% 8%;
-    --popover-foreground: 50 14% 95%;
+    --popover: 225 22% 8%;
+    --popover-foreground: 45 10% 92%;
 
-    /* Antique Gold - Primary accent */
-    --primary: 43 74% 49%;
-    --primary-foreground: 0 0% 10%;
+    /* Refined antique gold */
+    --primary: 40 65% 55%;
+    --primary-foreground: 225 20% 7%;
 
-    /* Ink Stone - Secondary elements */
-    --secondary: 0 0% 18%;
-    --secondary-foreground: 50 14% 90%;
+    /* Slate ink */
+    --secondary: 225 15% 15%;
+    --secondary-foreground: 45 8% 85%;
 
-    /* Faded Scroll - Muted elements */
-    --muted: 0 0% 20%;
-    --muted-foreground: 50 5% 60%;
+    /* Muted — subtle warm gray */
+    --muted: 225 12% 18%;
+    --muted-foreground: 220 8% 52%;
 
-    /* Cinnabar Red - Accent for confirmations */
-    --accent: 4 72% 45%;
-    --accent-foreground: 50 14% 95%;
+    /* Cinnabar accent — warm vermillion */
+    --accent: 8 65% 50%;
+    --accent-foreground: 45 10% 95%;
 
-    /* Destructive - Deep vermillion */
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 50 14% 95%;
+    --destructive: 0 55% 40%;
+    --destructive-foreground: 45 10% 95%;
 
-    /* Borders and inputs */
-    --border: 0 0% 25%;
-    --input: 0 0% 18%;
-    --ring: 43 74% 49%;
+    --border: 225 12% 18%;
+    --input: 225 15% 14%;
+    --ring: 40 65% 55%;
 
-    --radius: 0.25rem;
+    --radius: 0.5rem;
 
-    /* Sidebar - Temple hall */
-    --sidebar-background: 0 0% 8%;
-    --sidebar-foreground: 50 14% 85%;
-    --sidebar-primary: 43 74% 49%;
-    --sidebar-primary-foreground: 0 0% 10%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 50 14% 95%;
-    --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 43 74% 49%;
+    --sidebar-background: 225 22% 6%;
+    --sidebar-foreground: 45 8% 80%;
+    --sidebar-primary: 40 65% 55%;
+    --sidebar-primary-foreground: 225 20% 7%;
+    --sidebar-accent: 225 15% 12%;
+    --sidebar-accent-foreground: 45 10% 92%;
+    --sidebar-border: 225 12% 16%;
+    --sidebar-ring: 40 65% 55%;
 
-    /* Custom Temple Colors */
-    --cinnabar: 4 72% 45%;
-    --jade: 160 40% 35%;
-    --ink: 0 0% 5%;
-    --bronze: 30 50% 40%;
-    --parchment: 50 14% 95%;
-    --scroll: 40 20% 85%;
+    /* Extended palette tokens */
+    --gold-glow: 40 70% 60%;
+    --jade: 165 35% 40%;
+    --cinnabar: 8 65% 50%;
+    --ink: 225 25% 5%;
+    --bronze: 30 40% 45%;
+    --parchment: 45 15% 92%;
+    --surface-glass: 225 18% 12%;
+    --surface-elevated: 225 16% 14%;
   }
 
-  /* Dark mode is the default and only mode for this solemn application */
   .dark {
-    --background: 0 0% 10%;
-    --foreground: 50 14% 95%;
-    --card: 0 0% 12%;
-    --card-foreground: 50 14% 95%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 50 14% 95%;
-    --primary: 43 74% 49%;
-    --primary-foreground: 0 0% 10%;
-    --secondary: 0 0% 18%;
-    --secondary-foreground: 50 14% 90%;
-    --muted: 0 0% 20%;
-    --muted-foreground: 50 5% 60%;
-    --accent: 4 72% 45%;
-    --accent-foreground: 50 14% 95%;
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 50 14% 95%;
-    --border: 0 0% 25%;
-    --input: 0 0% 18%;
-    --ring: 43 74% 49%;
+    --background: 225 20% 7%;
+    --foreground: 45 10% 92%;
+    --card: 225 18% 10%;
+    --card-foreground: 45 10% 92%;
+    --popover: 225 22% 8%;
+    --popover-foreground: 45 10% 92%;
+    --primary: 40 65% 55%;
+    --primary-foreground: 225 20% 7%;
+    --secondary: 225 15% 15%;
+    --secondary-foreground: 45 8% 85%;
+    --muted: 225 12% 18%;
+    --muted-foreground: 220 8% 52%;
+    --accent: 8 65% 50%;
+    --accent-foreground: 45 10% 95%;
+    --destructive: 0 55% 40%;
+    --destructive-foreground: 45 10% 95%;
+    --border: 225 12% 18%;
+    --input: 225 15% 14%;
+    --ring: 40 65% 55%;
   }
 }
 
@@ -101,44 +94,54 @@
   }
 
   body {
-    @apply bg-background text-foreground font-serif antialiased;
-    font-family: 'Noto Serif SC', serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', 'Noto Serif SC', sans-serif;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(225 20% 7%);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(225 12% 22%);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(225 12% 28%);
   }
 }
 
 @layer utilities {
-  /* Slow reveal animation for destiny text */
   @keyframes fade-in-up {
-    0% {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    0% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
   }
 
   @keyframes pulse-glow {
-    0%, 100% {
-      box-shadow: 0 0 20px hsl(43 74% 49% / 0.2);
-    }
-    50% {
-      box-shadow: 0 0 40px hsl(43 74% 49% / 0.4);
-    }
+    0%, 100% { box-shadow: 0 0 20px hsl(40 65% 55% / 0.15); }
+    50% { box-shadow: 0 0 40px hsl(40 65% 55% / 0.3); }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
   }
 
   @keyframes ink-spread {
-    0% {
-      clip-path: inset(0 100% 0 0);
-    }
-    100% {
-      clip-path: inset(0 0 0 0);
-    }
+    0% { clip-path: inset(0 100% 0 0); }
+    100% { clip-path: inset(0 0 0 0); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
   }
 
   .animate-fade-in-up {
-    animation: fade-in-up 0.8s ease-out forwards;
+    animation: fade-in-up 0.6s ease-out forwards;
   }
 
   .animate-pulse-glow {
@@ -149,37 +152,64 @@
     animation: ink-spread 1.5s ease-out forwards;
   }
 
-  /* Staggered delay classes for line-by-line reveal */
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent 0%, hsl(40 65% 55% / 0.06) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
   .delay-100 { animation-delay: 100ms; }
   .delay-200 { animation-delay: 200ms; }
   .delay-300 { animation-delay: 300ms; }
   .delay-400 { animation-delay: 400ms; }
   .delay-500 { animation-delay: 500ms; }
-  .delay-600 { animation-delay: 600ms; }
-  .delay-700 { animation-delay: 700ms; }
-  .delay-800 { animation-delay: 800ms; }
-  .delay-900 { animation-delay: 900ms; }
-  .delay-1000 { animation-delay: 1000ms; }
 
-  /* Temple decorative borders */
+  /* Glass morphism surface */
+  .glass {
+    background: hsl(225 18% 12% / 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(225 12% 22% / 0.5);
+  }
+
+  .glass-elevated {
+    background: hsl(225 16% 14% / 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsl(40 65% 55% / 0.1);
+  }
+
+  /* Gradient text */
+  .text-gradient-gold {
+    background: linear-gradient(135deg, hsl(40 70% 60%), hsl(40 65% 50%), hsl(35 55% 45%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Temple decorative border */
   .border-temple {
     border-image: linear-gradient(
       to right,
       transparent,
-      hsl(43 74% 49% / 0.5),
-      hsl(43 74% 49%),
-      hsl(43 74% 49% / 0.5),
+      hsl(40 65% 55% / 0.4),
+      hsl(40 65% 55% / 0.7),
+      hsl(40 65% 55% / 0.4),
       transparent
     ) 1;
   }
 
-  /* Scroll paper texture effect */
   .bg-scroll-texture {
-    background: 
-      radial-gradient(ellipse at center, hsl(0 0% 12%) 0%, hsl(0 0% 8%) 100%);
+    background:
+      radial-gradient(ellipse at 30% 20%, hsl(225 18% 12%) 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 80%, hsl(225 20% 10%) 0%, transparent 60%),
+      hsl(225 20% 7%);
   }
 
-  /* Classical Chinese vertical text support */
   .writing-vertical {
     writing-mode: vertical-rl;
     text-orientation: upright;

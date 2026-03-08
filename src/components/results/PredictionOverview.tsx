@@ -1,6 +1,5 @@
 /**
- * Prediction Overview — Top-level summary card
- * Shows: FateVector, confidence, engine count, conflict count, activation summary
+ * Prediction Overview — Top-level summary
  */
 import { Badge } from '@/components/ui/badge';
 import type { UnifiedPredictionResult, FateDimension } from '@/types/prediction';
@@ -15,9 +14,18 @@ const DIM_ICONS: Record<FateDimension, typeof Sun> = {
   health: Activity, wisdom: Brain, spirit: Sparkles,
 };
 
-const DIM_BAR: Record<FateDimension, string> = {
-  life: 'bg-amber-500', wealth: 'bg-emerald-500', relation: 'bg-rose-500',
-  health: 'bg-purple-500', wisdom: 'bg-blue-500', spirit: 'bg-indigo-500',
+const DIM_COLORS: Record<FateDimension, string> = {
+  life: 'from-amber-500/80 to-amber-600/80',
+  wealth: 'from-emerald-500/80 to-emerald-600/80',
+  relation: 'from-rose-500/80 to-rose-600/80',
+  health: 'from-purple-500/80 to-purple-600/80',
+  wisdom: 'from-blue-500/80 to-blue-600/80',
+  spirit: 'from-indigo-500/80 to-indigo-600/80',
+};
+
+const DIM_TEXT: Record<FateDimension, string> = {
+  life: 'text-amber-400', wealth: 'text-emerald-400', relation: 'text-rose-400',
+  health: 'text-purple-400', wisdom: 'text-blue-400', spirit: 'text-indigo-400',
 };
 
 function sc(v: number) {
@@ -34,47 +42,52 @@ export function PredictionOverview({ result }: Props) {
   const queryEngines = result.engineOutputs.filter(e => e.timingBasis === 'query').length;
 
   return (
-    <div className="space-y-5">
-      {/* Summary bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+    <div className="space-y-6">
+      {/* Stats row */}
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
         {[
-          { label: '综合置信度', value: `${Math.round(result.finalConfidence * 100)}%`, color: sc(result.finalConfidence * 100) },
+          { label: '置信度', value: `${Math.round(result.finalConfidence * 100)}%`, color: sc(result.finalConfidence * 100) },
           { label: '活跃引擎', value: result.activeEngines.length, color: 'text-primary' },
-          { label: '本命引擎', value: birthEngines, color: 'text-amber-400' },
-          { label: '即时引擎', value: queryEngines, color: 'text-blue-400' },
-          { label: '体系冲突', value: result.conflicts.length, color: result.conflicts.length > 3 ? 'text-rose-400' : 'text-emerald-400' },
-          { label: '失败引擎', value: result.failedEngines.length, color: result.failedEngines.length > 0 ? 'text-rose-400' : 'text-emerald-400' },
+          { label: '本命', value: birthEngines, color: 'text-amber-400' },
+          { label: '即时', value: queryEngines, color: 'text-blue-400' },
+          { label: '冲突', value: result.conflicts.length, color: result.conflicts.length > 3 ? 'text-rose-400' : 'text-emerald-400' },
+          { label: '失败', value: result.failedEngines.length, color: result.failedEngines.length > 0 ? 'text-rose-400' : 'text-emerald-400' },
         ].map(s => (
-          <div key={s.label} className="p-3 rounded-lg bg-card/40 border border-border/20 text-center">
-            <div className={`text-xl font-mono font-bold ${s.color}`}>{s.value}</div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">{s.label}</div>
+          <div key={s.label} className="glass rounded-xl p-3 text-center">
+            <div className={`text-xl font-mono font-semibold ${s.color}`}>{s.value}</div>
+            <div className="text-[10px] text-muted-foreground mt-1 font-sans">{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Fate Vector */}
-      <div className="p-4 rounded-xl bg-card/40 border border-primary/20">
-        <h3 className="text-sm font-serif text-primary mb-3 flex items-center gap-1.5">
-          <Sparkles className="w-4 h-4" />融合命运向量
-          <Badge variant="outline" className="text-[9px] border-primary/20 text-primary/70 ml-auto">
-            {result.executedEngines.length}系融合 · v{result.algorithmVersion}
-          </Badge>
-        </h3>
-        <div className="space-y-2.5">
+      <div className="glass-elevated rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-sm font-serif text-foreground flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />融合命运向量
+          </h3>
+          <span className="text-[10px] text-muted-foreground/50 font-sans">
+            {result.executedEngines.length} engines · v{result.algorithmVersion}
+          </span>
+        </div>
+        <div className="space-y-4">
           {ALL_FATE_DIMENSIONS.map(dim => {
             const Icon = DIM_ICONS[dim];
             const val = fv[dim];
             return (
-              <div key={dim} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Icon className={`w-3.5 h-3.5 ${dim === 'life' ? 'text-amber-400' : dim === 'wealth' ? 'text-emerald-400' : dim === 'relation' ? 'text-rose-400' : dim === 'health' ? 'text-purple-400' : dim === 'wisdom' ? 'text-blue-400' : 'text-indigo-400'}`} />
-                    <span className="text-xs text-foreground">{FATE_DIMENSION_LABELS[dim]}</span>
+              <div key={dim} className="group">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2.5">
+                    <Icon className={`w-4 h-4 ${DIM_TEXT[dim]}`} />
+                    <span className="text-xs text-foreground/80 font-sans">{FATE_DIMENSION_LABELS[dim]}</span>
                   </div>
-                  <span className={`text-sm font-mono font-bold ${sc(val)}`}>{val}</span>
+                  <span className={`text-sm font-mono font-semibold ${sc(val)}`}>{val}</span>
                 </div>
-                <div className="h-2 bg-secondary/30 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all duration-700 ${DIM_BAR[dim]}`} style={{ width: `${val}%` }} />
+                <div className="h-1.5 bg-border/20 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full bg-gradient-to-r ${DIM_COLORS[dim]} transition-all duration-1000`}
+                    style={{ width: `${val}%` }}
+                  />
                 </div>
               </div>
             );
@@ -82,47 +95,45 @@ export function PredictionOverview({ result }: Props) {
         </div>
       </div>
 
-      {/* Engine status summary */}
+      {/* Engine groups */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* Natal engines */}
-        <div className="p-3 rounded-xl bg-card/40 border border-amber-500/20">
-          <h4 className="text-xs font-serif text-amber-300 flex items-center gap-1.5 mb-2">
-            <Sun className="w-3.5 h-3.5" />本命引擎 ({birthEngines})
-            <span className="text-[9px] text-muted-foreground font-normal ml-1">基于出生时刻</span>
+        <div className="glass rounded-xl p-4">
+          <h4 className="text-xs font-sans text-amber-400/80 flex items-center gap-2 mb-3">
+            <Sun className="w-3.5 h-3.5" />本命引擎
+            <span className="text-muted-foreground/40 text-[10px]">基于出生</span>
           </h4>
           <div className="flex flex-wrap gap-1.5">
             {result.engineOutputs.filter(e => e.timingBasis === 'birth').map(eo => (
-              <Badge key={eo.engineName} variant="outline" className="text-[9px] border-amber-500/20 text-amber-300/80">
-                <CheckCircle className="w-2.5 h-2.5 mr-0.5 text-emerald-400" />{eo.engineNameCN}
-              </Badge>
+              <span key={eo.engineName} className="text-[10px] px-2 py-0.5 rounded-full border border-amber-500/15 text-amber-300/70 bg-amber-500/5 font-sans">
+                {eo.engineNameCN}
+              </span>
             ))}
           </div>
         </div>
 
-        {/* Instant engines */}
-        <div className="p-3 rounded-xl bg-card/40 border border-blue-500/20">
-          <h4 className="text-xs font-serif text-blue-300 flex items-center gap-1.5 mb-2">
-            <Zap className="w-3.5 h-3.5" />即时引擎 ({queryEngines})
-            <span className="text-[9px] text-muted-foreground font-normal ml-1">基于测算时间</span>
+        <div className="glass rounded-xl p-4">
+          <h4 className="text-xs font-sans text-blue-400/80 flex items-center gap-2 mb-3">
+            <Zap className="w-3.5 h-3.5" />即时引擎
+            <span className="text-muted-foreground/40 text-[10px]">基于测算时间</span>
           </h4>
           <div className="flex flex-wrap gap-1.5">
             {result.engineOutputs.filter(e => e.timingBasis === 'query').map(eo => (
-              <Badge key={eo.engineName} variant="outline" className="text-[9px] border-blue-500/20 text-blue-300/80">
-                <Zap className="w-2.5 h-2.5 mr-0.5 text-blue-400" />{eo.engineNameCN}
-              </Badge>
+              <span key={eo.engineName} className="text-[10px] px-2 py-0.5 rounded-full border border-blue-500/15 text-blue-300/70 bg-blue-500/5 font-sans">
+                {eo.engineNameCN}
+              </span>
             ))}
           </div>
         </div>
       </div>
 
       {/* Causal summary */}
-      <p className="text-xs text-muted-foreground leading-relaxed px-1">{result.causalSummary}</p>
+      <p className="text-xs text-muted-foreground/60 leading-relaxed px-1 font-sans">{result.causalSummary}</p>
 
       {/* Warnings */}
       {result.failedEngines.length > 0 && (
-        <div className="p-3 rounded-lg border border-rose-500/20 bg-rose-500/5">
+        <div className="glass rounded-xl p-3 border-destructive/20">
           {result.failedEngines.map(fe => (
-            <div key={fe.engineName} className="flex items-start gap-2 text-[10px] text-rose-400/80">
+            <div key={fe.engineName} className="flex items-start gap-2 text-[10px] text-destructive/80 font-sans">
               <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
               <span>{fe.engineName}: {fe.error}</span>
             </div>
