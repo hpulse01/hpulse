@@ -612,6 +612,7 @@ export function runQimen(standardizedInput: StandardizedInput): {
         '节气切换使用公历近似，精度约±1天',
         '三元(上中下)判定使用日期近似',
       ],
+      timingBasis: 'query',
     },
     qimenResult: { chart, score, summary, pattern },
   };

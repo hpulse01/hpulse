@@ -938,8 +938,8 @@ function orchestrate(
       baziProfile: legacyBaziProfile,
       fullReport: legacyFullReport,
       ziweiReport: ziweiResult?.ziweiReport ?? ZiweiEngine.generateReport({
-        year: si.birthLocalDateTime.year, month: si.birthLocalDateTime.month,
-        day: si.birthLocalDateTime.day, hour: si.birthLocalDateTime.hour, gender: si.gender,
+        year: standardizedInput.birthLocalDateTime.year, month: standardizedInput.birthLocalDateTime.month,
+        day: standardizedInput.birthLocalDateTime.day, hour: standardizedInput.birthLocalDateTime.hour, gender: standardizedInput.gender,
       }),
       liuYaoResult,
       westernReport: westernResult?.westernReport ?? WesternAstrologyEngine.calculate(standardizedToQuantumInput(standardizedInput)),

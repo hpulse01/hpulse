@@ -468,6 +468,7 @@ export function runMeihua(standardizedInput: StandardizedInput): {
       },
       warnings: ['梅花易数基于起卦时间而非出生时间，适用于即时感应占断'],
       uncertaintyNotes: ['梅花体用评分为启发式映射', '时间起卦使用公历近似'],
+      timingBasis: 'query',
     },
     meihuaResult: result,
   };
