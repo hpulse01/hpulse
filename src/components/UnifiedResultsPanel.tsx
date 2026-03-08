@@ -402,6 +402,43 @@ function QimenDetail({ result }: { result: UnifiedPredictionResult }) {
   );
 }
 
+// ── LiuRen Detail Display ──
+
+function LiuRenDetail({ result }: { result: UnifiedPredictionResult }) {
+  const liuren = result.engineOutputs.find(e => e.engineName === 'liuren');
+  if (!liuren) return null;
+
+  const no = liuren.normalizedOutput;
+  return (
+    <div className="mt-4 space-y-2">
+      <h3 className="text-sm font-serif text-violet-300 flex items-center gap-1.5">
+        <Activity className="w-4 h-4" />大六壬课体
+      </h3>
+      <div className="grid grid-cols-3 gap-2">
+        {(['四课', '三传', '课体'] as const).map(label => (
+          <div key={label} className="p-2.5 rounded-lg bg-card/30 border border-border/20 text-center">
+            <div className="text-[10px] text-muted-foreground mb-1">{label}</div>
+            <div className="text-xs font-serif text-foreground">{no[label] || '—'}</div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {(['天将', '日辰', '贵人', '吉凶'] as const).map(label => (
+          <div key={label} className="p-2 rounded-lg bg-card/30 border border-border/20 text-center">
+            <div className="text-[10px] text-muted-foreground mb-1">{label}</div>
+            <div className={`text-xs font-serif ${
+              label === '吉凶' ? (
+                no[label] === '大吉' || no[label] === '吉' ? 'text-emerald-400' :
+                no[label] === '大凶' || no[label] === '凶' ? 'text-rose-400' : 'text-amber-300'
+              ) : 'text-foreground'
+            }`}>{no[label] || '—'}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════
 // Main Component
 // ═══════════════════════════════════════════════
