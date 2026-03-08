@@ -353,6 +353,10 @@ export interface FullDestinyReport {
   twelvePalaces?: TwelvePalaceAnalysis[];
   /** v2.0: 洛书和谐度 */
   luoShuHarmony?: LuoShuHarmony;
+  /** v3.0: 河图和谐度 */
+  heTuHarmony?: HeTuHarmony;
+  /** v3.0: 先天卦数交叉 */
+  xianTianGua?: XianTianGuaAnalysis;
   /** v2.0: 三层输出 */
   threeLayerReport?: TiebanThreeLayerReport;
 }
