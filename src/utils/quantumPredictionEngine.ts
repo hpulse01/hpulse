@@ -548,9 +548,8 @@ function runWestern(si: StandardizedInput): { eo: EngineOutput; westernReport: W
   const westernReport = WesternAstrologyEngine.calculate(input);
   const t1 = performance.now();
 
-  // v2.0: enriched with dignities and patterns
-  const dignities = westernReport.dignities?.slice(0, 3).map((d: any) => `${d.planet}${d.dignity}`).join('、') || '';
-  const patterns = westernReport.patterns?.map((p: any) => p.name).join('、') || '';
+  // v2.0: enriched output
+  const patterns = (westernReport as any).patterns?.map((p: any) => p.name).join('、') || '';
 
   return {
     eo: {
