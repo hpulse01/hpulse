@@ -28,7 +28,7 @@ export function LiuYaoDisplay({ calculationTime }: LiuYaoDisplayProps) {
       <div className="flex gap-6">
         {/* Hexagram Symbol */}
         <div className="text-center">
-          <div className="text-5xl mb-2">{mainHexagram.symbol}</div>
+          <div className="text-3xl mb-2 font-serif">{mainHexagram.name}</div>
           <div className="text-lg font-serif text-primary">{mainHexagram.name}</div>
           <div className="text-xs text-muted-foreground mt-1">起卦时辰: {timeGanZhi}</div>
         </div>
