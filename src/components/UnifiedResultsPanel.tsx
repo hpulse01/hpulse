@@ -477,6 +477,7 @@ export function UnifiedResultsPanel({ result }: UnifiedResultsPanelProps) {
             <ScrollArea className="h-[500px] pr-2">
               <EngineConfidenceList result={result} />
               <MeihuaDetail result={result} />
+              <QimenDetail result={result} />
             </ScrollArea>
           </div>
         </TabsContent>
