@@ -732,11 +732,11 @@ function clamp(v: number): number {
 // ═══════════════════════════════════════════════
 
 export const QuantumPredictionEngine = {
-  predict(input: QuantumInput): QuantumPredictionResult {
+  predict(input: QuantumInput, systemOffset: number = 0): QuantumPredictionResult {
     const timestamp = new Date();
 
     // Phase 1
-    const { systems, baziProfile, fullReport, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport } = runAllSystems(input);
+    const { systems, baziProfile, fullReport, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport } = runAllSystems(input, systemOffset);
 
     // Phase 2
     const { branches, totalGenerated, perSystem } = generateInfiniteWorlds(systems, input, vedicReport, numerologyReport, fullReport);
