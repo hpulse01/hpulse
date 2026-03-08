@@ -1,13 +1,13 @@
 /**
- * Numerology Engine v2.0 (数字命理学)
+ * Numerology Engine v3.0 (数字命理学)
  *
- * Upgrades:
- * - Karmic Debt Numbers (13, 14, 16, 19)
- * - Maturity Number
- * - Hidden Passion Number
- * - Personal Month & Day cycles
- * - Life Path Period analysis
- * - Master Number enhanced handling (11, 22, 33, 44)
+ * v3.0 Upgrades:
+ * - Bridge Numbers (between Life Path and other core numbers)
+ * - Intensity Numbers (digit frequency analysis)
+ * - Subconscious Self Number
+ * - Personal Month & Personal Day cycles
+ * - Enhanced Master Number analysis (11, 22, 33, 44)
+ * - Missing number karmic lessons
  */
 
 export interface NumerologyInput {
