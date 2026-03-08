@@ -1745,7 +1745,7 @@ export function extractKabbalahEvents(
     fateImpact: { wealth: 5 },
     sourceDetail: '卡巴拉质点财运推算',
     sourceFieldPath: 'personalitySephirah(wealth-derived)',
-    sourceEvidence: `人格质点${report.personalitySephirah.number}`,
+    sourceEvidence: `人格质点${report.personalitySephirah.index}`,
     reasoning: `35 + 人格质点号 = ${wealthAge}`,
     confidence: 0.35, conflictTags: ['wealth-kabbalah'],
   });
