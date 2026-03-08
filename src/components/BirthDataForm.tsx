@@ -73,11 +73,11 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
     setErrorText('');
 
     if (Number.isNaN(formData.geoLatitude) || formData.geoLatitude < -90 || formData.geoLatitude > 90) {
-      setErrorText('纬度必须在 -90 到 90 之间');
+      setErrorText(t('form.lat_error'));
       return;
     }
     if (Number.isNaN(formData.geoLongitude) || formData.geoLongitude < -180 || formData.geoLongitude > 180) {
-      setErrorText('经度必须在 -180 到 180 之间');
+      setErrorText(t('form.lng_error'));
       return;
     }
     if (
@@ -85,7 +85,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
       formData.timezoneOffsetMinutes < -720 ||
       formData.timezoneOffsetMinutes > 840
     ) {
-      setErrorText('时区偏移必须在 -720 到 840 分钟之间');
+      setErrorText(t('form.tz_error'));
       return;
     }
 
