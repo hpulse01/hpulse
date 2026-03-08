@@ -533,7 +533,17 @@ export default function QuantumPrediction() {
                   </ScrollArea>
                 </TabsContent>
 
-                {/* Tab: Quantum States */}
+                {/* Tab: Destiny Tree */}
+                <TabsContent value="tree" className="mt-5">
+                  {result.destinyTree && result.collapseResult ? (
+                    <DestinyTreePanel tree={result.destinyTree} collapse={result.collapseResult} />
+                  ) : (
+                    <div className="bg-card/40 border border-violet-500/20 rounded-xl p-8 text-center">
+                      <TreePine className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">命运树生成中或暂不可用</p>
+                    </div>
+                  )}
+                </TabsContent>
                 <TabsContent value="quantum" className="mt-5 space-y-5">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                     <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4 flex flex-col items-center">
