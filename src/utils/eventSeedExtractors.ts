@@ -1667,7 +1667,7 @@ export function extractKabbalahEvents(
     fateImpact: { spirit: 10 },
     sourceDetail: `卡巴拉灵魂质点${report.soulSephirah.nameCN}`,
     sourceFieldPath: 'soulSephirah',
-    sourceEvidence: `灵魂质点${report.soulSephirah.nameCN}(${report.soulSephirah.nameEN})`,
+    sourceEvidence: `灵魂质点${report.soulSephirah.nameCN}(${report.soulSephirah.name})`,
     reasoning: '灵魂质点推算灵性突破期',
     confidence: 0.45, conflictTags: ['spiritual-kabbalah'],
   });
