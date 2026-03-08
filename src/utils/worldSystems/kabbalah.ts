@@ -53,6 +53,27 @@ export interface FourWorldsBalance {
   interpretation: string;
 }
 
+/** v3.0: Lightning Flash */
+export interface LightningFlashInfo {
+  sequence: number[];
+  currentPosition: number;
+  interpretation: string;
+}
+
+/** v3.0: Da'at Gateway */
+export interface DaatGateway {
+  isActive: boolean;
+  strength: number;
+  interpretation: string;
+}
+
+/** v3.0: Active Paths */
+export interface ActivePathInfo {
+  path: PathInfo;
+  strength: number;
+  isOnFlamingSword: boolean;
+}
+
 export interface KabbalahReport {
   soulSephirah: SephirahInfo;
   personalitySephirah: SephirahInfo;
@@ -62,6 +83,10 @@ export interface KabbalahReport {
   gematria: GematriaResult;
   fourWorlds: FourWorldsBalance;
   shadowSephirah: string;
+  /** v3.0 */
+  lightningFlash: LightningFlashInfo;
+  daatGateway: DaatGateway;
+  activePaths: ActivePathInfo[];
   lifeVectors: Record<string, number>;
 }
 
