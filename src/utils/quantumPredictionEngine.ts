@@ -612,6 +612,7 @@ interface OrchestrationResult {
     meihuaResult: MeihuaResult | null;
     qimenResult: QimenResult | null;
     liurenResult: LiuRenResult | null;
+    taiyiResult: TaiyiResult | null;
   };
   systems: SystemAnalysis[];
 }
