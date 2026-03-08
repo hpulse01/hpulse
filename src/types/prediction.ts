@@ -23,6 +23,8 @@ export interface SourceMetadata {
   confidence: number;        // 0-1
   normalizedLocationName: string;
   timezoneIana: string;
+  standardOffsetMinutes?: number;
+  timezoneResolutionNotes?: string;
   rawInput?: Record<string, unknown>;
 }
 
@@ -99,31 +101,18 @@ export const FATE_DIMENSION_LABELS: Record<FateDimension, string> = {
 export type SourceGrade = 'A' | 'B' | 'C' | 'D';
 
 export interface EngineOutput {
-  /** Engine identifier (e.g. 'tieban', 'bazi', 'western') */
   engineName: string;
-  /** Display name in Chinese */
   engineNameCN: string;
-  /** Semantic version */
   engineVersion: string;
-  /** Academic/technical source URLs */
   sourceUrls: string[];
-  /** Source reliability grade */
   sourceGrade: SourceGrade;
-  /** School/tradition (e.g. 'Parashari', 'Tropical Zodiac') */
   ruleSchool: string;
-  /** Engine self-reported confidence 0-1 */
   confidence: number;
-  /** Wall-clock computation time in ms */
   computationTimeMs: number;
-  /** Snapshot of the input as seen by this engine */
   rawInputSnapshot: Record<string, unknown>;
-  /** The 6-dimensional fate vector produced by this engine */
   fateVector: FateVector;
-  /** Free-form display metadata (star names, signs, etc.) */
   normalizedOutput: Record<string, string>;
-  /** Warnings generated during computation */
   warnings: string[];
-  /** Uncertainty notes */
   uncertaintyNotes: string[];
 }
 
@@ -132,32 +121,43 @@ export interface EngineOutput {
 // ═══════════════════════════════════════════════
 
 export type ConflictResolutionStrategy =
-  | 'weighted_average'     // 按权重加权
-  | 'confidence_priority'  // 置信度优先
-  | 'domain_expert'        // 领域专家优先（如健康维度以吠陀为主）
-  | 'conservative';        // 取保守值（较低值）
+  | 'weighted_average'
+  | 'confidence_priority'
+  | 'domain_expert'
+  | 'conservative';
 
 export interface PredictionConflict {
-  /** Which FateVector dimension has the conflict */
   dimension: FateDimension;
-  /** First conflicting engine */
   engineA: string;
-  /** Second conflicting engine */
   engineB: string;
-  /** Engine A's value for this dimension */
   valueA: number;
-  /** Engine B's value for this dimension */
   valueB: number;
-  /** Absolute difference */
   delta: number;
-  /** How the conflict was resolved */
   resolutionStrategy: ConflictResolutionStrategy;
-  /** Human-readable explanation */
   explanation: string;
 }
 
 // ═══════════════════════════════════════════════
-// 5. UnifiedPredictionResult
+// 5. Engine Activation
+// ═══════════════════════════════════════════════
+
+export type EngineName =
+  | 'tieban' | 'bazi' | 'ziwei' | 'liuyao'
+  | 'western' | 'vedic' | 'numerology' | 'mayan' | 'kabbalah';
+
+export const ALL_ENGINE_NAMES: EngineName[] = [
+  'tieban', 'bazi', 'ziwei', 'liuyao',
+  'western', 'vedic', 'numerology', 'mayan', 'kabbalah',
+];
+
+export interface EngineActivationRule {
+  engine: EngineName;
+  active: boolean;
+  reason: string;
+}
+
+// ═══════════════════════════════════════════════
+// 6. UnifiedPredictionResult
 // ═══════════════════════════════════════════════
 
 export interface WeightEntry {
@@ -167,24 +167,20 @@ export interface WeightEntry {
 }
 
 export interface UnifiedPredictionResult {
-  /** Unique prediction ID */
   predictionId: string;
-  /** The standardized input used */
   input: StandardizedInput;
-  /** Per-engine outputs */
   engineOutputs: EngineOutput[];
-  /** Weights used for fusion */
   weightsUsed: WeightEntry[];
-  /** Fused 6-dimensional fate vector */
   fusedFateVector: FateVector;
-  /** Detected conflicts */
   conflicts: PredictionConflict[];
-  /** Overall confidence after fusion (0-1) */
   finalConfidence: number;
-  /** Human-readable causal summary */
   causalSummary: string;
-  /** ISO timestamp */
   generatedAt: string;
-  /** Orchestrator version */
   algorithmVersion: string;
+  /** Which engines were activated for this query */
+  activeEngines: string[];
+  /** Which engines were skipped and why */
+  skippedEngines: Array<{ engineName: string; reason: string }>;
+  /** Summary of why engines were activated/skipped */
+  activationReasonSummary: string;
 }
