@@ -24,6 +24,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     numerology: { active: true,  reason: '数字命理提供补充维度' },
     mayan:      { active: true,  reason: '玛雅历法提供时间周期视角' },
     kabbalah:   { active: true,  reason: '卡巴拉提供灵性维度补充' },
+    meihua:     { active: false, reason: '梅花易数为即时感应体系，不适用于本命分析' },
   },
   annualForecast: {
     tieban:     { active: true,  reason: '铁板流年条文为年度预测核心' },
