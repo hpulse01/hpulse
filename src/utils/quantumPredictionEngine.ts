@@ -956,8 +956,6 @@ function orchestrate(
     systems,
   };
 
-  // shorthand for SI
-  function get si() { return standardizedInput; }
 }
 
 // ═══════════════════════════════════════════════
