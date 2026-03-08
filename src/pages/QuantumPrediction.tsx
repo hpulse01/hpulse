@@ -22,6 +22,7 @@ import { QuantumRadar } from '@/components/quantum/QuantumRadar';
 import { QuantumWaveform } from '@/components/quantum/QuantumWaveform';
 import { QuantumCoherencePanel } from '@/components/quantum/QuantumCoherencePanel';
 import { QuantumEntanglementMap } from '@/components/quantum/QuantumEntanglementMap';
+import { DestinyTreePanel } from '@/components/DestinyTreePanel';
 import {
   QuantumPredictionEngine,
   type QuantumInput,
@@ -36,6 +37,7 @@ import {
   TrendingDown, Minus, Zap, Waves, Network, BarChart3, BookOpen,
   Briefcase, Coins, Heart, Activity, Brain, Users,
   Palette, Star, Home, Compass, Globe, ChevronDown, ChevronUp,
+  TreePine,
 } from 'lucide-react';
 
 // ─────────────────────────────────────
