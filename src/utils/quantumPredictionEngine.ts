@@ -208,7 +208,7 @@ const BRANCH_ELEMENTS: Record<string, string> = {
 // Phase 1: Multi-System Analysis
 // ═══════════════════════════════════════════════
 
-function runAllSystems(input: QuantumInput): {
+function runAllSystems(input: QuantumInput, systemOffset: number = 0): {
   systems: SystemAnalysis[];
   baziProfile: BaZiProfile;
   fullReport: FullDestinyReport;
