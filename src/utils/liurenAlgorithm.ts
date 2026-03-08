@@ -51,6 +51,30 @@ export interface LiuRenChart {
   riBranch: string;
 }
 
+/** v3.0: 空亡信息 */
+export interface LiuRenKongWang {
+  branches: [string, string];
+  chuInKong: boolean;
+  zhongInKong: boolean;
+  moInKong: boolean;
+  interpretation: string;
+}
+
+/** v3.0: 德合信息 */
+export interface DeHeInfo {
+  riDe: string | null;
+  yueDe: string | null;
+  hasDe: boolean;
+  interpretation: string;
+}
+
+/** v3.0: 年命分析 */
+export interface NianMingAnalysis {
+  nianZhi: string;
+  relationToChuan: string;
+  interpretation: string;
+}
+
 export interface LiuRenResult {
   chart: LiuRenChart;
   siKe: LiuRenSiKe;
@@ -62,6 +86,10 @@ export interface LiuRenResult {
   summary: string;
   /** v2.0: 类神分析 */
   leishenAnalysis: string;
+  /** v3.0 */
+  kongWang: LiuRenKongWang;
+  deHe: DeHeInfo;
+  nianMing: NianMingAnalysis;
   meta: LiuRenMeta;
 }
 
