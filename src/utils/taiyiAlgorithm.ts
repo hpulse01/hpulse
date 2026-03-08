@@ -489,6 +489,7 @@ export function buildTaiyiEngineOutput(si: StandardizedInput): { eo: EngineOutpu
     },
     warnings: result.meta.warnings,
     uncertaintyNotes: result.meta.uncertaintyNotes,
+    timingBasis: 'query',
   };
 
   return { eo, taiyiResult: result };

@@ -561,6 +561,7 @@ export function buildLiuRenEngineOutput(si: StandardizedInput): { eo: EngineOutp
     },
     warnings: result.meta.warnings,
     uncertaintyNotes: result.meta.uncertaintyNotes,
+    timingBasis: 'query',
   };
 
   return { eo, liurenResult: result };
