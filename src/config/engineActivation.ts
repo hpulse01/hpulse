@@ -36,6 +36,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     numerology: { active: true,  reason: '个人年数字对年度预测有参考' },
     mayan:      { active: true,  reason: '玛雅周期参考' },
     kabbalah:   { active: true,  reason: '卡巴拉灵性参考' },
+    meihua:     { active: false, reason: '梅花易数不适用于年度确定性预测' },
   },
   monthlyForecast: {
     tieban:     { active: true,  reason: '铁板流月条文可用但精度有限' },
