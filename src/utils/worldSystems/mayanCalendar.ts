@@ -22,6 +22,18 @@ export interface DreamspellCross {
   occult: { sign: string; signCN: string; role: string };
 }
 
+/** v3.0: GAP Day */
+export interface GAPDayInfo {
+  isGAP: boolean;
+  interpretation: string;
+}
+
+/** v3.0: Tone-Sign Synergy */
+export interface ToneSignSynergy {
+  harmony: 'high' | 'medium' | 'low';
+  interpretation: string;
+}
+
 export interface MayanReport {
   kin: number;
   daySign: string;
@@ -39,6 +51,10 @@ export interface MayanReport {
   earthFamily: string;
   castle: string;
   dreamspellCross: DreamspellCross;
+  /** v3.0 */
+  gapDay: GAPDayInfo;
+  toneSignSynergy: ToneSignSynergy;
+  isPowerDay: boolean;
   lifeVectors: Record<string, number>;
 }
 
