@@ -39,7 +39,7 @@ const Index = () => {
   const [calibrationResult, setCalibrationResult] = useState<CalibrationResult | null>(null);
   const [quantumResult, setQuantumResult] = useState<QuantumPredictionResult | null>(null);
   const [clauseCount, setClauseCount] = useState<number | null>(null);
-  const [activeResultTab, setActiveResultTab] = useState('destiny');
+  const [activeResultTab, setActiveResultTab] = useState('unified');
 
   const { toast } = useToast();
 
