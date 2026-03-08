@@ -1,14 +1,15 @@
 /**
- * 梅花易数引擎 v2.0 (Meihua Yishu / Plum Blossom Numerology)
+ * 梅花易数引擎 v3.0 (Meihua Yishu / Plum Blossom Numerology)
  *
- * 即时感应型体系，核心能力：
- * 1. 时间起卦 (Time-based hexagram)
- * 2. 数字起卦 (Number-based hexagram)
- * 3. 万物类象 (Universal Correspondence)
- * 4. 体用生克深层分析
- * 5. 应期推算
+ * v3.0 升级内容:
+ * 1. 错卦/综卦分析 (Inverse & Reverse hexagrams)
+ * 2. 先天/后天八卦互参
+ * 3. 互卦/变卦多层体用分析
+ * 4. 六十四卦完整卦辞库
+ * 5. 增强应期: 先天数应期 + 后天卦气应期
+ * 6. 全卦五行力量对比
  *
- * 算法参考：邵雍《梅花易数》原典
+ * 算法参考：邵雍《梅花易数》原典 + 《周易》
  */
 
 import type { EngineOutput, FateVector, StandardizedInput } from '@/types/prediction';
