@@ -1,27 +1,20 @@
 export function Footer() {
   return (
-    <footer className="mt-auto py-6 border-t border-violet-500/20">
-      <div className="container max-w-2xl mx-auto px-4">
+    <footer className="mt-auto border-t border-border/20">
+      <div className="container max-w-4xl mx-auto px-4 py-6">
         <div className="text-center space-y-3">
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            H-Pulse 量子命运预测系统
-          </p>
-          <p className="text-muted-foreground/70 text-xs">
-            综合九大命理体系 · 铁板神数考刻校准 · 量子坍缩确定性预测
-          </p>
-          
-          <div className="flex items-center justify-center gap-3 py-2">
-            <div className="h-px w-12 bg-violet-500/30" />
-            <span className="text-violet-300/50 text-xs font-serif">H-Pulse</span>
-            <div className="h-px w-12 bg-violet-500/30" />
+          <div className="flex items-center justify-center gap-3">
+            <div className="h-px w-10 bg-gradient-to-r from-transparent to-primary/20" />
+            <span className="text-primary/40 text-xs font-serif tracking-[0.3em]">H-PULSE</span>
+            <div className="h-px w-10 bg-gradient-to-l from-transparent to-primary/20" />
           </div>
-          
-          <p className="text-muted-foreground/60 text-xs">
-            联系方式: <a href="mailto:001@hpulse.me" className="text-violet-300/70 hover:text-violet-300 transition-colors">001@hpulse.me</a>
+          <p className="text-muted-foreground/40 text-[10px] font-sans leading-relaxed max-w-md mx-auto">
+            Quantum Destiny Prediction System · 十三大命理体系量子预测
           </p>
-          
-          <p className="text-muted-foreground/50 text-xs">
-            © {new Date().getFullYear()} H-Pulse Quantum Destiny System
+          <p className="text-muted-foreground/30 text-[10px] font-sans">
+            <a href="mailto:001@hpulse.me" className="hover:text-primary/50 transition-colors">001@hpulse.me</a>
+            <span className="mx-2">·</span>
+            © {new Date().getFullYear()} H-Pulse
           </p>
         </div>
       </div>

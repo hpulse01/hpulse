@@ -100,7 +100,7 @@ const Index = () => {
       const qResult = QuantumPredictionEngine.predict(birthInput!, systemOffset);
       setQuantumResult(qResult);
       setStep('result');
-      toast({ title: '推算完成', description: '十三大体系量子坍缩完毕，命运轨迹已确定' });
+      toast({ title: '推算完成', description: '十三大体系量子坍缩完毕' });
     } catch (error) {
       console.error('Projection error:', error);
       toast({ title: '推演出错', description: '请重新开始', variant: 'destructive' });
@@ -120,7 +120,6 @@ const Index = () => {
     setActiveResultTab('overview');
   }, []);
 
-  // Build result tabs based on role
   const resultTabs = useMemo(() => {
     const tabs = [
       { id: 'overview', label: '预测总览', icon: Sparkles },
@@ -130,7 +129,6 @@ const Index = () => {
       { id: 'destiny', label: '铁板命盘', icon: Scroll },
       { id: 'quantum', label: '量子全知', icon: Atom },
     ];
-    // Only super_admin sees the orchestration tab
     if (isSuperAdmin) {
       tabs.push({ id: 'orchestration', label: '统一编排', icon: Shield });
     }
@@ -138,23 +136,23 @@ const Index = () => {
   }, [isSuperAdmin]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background bg-scroll-texture">
       {/* Header */}
-      <header className="py-3 md:py-5 border-b border-primary/20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-card/30 to-background" />
-        <div className="container max-w-6xl mx-auto px-4 relative z-10">
+      <header className="relative border-b border-border/50">
+        <div className="absolute inset-0 bg-gradient-to-b from-card/80 to-transparent" />
+        <div className="container max-w-6xl mx-auto px-4 py-4 md:py-5 relative z-10">
           <div className="flex items-center justify-between">
             <div className="flex-1" />
             <div className="text-center flex-1">
-              <h1 className="text-2xl md:text-4xl font-serif text-primary tracking-[0.15em]">
+              <h1 className="text-2xl md:text-3xl font-serif text-gradient-gold tracking-[0.2em] font-semibold">
                 H-Pulse
               </h1>
-              <p className="text-muted-foreground text-[10px] md:text-xs tracking-wider">
-                Quantum Destiny Prediction · 量子命运预测系统
+              <p className="text-muted-foreground text-[10px] md:text-xs tracking-widest mt-1 font-sans">
+                QUANTUM DESTINY PREDICTION
               </p>
               {clauseCount !== null && clauseCount > 0 && (
-                <p className="text-muted-foreground/40 text-[10px] mt-1">
-                  条文库: {clauseCount.toLocaleString()} 条 · 十三大命理体系
+                <p className="text-muted-foreground/30 text-[10px] mt-1.5 font-sans">
+                  {clauseCount.toLocaleString()} clauses · 13 engines
                 </p>
               )}
               {clauseCount === 0 && isSuperAdmin && (
@@ -170,17 +168,17 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 py-6 md:py-8">
-        <div className={`container mx-auto px-4 ${step === 'result' ? 'max-w-6xl' : 'max-w-2xl'}`}>
+      {/* Main */}
+      <main className="flex-1 py-8 md:py-12">
+        <div className={`container mx-auto px-4 ${step === 'result' ? 'max-w-6xl' : 'max-w-xl'}`}>
 
           {/* Step: Input */}
           {step === 'input' && (
-            <div className="relative max-w-xl mx-auto">
-              <div className="absolute inset-0 -z-10 opacity-20 rounded-xl overflow-hidden">
-                <QuantumField energy={30} dominantElement="金" />
+            <div className="relative animate-fade-in-up">
+              <div className="absolute inset-0 -z-10 opacity-15 rounded-2xl overflow-hidden">
+                <QuantumField energy={25} dominantElement="金" />
               </div>
-              <div className="bg-card/60 backdrop-blur-sm border border-primary/20 rounded-xl p-6 md:p-8 shadow-2xl">
+              <div className="glass-elevated rounded-2xl p-7 md:p-10 shadow-2xl shadow-black/30">
                 <BirthDataForm onSubmit={handleBirthDataSubmit} isLoading={false} />
               </div>
             </div>
@@ -188,26 +186,33 @@ const Index = () => {
 
           {/* Step: Calculating */}
           {step === 'calculating' && (
-            <div className="relative max-w-xl mx-auto">
-              <div className="absolute inset-0 rounded-xl overflow-hidden">
+            <div className="relative animate-fade-in-up">
+              <div className="absolute inset-0 rounded-2xl overflow-hidden">
                 <QuantumField energy={50} dominantElement="水" />
               </div>
-              <div className="relative bg-card/40 backdrop-blur-sm border border-primary/30 rounded-xl p-12 shadow-2xl">
-                <div className="text-center space-y-6">
-                  <Atom className="w-16 h-16 text-primary animate-spin mx-auto" style={{ animationDuration: '3s' }} />
+              <div className="relative glass rounded-2xl p-12 md:p-16 shadow-2xl shadow-black/40">
+                <div className="text-center space-y-8">
+                  <div className="relative w-20 h-20 mx-auto">
+                    <Atom className="w-20 h-20 text-primary/80 animate-spin" style={{ animationDuration: '3s' }} />
+                    <div className="absolute inset-0 rounded-full bg-primary/5 animate-pulse" />
+                  </div>
                   <div className="space-y-2">
-                    <p className="text-xl font-serif text-primary tracking-wider">
-                      十三大体系初始化中...
+                    <p className="text-lg font-serif text-foreground tracking-wider">
+                      十三大体系初始化中
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground font-sans tracking-widest uppercase">
                       Initializing 13-Engine Analysis
                     </p>
                   </div>
-                  <div className="flex flex-wrap justify-center gap-2">
+                  <div className="flex flex-wrap justify-center gap-2 max-w-md mx-auto">
                     {ALL_ENGINE_LABELS.map((sys, i) => (
-                      <Badge key={sys} variant="outline" className="text-[10px] border-primary/30 text-primary/80 animate-pulse" style={{ animationDelay: `${i * 80}ms` }}>
+                      <span
+                        key={sys}
+                        className="text-[10px] px-2.5 py-1 rounded-full border border-border/40 text-muted-foreground animate-pulse font-sans"
+                        style={{ animationDelay: `${i * 100}ms` }}
+                      >
                         {sys}
-                      </Badge>
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -217,7 +222,7 @@ const Index = () => {
 
           {/* Step: Verification */}
           {step === 'verification' && (
-            <div className="bg-card/50 border border-primary/20 rounded-xl p-6 md:p-8 shadow-xl">
+            <div className="glass-elevated rounded-2xl p-6 md:p-8 shadow-xl shadow-black/30 animate-fade-in-up">
               <SixRelationsVerification
                 baseNumber={baseNumber}
                 ganZhiDisplay={ganZhiDisplay}
@@ -229,27 +234,30 @@ const Index = () => {
 
           {/* Step: Projecting */}
           {step === 'projecting' && (
-            <div className="relative max-w-xl mx-auto">
-              <div className="absolute inset-0 rounded-xl overflow-hidden">
+            <div className="relative animate-fade-in-up">
+              <div className="absolute inset-0 rounded-2xl overflow-hidden">
                 <QuantumField energy={85} dominantElement="火" />
               </div>
-              <div className="relative bg-card/40 backdrop-blur-sm border border-primary/30 rounded-xl p-12 shadow-2xl">
-                <div className="text-center space-y-6">
-                  <Atom className="w-16 h-16 text-primary animate-spin mx-auto" style={{ animationDuration: '1s' }} />
-                  <div className="space-y-2">
-                    <p className="text-xl font-serif text-primary tracking-wider">
-                      量子坍缩 · 收敛唯一命运...
+              <div className="relative glass rounded-2xl p-12 md:p-16 shadow-2xl shadow-black/40">
+                <div className="text-center space-y-8">
+                  <div className="relative w-20 h-20 mx-auto">
+                    <Atom className="w-20 h-20 text-primary animate-spin" style={{ animationDuration: '1s' }} />
+                    <div className="absolute inset-0 rounded-full animate-pulse-glow" />
+                  </div>
+                  <div className="space-y-3">
+                    <p className="text-lg font-serif text-foreground tracking-wider">
+                      量子坍缩 · 收敛唯一命运
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground font-sans tracking-widest uppercase">
                       Quantum Collapse → One True Destiny
                     </p>
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-xs text-accent font-mono animate-pulse">
+                  <div className="space-y-3">
+                    <p className="text-xs text-primary/70 font-mono animate-pulse">
                       ∞ worlds → 1 true destiny
                     </p>
-                    <div className="w-48 mx-auto h-1.5 bg-secondary/30 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-primary via-accent to-primary rounded-full animate-pulse" />
+                    <div className="w-48 mx-auto h-1 bg-border/30 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-primary/60 via-primary to-primary/60 rounded-full animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
                     </div>
                   </div>
                 </div>
@@ -257,36 +265,40 @@ const Index = () => {
             </div>
           )}
 
-          {/* Step: Unified Result */}
+          {/* Step: Result */}
           {step === 'result' && fullReport && birthInput && quantumResult && (
-            <div className="space-y-5">
+            <div className="space-y-6 animate-fade-in-up">
               {/* Quantum Signature Header */}
-              <div className="relative rounded-xl overflow-hidden">
+              <div className="relative rounded-2xl overflow-hidden">
                 <div className="absolute inset-0 z-0">
                   <QuantumField energy={quantumResult.overallCoherence * 100} dominantElement={quantumResult.dominantElement} />
                 </div>
-                <div className="relative z-10 bg-gradient-to-b from-card/70 via-card/50 to-card/70 backdrop-blur-sm border border-primary/20 rounded-xl p-5 md:p-7">
-                  <div className="text-center space-y-3">
-                    <h2 className="text-xl md:text-2xl font-serif text-primary tracking-wider">
+                <div className="relative z-10 glass-elevated rounded-2xl p-6 md:p-8">
+                  <div className="text-center space-y-4">
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5">
+                      <Sparkles className="w-3.5 h-3.5 text-primary" />
+                      <span className="text-xs font-sans text-primary tracking-wider">DESTINY RESOLVED</span>
+                    </div>
+                    <h2 className="text-2xl md:text-3xl font-serif text-gradient-gold tracking-wider">
                       命运已全知
                     </h2>
-                    <Badge variant="outline" className="text-[10px] border-primary/40 text-primary/80 font-mono">
+                    <p className="text-[10px] font-mono text-muted-foreground/60 tracking-wider">
                       {quantumResult.quantumSignature}
-                    </Badge>
-                    <div className="flex flex-wrap justify-center gap-3 text-[10px] text-muted-foreground">
-                      <span>共振度: <strong className="text-primary">{Math.round(quantumResult.overallCoherence * 100)}%</strong></span>
-                      <span>世界总数: <strong className="text-primary">{quantumResult.totalWorldsGenerated.toLocaleString()}</strong></span>
-                      <span>命理体系: <strong className="text-primary">13</strong></span>
-                      <span>主导五行: <strong className="text-primary">{quantumResult.dominantElement}</strong></span>
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-x-6 gap-y-1 text-xs text-muted-foreground font-sans">
+                      <span>Coherence <strong className="text-primary">{Math.round(quantumResult.overallCoherence * 100)}%</strong></span>
+                      <span>Worlds <strong className="text-primary">{quantumResult.totalWorldsGenerated.toLocaleString()}</strong></span>
+                      <span>Engines <strong className="text-primary">13</strong></span>
+                      <span>Element <strong className="text-primary">{quantumResult.dominantElement}</strong></span>
                       {quantumResult.collapseResult && (
-                        <span>坍缩寿命: <strong className="text-rose-400">{quantumResult.collapseResult.deathAge}岁</strong></span>
+                        <span>Lifespan <strong className="text-accent">{quantumResult.collapseResult.deathAge}岁</strong></span>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground max-w-2xl mx-auto leading-relaxed border-t border-primary/20 pt-3 mt-2">
+                    <p className="text-xs text-muted-foreground max-w-2xl mx-auto leading-relaxed border-t border-border/30 pt-4 mt-2">
                       {quantumResult.lifeSummary}
                     </p>
-                    <div className="inline-block px-3 py-1.5 bg-secondary/50 rounded border border-primary/10">
-                      <span className="text-foreground/80 font-mono tracking-widest text-xs">
+                    <div className="inline-block px-4 py-2 bg-card/50 rounded-lg border border-border/30">
+                      <span className="text-foreground/70 font-serif tracking-[0.3em] text-sm">
                         {ganZhiDisplay}
                       </span>
                     </div>
@@ -296,55 +308,50 @@ const Index = () => {
 
               {/* Result Tabs */}
               <Tabs value={activeResultTab} onValueChange={setActiveResultTab}>
-                <TabsList className={`grid w-full bg-secondary/30 border border-primary/20 h-auto ${isSuperAdmin ? 'grid-cols-7' : 'grid-cols-6'}`}>
+                <TabsList className={`grid w-full bg-card/60 border border-border/30 h-auto p-1 rounded-xl ${isSuperAdmin ? 'grid-cols-7' : 'grid-cols-6'}`}>
                   {resultTabs.map(tab => {
                     const Icon = tab.icon;
                     return (
                       <TabsTrigger
                         key={tab.id}
                         value={tab.id}
-                        className="text-[9px] sm:text-xs py-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
+                        className="text-[9px] sm:text-xs py-2.5 rounded-lg font-sans data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
                       >
-                        <Icon className="w-3 h-3 mr-1 hidden sm:inline" />{tab.label}
+                        <Icon className="w-3.5 h-3.5 mr-1 hidden sm:inline" />{tab.label}
                       </TabsTrigger>
                     );
                   })}
                 </TabsList>
 
-                {/* Tab: Prediction Overview */}
-                <TabsContent value="overview" className="mt-5">
+                <TabsContent value="overview" className="mt-6">
                   {quantumResult.unifiedResult && (
                     <PredictionOverview result={quantumResult.unifiedResult} />
                   )}
                 </TabsContent>
 
-                {/* Tab: Engine Contribution */}
-                <TabsContent value="engines" className="mt-5">
+                <TabsContent value="engines" className="mt-6">
                   {quantumResult.unifiedResult && (
                     <EngineContributionPanel result={quantumResult.unifiedResult} />
                   )}
                 </TabsContent>
 
-                {/* Tab: Destiny Tree */}
-                <TabsContent value="tree" className="mt-5">
+                <TabsContent value="tree" className="mt-6">
                   {quantumResult.destinyTree && quantumResult.collapseResult ? (
                     <DestinyTreeLayer tree={quantumResult.destinyTree} collapse={quantumResult.collapseResult} />
                   ) : (
-                    <div className="p-8 text-center text-muted-foreground text-xs">命运树数据加载中...</div>
+                    <div className="p-12 text-center text-muted-foreground text-xs glass rounded-2xl">命运树数据加载中...</div>
                   )}
                 </TabsContent>
 
-                {/* Tab: Unique Path */}
-                <TabsContent value="path" className="mt-5">
+                <TabsContent value="path" className="mt-6">
                   {quantumResult.collapseResult ? (
                     <UniquePathLayer collapse={quantumResult.collapseResult} birthYear={birthInput.year} />
                   ) : (
-                    <div className="p-8 text-center text-muted-foreground text-xs">坍缩数据加载中...</div>
+                    <div className="p-12 text-center text-muted-foreground text-xs glass rounded-2xl">坍缩数据加载中...</div>
                   )}
                 </TabsContent>
 
-                {/* Tab: Iron Plate Destiny Dashboard */}
-                <TabsContent value="destiny" className="mt-5">
+                <TabsContent value="destiny" className="mt-6">
                   <DestinyDashboard
                     report={fullReport}
                     pillarsDisplay={ganZhiDisplay}
@@ -361,19 +368,17 @@ const Index = () => {
                   />
                 </TabsContent>
 
-                {/* Tab: Quantum Omniscience */}
-                <TabsContent value="quantum" className="mt-5">
+                <TabsContent value="quantum" className="mt-6">
                   <UnifiedQuantumPanel result={quantumResult} birthYear={birthInput.year} />
                 </TabsContent>
 
-                {/* Tab: Unified Orchestration (SUPER_ADMIN ONLY) */}
                 {isSuperAdmin && (
-                  <TabsContent value="orchestration" className="mt-5">
+                  <TabsContent value="orchestration" className="mt-6">
                     {quantumResult.unifiedResult && (
                       <div className="space-y-4">
-                        <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center gap-2">
-                          <Shield className="w-4 h-4 text-rose-400" />
-                          <span className="text-xs text-rose-300">Super Admin 专属 · 统一编排诊断面板</span>
+                        <div className="p-3 rounded-xl bg-accent/10 border border-accent/20 flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-accent" />
+                          <span className="text-xs text-accent/90 font-sans">Super Admin · 统一编排诊断面板</span>
                         </div>
                         <UnifiedResultsPanel result={quantumResult.unifiedResult} />
                       </div>
@@ -383,15 +388,14 @@ const Index = () => {
               </Tabs>
 
               {/* Footer Actions */}
-              <div className="space-y-3 pt-3 border-t border-primary/20">
-                <div className="bg-card/30 border border-primary/10 rounded-lg p-3 text-center">
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    H-Pulse量子预测系统综合十三大命理体系（铁板神数·八字·紫微斗数·六爻·西方占星·吠陀占星·数字命理·玛雅历法·卡巴拉·梅花易数·奇门遁甲·大六壬·太乙神数），
-                    通过递归命运树的量子坍缩与铁板考刻校准，收敛为唯一确定性命运轨迹。
+              <div className="space-y-4 pt-4 border-t border-border/20">
+                <div className="glass rounded-xl p-4 text-center">
+                  <p className="text-[10px] text-muted-foreground/60 leading-relaxed font-sans">
+                    H-Pulse 综合十三大命理体系，通过递归命运树的量子坍缩与铁板考刻校准，收敛为唯一确定性命运轨迹。
                   </p>
                 </div>
                 <Button onClick={handleReset} variant="outline"
-                  className="w-full py-4 text-base font-serif tracking-wider border-primary/30 hover:border-primary hover:bg-primary/10 transition-all duration-300 group">
+                  className="w-full py-5 text-sm font-sans tracking-wider border-border/30 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 rounded-xl group">
                   <RotateCcw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
                   重新推算
                 </Button>
