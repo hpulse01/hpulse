@@ -35,6 +35,9 @@ export interface QuantumInput {
   hour: number;
   minute: number;
   gender: 'male' | 'female';
+  geoLatitude: number;
+  geoLongitude: number;
+  timezoneOffsetMinutes: number;
 }
 
 export type LifeAspect =
