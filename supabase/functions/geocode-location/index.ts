@@ -84,33 +84,14 @@ async function getTimezoneInfo(lat: number, lon: number): Promise<TimezoneResult
  * Refine offset for a specific birth date to handle DST.
  * Uses Intl.DateTimeFormat to detect DST at the exact birth date.
  */
-function refineOffsetForDate(ianaTimezone: string, standardOffset: number, birthDate: Date): number {
-  try {
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: ianaTimezone,
-      timeZoneName: 'longOffset',
-    });
-    const parts = formatter.formatToParts(birthDate);
-    const tzPart = parts.find(p => p.type === 'timeZoneName');
-    console.log(`[DEBUG] Intl parts for ${ianaTimezone}:`, JSON.stringify(tzPart));
-    if (tzPart) {
-      if (tzPart.value === 'GMT') return 0;
-      const match = tzPart.value.match(/GMT([+-])(\d{1,2}):(\d{2})/);
-      if (match) {
-        const sign = match[1] === '+' ? 1 : -1;
-        const hours = parseInt(match[2], 10);
-        const minutes = parseInt(match[3], 10);
-        const result = sign * (hours * 60 + minutes);
-        console.log(`[DEBUG] Intl offset result: ${result} minutes`);
-        return result;
-      }
-      console.log(`[DEBUG] Intl regex did not match: "${tzPart.value}"`);
-    }
-  } catch (e) {
-    console.log(`[DEBUG] Intl error: ${e}`);
-  }
-  console.log(`[DEBUG] Falling back to standardOffset: ${standardOffset}`);
+function refineOffsetForDate(ianaTimezone: string, standardOffset: number, _birthDate: Date): number {
+  // NOTE: Deno runtime Intl has a timezone bug (e.g. Asia/Shanghai returns GMT+09:00)
+  // so we cannot reliably use Intl.DateTimeFormat for offset detection.
+  // Using timeapi.io standardUtcOffset as the authoritative source.
+  // For DST-aware timezones, the standardOffset from timeapi.io is the non-DST offset.
+  // TODO: Add DST detection using timeapi.io conversion API for DST-affected zones.
   return standardOffset;
+}
 }
 
 Deno.serve(async (req: Request) => {
