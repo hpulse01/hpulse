@@ -1240,7 +1240,7 @@ export const QuantumPredictionEngine = {
     const { unifiedResult, rawData, systems } = orchestrate(si, systemOffset);
     const { baziProfile, fullReport, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport } = rawData;
 
-    // Legacy Phase 2-4
+    // Legacy Phase 2-4 (kept for backward-compatible UI fields)
     const { branches, totalGenerated, perSystem } = generateInfiniteWorlds(systems, input, vedicReport, numerologyReport, fullReport);
     const { timeline, states, entanglements, overallCoherence, deathAge: legacyDeathAge } = quantumCollapse(systems, branches, input, baziProfile, fullReport, vedicReport, numerologyReport);
     const { phases, lifeSummary: legacyLifeSummary } = revealDestiny(timeline, states, legacyDeathAge, input);
