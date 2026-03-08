@@ -158,6 +158,7 @@ describe('Event Fusion', () => {
         earliestAge: 28, latestAge: 32, probability: 0.7, intensity: 'major',
         causalFactors: ['正官格'], triggerConditions: [], deathRelated: false,
         mergeKey: 'age-30-career', fateImpact: { life: 10 }, sourceDetail: 'bazi',
+        sourceFieldPath: 'pattern', sourceEvidence: '正官格', reasoning: '格局推断', confidence: 0.7, conflictTags: ['career'],
       },
       {
         id: 'a2', engineName: 'ziwei', engineVersion: '1.0', timingBasis: 'birth',
@@ -165,6 +166,7 @@ describe('Event Fusion', () => {
         earliestAge: 29, latestAge: 33, probability: 0.65, intensity: 'major',
         causalFactors: ['官禄宫化权'], triggerConditions: [], deathRelated: false,
         mergeKey: 'age-30-career', fateImpact: { life: 8 }, sourceDetail: 'ziwei',
+        sourceFieldPath: 'palaces[官禄]', sourceEvidence: '官禄宫化权', reasoning: '化权推断', confidence: 0.65, conflictTags: ['career'],
       },
     ];
     const result = fuseEventSeeds(seeds, { bazi: 0.15, ziwei: 0.14 });

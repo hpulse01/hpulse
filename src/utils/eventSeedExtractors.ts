@@ -1783,7 +1783,7 @@ export function extractKabbalahEvents(
     fateImpact: { health: -8 },
     sourceDetail: '卡巴拉生命树寿限推算',
     sourceFieldPath: 'soulSephirah+personalitySephirah(death)',
-    sourceEvidence: `70 + 灵魂${report.soulSephirah.number} + 人格%5 = ${kDeathAge}`,
+    sourceEvidence: `70 + 灵魂${report.soulSephirah.index} + 人格%5 = ${kDeathAge}`,
     reasoning: '生命树推算寿限',
     confidence: 0.2, conflictTags: ['death-natural', 'longevity'],
   });
