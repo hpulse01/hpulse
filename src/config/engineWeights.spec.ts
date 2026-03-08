@@ -11,11 +11,12 @@ describe('engineWeights', () => {
     expect(sum).toBeCloseTo(1.0, 5);
   });
 
-  it('natalAnalysis does not include liuyao, liuren, or taiyi', () => {
+  it('natalAnalysis includes all 13 engines with instant engines at low weight', () => {
     const weights = getWeightsForQueryType('natalAnalysis');
-    expect(weights.find(w => w.engineName === 'liuyao')).toBeUndefined();
-    expect(weights.find(w => w.engineName === 'liuren')).toBeUndefined();
-    expect(weights.find(w => w.engineName === 'taiyi')).toBeUndefined();
+    expect(weights).toHaveLength(13);
+    const taiyi = weights.find(w => w.engineName === 'taiyi')!;
+    const bazi = weights.find(w => w.engineName === 'bazi')!;
+    expect(bazi.weight).toBeGreaterThan(taiyi.weight);
   });
 
   it('instantDecision includes liuyao, meihua, qimen, liuren, and taiyi', () => {
