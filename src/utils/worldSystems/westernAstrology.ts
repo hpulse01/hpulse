@@ -315,7 +315,109 @@ function detectPatterns(planets: PlanetPosition[], aspects: AspectInfo[]): Chart
     });
   }
 
+  // Grand Cross: 2 oppositions + 4 squares forming a cross
+  if (oppositions.length >= 2 && squares.length >= 4) {
+    const crossPlanets = new Set<string>();
+    oppositions.forEach(o => { crossPlanets.add(o.planetA); crossPlanets.add(o.planetB); });
+    if (crossPlanets.size >= 4) {
+      patterns.push({
+        name: 'Grand Cross',
+        nameCN: '大十字',
+        planets: [...crossPlanets],
+        significance: '四颗行星形成十字对冲，极大张力与动力，人生充满挑战与成长',
+        strength: 80,
+      });
+    }
+  }
+
+  // Yod (Finger of God): 2 quincunxes (150°) + 1 sextile (60°)
+  // Approximate quincunx detection
+  for (let i = 0; i < planets.length; i++) {
+    for (let j = i + 1; j < planets.length; j++) {
+      const diff1 = Math.abs(planets[i].degree - planets[j].degree);
+      const angle1 = Math.min(diff1, 360 - diff1);
+      // Check for sextile between i and j
+      if (Math.abs(angle1 - 60) <= 6) {
+        // Find a third planet forming quincunx to both
+        for (let k = 0; k < planets.length; k++) {
+          if (k === i || k === j) continue;
+          const diffIK = Math.abs(planets[i].degree - planets[k].degree);
+          const angleIK = Math.min(diffIK, 360 - diffIK);
+          const diffJK = Math.abs(planets[j].degree - planets[k].degree);
+          const angleJK = Math.min(diffJK, 360 - diffJK);
+          if (Math.abs(angleIK - 150) <= 3 && Math.abs(angleJK - 150) <= 3) {
+            patterns.push({
+              name: 'Yod',
+              nameCN: '上帝之指',
+              planets: [planets[i].planet, planets[j].planet, planets[k].planet],
+              significance: `${planets[k].planet}为Yod顶点，承载特殊使命与命定转折`,
+              strength: 78,
+            });
+          }
+        }
+      }
+    }
+  }
+
   return patterns;
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: Mutual Reception Detection
+// ═══════════════════════════════════════════════
+
+function detectMutualReceptions(planets: PlanetPosition[]): MutualReceptionInfo[] {
+  const receptions: MutualReceptionInfo[] = [];
+  for (let i = 0; i < planets.length; i++) {
+    for (let j = i + 1; j < planets.length; j++) {
+      const pA = planets[i];
+      const pB = planets[j];
+      // Mutual reception: A is in B's domicile AND B is in A's domicile
+      const aInBDom = DOMICILE[pB.planet]?.includes(pA.sign);
+      const bInADom = DOMICILE[pA.planet]?.includes(pB.sign);
+      if (aInBDom && bInADom) {
+        receptions.push({
+          planetA: pA.planet, planetB: pB.planet,
+          signA: pA.sign, signB: pB.sign,
+          significance: `${pA.planet}与${pB.planet}互容，两星能量互相增强，化解不利`,
+        });
+      }
+    }
+  }
+  return receptions;
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: Singleton Detection
+// ═══════════════════════════════════════════════
+
+function detectSingletons(planets: PlanetPosition[], elementBalance: Record<WesternElement, number>, modalityBalance: Record<string, number>): SingletonInfo[] {
+  const singletons: SingletonInfo[] = [];
+  // Element singleton: only 1 planet in an element
+  for (const [el, count] of Object.entries(elementBalance)) {
+    if (count === 1) {
+      const p = planets.find(pp => pp.element === el);
+      if (p) {
+        singletons.push({
+          planet: p.planet, type: 'element', value: el,
+          significance: `${p.planet}是唯一的${el}元素行星，承载该元素全部能量`,
+        });
+      }
+    }
+  }
+  // Modality singleton
+  for (const [mod, count] of Object.entries(modalityBalance)) {
+    if (count === 1) {
+      const p = planets.find(pp => pp.modality === mod);
+      if (p) {
+        singletons.push({
+          planet: p.planet, type: 'modality', value: mod,
+          significance: `${p.planet}是唯一的${mod}模式行星`,
+        });
+      }
+    }
+  }
+  return singletons;
 }
 
 export const WesternAstrologyEngine = {
