@@ -294,7 +294,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
         disabled={isLoading}
         className="w-full bg-primary text-primary-foreground hover:bg-primary/85 py-6 text-base font-serif tracking-[0.2em] transition-all duration-300 hover:shadow-lg hover:shadow-primary/15 rounded-xl"
       >
-        {isLoading ? <span className="animate-pulse">推算中...</span> : '起 盘 考 刻'}
+        {isLoading ? <span className="animate-pulse">{t('form.loading')}</span> : t('form.submit')}
       </Button>
     </form>
   );
