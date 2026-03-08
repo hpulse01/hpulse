@@ -257,18 +257,18 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         </Tabs>
 
         {/* Level Info */}
-        <div className="mt-4 pt-4 border-t border-border/50">
-          <p className="text-xs text-muted-foreground text-center mb-3">会员等级说明</p>
+        <div className="mt-4 pt-4 border-t border-border/30">
+          <p className="text-[10px] text-muted-foreground/60 text-center mb-3 tracking-widest uppercase font-sans">Membership Tiers</p>
           <div className="space-y-2">
             {Object.entries(LEVEL_CONFIG).map(([key, config]) => {
               const Icon = config.icon;
               return (
-                <div key={key} className="flex items-center justify-between text-xs">
+                <div key={key} className="flex items-center justify-between text-xs px-2 py-1.5 rounded-lg hover:bg-card/50 transition-colors">
                   <div className="flex items-center gap-2">
-                    <Icon className={`w-4 h-4 ${config.color}`} />
-                    <span className={config.color}>{config.label}</span>
+                    <Icon className={`w-3.5 h-3.5 ${config.color}`} />
+                    <span className={`${config.color} font-sans text-[11px]`}>{config.label}</span>
                   </div>
-                  <span className="text-muted-foreground">{config.description}</span>
+                  <span className="text-muted-foreground/60 text-[10px] font-sans">{config.description}</span>
                 </div>
               );
             })}
