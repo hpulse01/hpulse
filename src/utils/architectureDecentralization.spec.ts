@@ -1,13 +1,3 @@
-/**
- * Architecture & Decentralization Tests
- *
- * 1. All active engines are truly executed
- * 2. executedEngines matches executionTrace
- * 3. Weights normalize to 1.0
- * 4. BaZi runs independently of Tieban
- * 5. Orchestrator works without Tieban
- */
-
 import { describe, it, expect } from 'vitest';
 import { QuantumPredictionEngine } from './quantumPredictionEngine';
 import type { StandardizedInput } from '@/types/prediction';
@@ -31,8 +21,7 @@ function makeInput(overrides?: Partial<StandardizedInput>): StandardizedInput {
 
 describe('Architecture: All engines executed', () => {
   it('all activeEngines appear in executedEngines or failedEngines', () => {
-    const result = QuantumPredictionEngine.orchestrate(makeInput());
-    const r = result.unifiedResult;
+    const r = QuantumPredictionEngine.orchestrate(makeInput());
     for (const name of r.activeEngines) {
       const executed = r.executedEngines.includes(name);
       const failed = r.failedEngines.some(f => f.engineName === name);
@@ -41,19 +30,19 @@ describe('Architecture: All engines executed', () => {
   });
 
   it('executedEngines matches executionTrace successful entries', () => {
-    const r = QuantumPredictionEngine.orchestrate(makeInput()).unifiedResult;
+    const r = QuantumPredictionEngine.orchestrate(makeInput());
     const traceSuccessNames = r.executionTrace.filter(t => t.success).map(t => t.engineName);
     expect(new Set(r.executedEngines)).toEqual(new Set(traceSuccessNames));
   });
 
   it('weights sum to 1.0', () => {
-    const r = QuantumPredictionEngine.orchestrate(makeInput()).unifiedResult;
+    const r = QuantumPredictionEngine.orchestrate(makeInput());
     const sum = r.weightsUsed.reduce((s, w) => s + w.weight, 0);
     expect(sum).toBeCloseTo(1.0, 5);
   });
 
   it('executionTrace has timing basis for each entry', () => {
-    const r = QuantumPredictionEngine.orchestrate(makeInput()).unifiedResult;
+    const r = QuantumPredictionEngine.orchestrate(makeInput());
     for (const trace of r.executionTrace) {
       expect(['birth', 'query', 'hybrid']).toContain(trace.timingBasis);
     }
@@ -62,7 +51,7 @@ describe('Architecture: All engines executed', () => {
 
 describe('Decentralization: engine independence', () => {
   it('bazi output does not reference tieban in its rawInputSnapshot', () => {
-    const r = QuantumPredictionEngine.orchestrate(makeInput()).unifiedResult;
+    const r = QuantumPredictionEngine.orchestrate(makeInput());
     const baziOut = r.engineOutputs.find(e => e.engineName === 'bazi');
     expect(baziOut).toBeDefined();
     const snap = JSON.stringify(baziOut!.rawInputSnapshot);
@@ -70,7 +59,7 @@ describe('Decentralization: engine independence', () => {
   });
 
   it('engineDependencyGraph shows no engine depending on tieban', () => {
-    const r = QuantumPredictionEngine.orchestrate(makeInput()).unifiedResult;
+    const r = QuantumPredictionEngine.orchestrate(makeInput());
     for (const [engine, deps] of Object.entries(r.engineDependencyGraph)) {
       if (engine !== 'tieban') {
         expect(deps).not.toContain('tieban');
@@ -79,7 +68,7 @@ describe('Decentralization: engine independence', () => {
   });
 
   it('natalAnalysis activates 13 engines (all)', () => {
-    const r = QuantumPredictionEngine.orchestrate(makeInput({ queryType: 'natalAnalysis' })).unifiedResult;
+    const r = QuantumPredictionEngine.orchestrate(makeInput({ queryType: 'natalAnalysis' }));
     expect(r.activeEngines.length).toBe(13);
   });
 });
@@ -88,7 +77,7 @@ describe('Instant engines timing', () => {
   const INSTANT_ENGINES = ['liuyao', 'meihua', 'qimen', 'liuren', 'taiyi'];
 
   it('instant engines have timingBasis = query', () => {
-    const r = QuantumPredictionEngine.orchestrate(makeInput()).unifiedResult;
+    const r = QuantumPredictionEngine.orchestrate(makeInput());
     for (const name of INSTANT_ENGINES) {
       const eo = r.engineOutputs.find(e => e.engineName === name);
       if (eo) {
@@ -98,7 +87,7 @@ describe('Instant engines timing', () => {
   });
 
   it('natal engines have timingBasis = birth', () => {
-    const r = QuantumPredictionEngine.orchestrate(makeInput()).unifiedResult;
+    const r = QuantumPredictionEngine.orchestrate(makeInput());
     const NATAL = ['tieban', 'bazi', 'ziwei', 'western', 'vedic', 'numerology', 'mayan', 'kabbalah'];
     for (const name of NATAL) {
       const eo = r.engineOutputs.find(e => e.engineName === name);
@@ -110,8 +99,8 @@ describe('Instant engines timing', () => {
 
   it('same queryTimeUtc → same instant engine output', () => {
     const input = makeInput({ queryType: 'instantDecision' });
-    const r1 = QuantumPredictionEngine.orchestrate(input).unifiedResult;
-    const r2 = QuantumPredictionEngine.orchestrate(input).unifiedResult;
+    const r1 = QuantumPredictionEngine.orchestrate(input);
+    const r2 = QuantumPredictionEngine.orchestrate(input);
     for (const name of INSTANT_ENGINES) {
       const o1 = r1.engineOutputs.find(e => e.engineName === name);
       const o2 = r2.engineOutputs.find(e => e.engineName === name);
@@ -122,8 +111,8 @@ describe('Instant engines timing', () => {
   });
 
   it('different queryTimeUtc → different instant engine output', () => {
-    const r1 = QuantumPredictionEngine.orchestrate(makeInput({ queryType: 'instantDecision', queryTimeUtc: '2025-01-01T00:00:00.000Z' })).unifiedResult;
-    const r2 = QuantumPredictionEngine.orchestrate(makeInput({ queryType: 'instantDecision', queryTimeUtc: '2025-06-15T12:00:00.000Z' })).unifiedResult;
+    const r1 = QuantumPredictionEngine.orchestrate(makeInput({ queryType: 'instantDecision', queryTimeUtc: '2025-01-01T00:00:00.000Z' }));
+    const r2 = QuantumPredictionEngine.orchestrate(makeInput({ queryType: 'instantDecision', queryTimeUtc: '2025-06-15T12:00:00.000Z' }));
     let anyDiff = false;
     for (const name of INSTANT_ENGINES) {
       const o1 = r1.engineOutputs.find(e => e.engineName === name);

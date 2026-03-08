@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getActiveEngines, getSkippedEngines } from '@/config/engineActivation';
+import { getActiveEngines } from '@/config/engineActivation';
 import { getWeightsForQueryType } from '@/config/engineWeights';
 import { buildLiuRenEngineOutput } from './liurenAlgorithm';
 import type { StandardizedInput, QueryType } from '@/types/prediction';
@@ -15,50 +15,15 @@ const MOCK_SI: StandardizedInput = {
   normalizedLocationName: '北京',
   queryType: 'instantDecision',
   queryTimeUtc: '2024-06-15T10:30:00Z',
-  sourceMetadata: {
-    provider: 'test',
-    confidence: 1,
-    normalizedLocationName: '北京',
-    timezoneIana: 'Asia/Shanghai',
-  },
+  sourceMetadata: { provider: 'test', confidence: 1, normalizedLocationName: '北京', timezoneIana: 'Asia/Shanghai' },
 };
 
 describe('liuren integration', () => {
-  it('instantDecision 激活 liuren', () => {
-    const active = getActiveEngines('instantDecision');
-    expect(active).toContain('liuren');
-  });
-
-  it('natalAnalysis 不激活 liuren', () => {
-    const active = getActiveEngines('natalAnalysis');
-    expect(active).not.toContain('liuren');
-  });
-
-  it('annualForecast 不激活 liuren', () => {
-    const active = getActiveEngines('annualForecast');
-    expect(active).not.toContain('liuren');
-  });
-
-  it('dailyForecast 激活 liuren', () => {
-    const active = getActiveEngines('dailyForecast');
-    expect(active).toContain('liuren');
-  });
-
-  it('monthlyForecast 激活 liuren', () => {
-    const active = getActiveEngines('monthlyForecast');
-    expect(active).toContain('liuren');
-  });
-
-  it('natalAnalysis skippedEngines 包含 liuren', () => {
-    const skipped = getSkippedEngines('natalAnalysis');
-    expect(skipped.find(s => s.engineName === 'liuren')).toBeDefined();
-  });
-
-  it('instantDecision 权重中包含 liuren 且权重较高', () => {
-    const weights = getWeightsForQueryType('instantDecision');
-    const lr = weights.find(w => w.engineName === 'liuren');
-    expect(lr).toBeDefined();
-    expect(lr!.weight).toBeGreaterThan(0.10);
+  it('all queryTypes activate liuren', () => {
+    const types: QueryType[] = ['natalAnalysis', 'annualForecast', 'monthlyForecast', 'dailyForecast', 'instantDecision'];
+    for (const qt of types) {
+      expect(getActiveEngines(qt)).toContain('liuren');
+    }
   });
 
   it('权重归一化后总和为 1', () => {
