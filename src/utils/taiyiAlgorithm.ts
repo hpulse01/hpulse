@@ -56,6 +56,29 @@ export interface TaiyiPattern {
   impact: number;
 }
 
+/** v3.0: 三门四户 */
+export interface SanMenSiHu {
+  tianMen: number;
+  diHu: number;
+  renMen: number;
+  guiHu: number;
+  interpretation: string;
+}
+
+/** v3.0: 太乙十二运 */
+export interface TaiyiTwelveStage {
+  stage: string;
+  strength: '旺' | '相' | '休' | '囚' | '死';
+  interpretation: string;
+}
+
+/** v3.0: 文昌分析 */
+export interface WenChangAnalysis {
+  palace: number;
+  isActive: boolean;
+  interpretation: string;
+}
+
 export interface TaiyiResult {
   chart: TaiyiChart;
   patterns: TaiyiPattern[];
@@ -65,6 +88,10 @@ export interface TaiyiResult {
   summary: string;
   /** v2.0: Detailed trend analysis */
   trendAnalysis: string;
+  /** v3.0 */
+  sanMenSiHu: SanMenSiHu;
+  twelveStage: TaiyiTwelveStage;
+  wenChang: WenChangAnalysis;
   meta: TaiyiMeta;
 }
 
