@@ -10,6 +10,7 @@ import {
   EclipticLongitude,
   MakeTime,
   SiderealTime,
+  SunPosition,
   type AstroTime,
 } from 'astronomy-engine';
 
