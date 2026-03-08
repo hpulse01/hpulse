@@ -12,10 +12,12 @@ import { DestinyTreeLayer } from '@/components/results/DestinyTreeLayer';
 import { UniquePathLayer } from '@/components/results/UniquePathLayer';
 import { Footer } from '@/components/Footer';
 import { UserMenu } from '@/components/UserMenu';
+import { LanguageToggle } from '@/components/LanguageToggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSuperAdmin } from '@/hooks/useSuperAdmin';
+import { useI18n } from '@/hooks/useI18n';
 
 import { getClauseCount } from '@/services/SupabaseService';
 import {
@@ -36,12 +38,6 @@ import { Atom, RotateCcw, Sparkles, Scroll, Zap, TreePine, Target, Layers, Shiel
 
 type AppStep = 'input' | 'calculating' | 'verification' | 'projecting' | 'result';
 
-const ALL_ENGINE_LABELS = [
-  '铁板神数', '八字命理', '紫微斗数', '六爻卦象',
-  '西方占星', '吠陀占星', '数字命理', '玛雅历法', '卡巴拉',
-  '梅花易数', '奇门遁甲', '大六壬', '太乙神数',
-];
-
 const Index = () => {
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(() => hasConsented());
   const [step, setStep] = useState<AppStep>('input');
@@ -57,6 +53,14 @@ const Index = () => {
 
   const { isSuperAdmin } = useSuperAdmin();
   const { toast } = useToast();
+  const { t, engineLabel, lang } = useI18n();
+
+  // Engine labels (bilingual)
+  const allEngineLabels = useMemo(() => [
+    'tieban', 'bazi', 'ziwei', 'liuyao',
+    'western', 'vedic', 'numerology', 'mayan', 'kabbalah',
+    'meihua', 'qimen', 'liuren', 'taiyi',
+  ].map(e => engineLabel(e)), [engineLabel]);
 
   useEffect(() => {
     getClauseCount().then(count => {
@@ -77,10 +81,10 @@ const Index = () => {
       setStep('verification');
     } catch (error) {
       console.error('Calculation error:', error);
-      toast({ title: '推算出错', description: '请检查输入数据后重试', variant: 'destructive' });
+      toast({ title: t('ui.calc_error'), description: t('ui.calc_error_desc'), variant: 'destructive' });
       setStep('input');
     }
-  }, [toast]);
+  }, [toast, t]);
 
   const handleTimeLocked = useCallback(async (
     lockedKeIndex: number,
@@ -102,13 +106,13 @@ const Index = () => {
       const qResult = QuantumPredictionEngine.predict(birthInput!, systemOffset);
       setQuantumResult(qResult);
       setStep('result');
-      toast({ title: '推算完成', description: '十三大体系量子坍缩完毕' });
+      toast({ title: t('ui.prediction_complete'), description: t('ui.prediction_complete_desc') });
     } catch (error) {
       console.error('Projection error:', error);
-      toast({ title: '推演出错', description: '请重新开始', variant: 'destructive' });
+      toast({ title: t('ui.proj_error'), description: t('ui.proj_error_desc'), variant: 'destructive' });
       setStep('verification');
     }
-  }, [theoreticalBase, birthInput, toast]);
+  }, [theoreticalBase, birthInput, toast, t]);
 
   const handleReset = useCallback(() => {
     setStep('input');
@@ -124,18 +128,18 @@ const Index = () => {
 
   const resultTabs = useMemo(() => {
     const tabs = [
-      { id: 'overview', label: '预测总览', icon: Sparkles },
-      { id: 'engines', label: '引擎贡献', icon: Layers },
-      { id: 'tree', label: '命运树', icon: TreePine },
-      { id: 'path', label: '唯一路径', icon: Target },
-      { id: 'destiny', label: '铁板命盘', icon: Scroll },
-      { id: 'quantum', label: '量子全知', icon: Atom },
+      { id: 'overview', label: t('tab.overview'), icon: Sparkles },
+      { id: 'engines', label: t('tab.engines'), icon: Layers },
+      { id: 'tree', label: t('tab.tree'), icon: TreePine },
+      { id: 'path', label: t('tab.path'), icon: Target },
+      { id: 'destiny', label: t('tab.destiny'), icon: Scroll },
+      { id: 'quantum', label: t('tab.quantum'), icon: Atom },
     ];
     if (isSuperAdmin) {
-      tabs.push({ id: 'orchestration', label: '统一编排', icon: Shield });
+      tabs.push({ id: 'orchestration', label: t('tab.orchestration'), icon: Shield });
     }
     return tabs;
-  }, [isSuperAdmin]);
+  }, [isSuperAdmin, t]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background bg-scroll-texture">
@@ -149,22 +153,24 @@ const Index = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-card/80 to-transparent" />
         <div className="container max-w-6xl mx-auto px-4 py-4 md:py-5 relative z-10">
           <div className="flex items-center justify-between">
-            <div className="flex-1" />
+            <div className="flex-1">
+              <LanguageToggle />
+            </div>
             <div className="text-center flex-1">
               <h1 className="text-2xl md:text-3xl font-serif text-gradient-gold tracking-[0.2em] font-semibold">
-                H-Pulse
+                {t('ui.title')}
               </h1>
               <p className="text-muted-foreground text-[10px] md:text-xs tracking-widest mt-1 font-sans">
-                QUANTUM DESTINY PREDICTION
+                {t('ui.subtitle')}
               </p>
               {clauseCount !== null && clauseCount > 0 && (
                 <p className="text-muted-foreground/30 text-[10px] mt-1.5 font-sans">
-                  {clauseCount.toLocaleString()} clauses · 13 engines
+                  {clauseCount.toLocaleString()} {t('ui.clauses')} · 13 {t('ui.engines')}
                 </p>
               )}
               {clauseCount === 0 && isSuperAdmin && (
                 <p className="text-accent/70 text-[10px] mt-1">
-                  ⚠ 条文库为空 → <a href="/admin-import" className="underline hover:text-accent">导入</a>
+                  {t('admin.clause_empty')} → <a href="/admin-import" className="underline hover:text-accent">{t('admin.import')}</a>
                 </p>
               )}
             </div>
@@ -205,14 +211,14 @@ const Index = () => {
                   </div>
                   <div className="space-y-2">
                     <p className="text-lg font-serif text-foreground tracking-wider">
-                      十三大体系初始化中
+                      {t('ui.initializing')}
                     </p>
                     <p className="text-xs text-muted-foreground font-sans tracking-widest uppercase">
-                      Initializing 13-Engine Analysis
+                      {t('ui.initializing_sub')}
                     </p>
                   </div>
                   <div className="flex flex-wrap justify-center gap-2 max-w-md mx-auto">
-                    {ALL_ENGINE_LABELS.map((sys, i) => (
+                    {allEngineLabels.map((sys, i) => (
                       <span
                         key={sys}
                         className="text-[10px] px-2.5 py-1 rounded-full border border-border/40 text-muted-foreground animate-pulse font-sans"
@@ -253,15 +259,15 @@ const Index = () => {
                   </div>
                   <div className="space-y-3">
                     <p className="text-lg font-serif text-foreground tracking-wider">
-                      量子坍缩 · 收敛唯一命运
+                      {t('ui.collapsing')}
                     </p>
                     <p className="text-xs text-muted-foreground font-sans tracking-widest uppercase">
-                      Quantum Collapse → One True Destiny
+                      {t('ui.collapsing_sub')}
                     </p>
                   </div>
                   <div className="space-y-3">
                     <p className="text-xs text-primary/70 font-mono animate-pulse">
-                      ∞ worlds → 1 true destiny
+                      {t('ui.collapsing_sub')}
                     </p>
                     <div className="w-48 mx-auto h-1 bg-border/30 rounded-full overflow-hidden">
                       <div className="h-full bg-gradient-to-r from-primary/60 via-primary to-primary/60 rounded-full animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
@@ -284,21 +290,21 @@ const Index = () => {
                   <div className="text-center space-y-4">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5">
                       <Sparkles className="w-3.5 h-3.5 text-primary" />
-                      <span className="text-xs font-sans text-primary tracking-wider">DESTINY RESOLVED</span>
+                      <span className="text-xs font-sans text-primary tracking-wider">{t('ui.destiny_resolved_badge')}</span>
                     </div>
                     <h2 className="text-2xl md:text-3xl font-serif text-gradient-gold tracking-wider">
-                      命运已全知
+                      {t('ui.destiny_resolved')}
                     </h2>
                     <p className="text-[10px] font-mono text-muted-foreground/60 tracking-wider">
                       {quantumResult.quantumSignature}
                     </p>
                     <div className="flex flex-wrap justify-center gap-x-6 gap-y-1 text-xs text-muted-foreground font-sans">
-                      <span>Coherence <strong className="text-primary">{Math.round(quantumResult.overallCoherence * 100)}%</strong></span>
-                      <span>Worlds <strong className="text-primary">{quantumResult.totalWorldsGenerated.toLocaleString()}</strong></span>
-                      <span>Engines <strong className="text-primary">13</strong></span>
-                      <span>Element <strong className="text-primary">{quantumResult.dominantElement}</strong></span>
+                      <span>{t('ui.coherence')} <strong className="text-primary">{Math.round(quantumResult.overallCoherence * 100)}%</strong></span>
+                      <span>{t('ui.worlds')} <strong className="text-primary">{quantumResult.totalWorldsGenerated.toLocaleString()}</strong></span>
+                      <span>{t('ui.engines')} <strong className="text-primary">13</strong></span>
+                      <span>{t('ui.element')} <strong className="text-primary">{quantumResult.dominantElement}</strong></span>
                       {quantumResult.collapseResult && (
-                        <span>Lifespan <strong className="text-accent">{quantumResult.collapseResult.deathAge}岁</strong></span>
+                        <span>{t('ui.lifespan')} <strong className="text-accent">{quantumResult.collapseResult.deathAge}{t('ui.years_old')}</strong></span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground max-w-2xl mx-auto leading-relaxed border-t border-border/30 pt-4 mt-2">
@@ -346,7 +352,9 @@ const Index = () => {
                   {quantumResult.destinyTree && quantumResult.collapseResult ? (
                     <DestinyTreeLayer tree={quantumResult.destinyTree} collapse={quantumResult.collapseResult} />
                   ) : (
-                    <div className="p-12 text-center text-muted-foreground text-xs glass rounded-2xl">命运树数据加载中...</div>
+                    <div className="p-12 text-center text-muted-foreground text-xs glass rounded-2xl">
+                      {lang === 'zh' ? '命运树数据加载中...' : 'Loading destiny tree...'}
+                    </div>
                   )}
                 </TabsContent>
 
@@ -354,7 +362,9 @@ const Index = () => {
                   {quantumResult.collapseResult ? (
                     <UniquePathLayer collapse={quantumResult.collapseResult} birthYear={birthInput.year} />
                   ) : (
-                    <div className="p-12 text-center text-muted-foreground text-xs glass rounded-2xl">坍缩数据加载中...</div>
+                    <div className="p-12 text-center text-muted-foreground text-xs glass rounded-2xl">
+                      {lang === 'zh' ? '坍缩数据加载中...' : 'Loading collapse data...'}
+                    </div>
                   )}
                 </TabsContent>
 
@@ -385,7 +395,7 @@ const Index = () => {
                       <div className="space-y-4">
                         <div className="p-3 rounded-xl bg-accent/10 border border-accent/20 flex items-center gap-2">
                           <Shield className="w-4 h-4 text-accent" />
-                          <span className="text-xs text-accent/90 font-sans">Super Admin · 统一编排诊断面板</span>
+                          <span className="text-xs text-accent/90 font-sans">{t('admin.super_admin')}</span>
                         </div>
                         <UnifiedResultsPanel result={quantumResult.unifiedResult} />
                       </div>
@@ -399,17 +409,16 @@ const Index = () => {
                 <div className="glass rounded-xl p-4 text-center space-y-2">
                   <div className="flex items-center justify-center gap-1.5 text-accent/80">
                     <AlertTriangle className="w-3.5 h-3.5" />
-                    <span className="text-[11px] font-semibold tracking-wide">免责声明</span>
+                    <span className="text-[11px] font-semibold tracking-wide">{t('disclaimer.title')}</span>
                   </div>
                   <p className="text-[10px] text-muted-foreground/60 leading-relaxed font-sans">
-                    所有推算结果均基于传统命理数学模型，仅供文化研究与个人兴趣参考，不构成任何科学预测、医疗建议、投资建议或人生指导。
-                    请以理性科学态度看待结果，重大决策请咨询专业人士。
+                    {t('disclaimer.text')}
                   </p>
                 </div>
                 <Button onClick={handleReset} variant="outline"
                   className="w-full py-5 text-sm font-sans tracking-wider border-border/30 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 rounded-xl group">
                   <RotateCcw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
-                  重新推算
+                  {t('ui.reset')}
                 </Button>
               </div>
             </div>
