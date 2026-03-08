@@ -1,5 +1,5 @@
 /**
- * P1 Unified Prediction Types
+ * P2.5 Unified Prediction Types
  *
  * All types for the standardized orchestration layer:
  * StandardizedInput → EngineOutput[] → FateVector fusion → UnifiedPredictionResult
@@ -95,10 +95,13 @@ export const FATE_DIMENSION_LABELS: Record<FateDimension, string> = {
 };
 
 // ═══════════════════════════════════════════════
-// 3. EngineOutput
+// 3. EngineOutput (with timingBasis)
 // ═══════════════════════════════════════════════
 
 export type SourceGrade = 'A' | 'B' | 'C' | 'D';
+
+/** Indicates what time basis the engine used */
+export type TimingBasis = 'birth' | 'query' | 'hybrid';
 
 export interface EngineOutput {
   engineName: string;
@@ -114,6 +117,8 @@ export interface EngineOutput {
   normalizedOutput: Record<string, string>;
   warnings: string[];
   uncertaintyNotes: string[];
+  /** What time basis does this engine use: birth time, query time, or hybrid */
+  timingBasis: TimingBasis;
 }
 
 // ═══════════════════════════════════════════════
@@ -159,7 +164,24 @@ export interface EngineActivationRule {
 }
 
 // ═══════════════════════════════════════════════
-// 6. UnifiedPredictionResult
+// 6. ExecutionTrace
+// ═══════════════════════════════════════════════
+
+export interface ExecutionTraceEntry {
+  engineName: string;
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
+  timingBasis: TimingBasis;
+  inputHash: string;
+  outputHash: string;
+  dependenciesUsed: string[];
+  success: boolean;
+  errorMessage?: string;
+}
+
+// ═══════════════════════════════════════════════
+// 7. UnifiedPredictionResult (upgraded)
 // ═══════════════════════════════════════════════
 
 export interface WeightEntry {
@@ -181,8 +203,16 @@ export interface UnifiedPredictionResult {
   algorithmVersion: string;
   /** Which engines were activated for this query */
   activeEngines: string[];
+  /** Which engines were actually executed and produced output */
+  executedEngines: string[];
   /** Which engines were skipped and why */
   skippedEngines: Array<{ engineName: string; reason: string }>;
+  /** Which engines failed during execution */
+  failedEngines: Array<{ engineName: string; error: string }>;
   /** Summary of why engines were activated/skipped */
   activationReasonSummary: string;
+  /** Detailed execution trace for each engine */
+  executionTrace: ExecutionTraceEntry[];
+  /** Engine dependency graph (which engines depend on which) */
+  engineDependencyGraph: Record<string, string[]>;
 }
