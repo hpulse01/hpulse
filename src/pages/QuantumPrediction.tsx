@@ -501,9 +501,12 @@ export default function QuantumPrediction() {
 
               {/* Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-5 bg-violet-950/30 border border-violet-500/20 h-auto">
+                <TabsList className="grid w-full grid-cols-6 bg-violet-950/30 border border-violet-500/20 h-auto">
                   <TabsTrigger value="destiny" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
                     <BookOpen className="w-3 h-3 mr-1 hidden sm:inline" />命运全知
+                  </TabsTrigger>
+                  <TabsTrigger value="tree" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
+                    <TreePine className="w-3 h-3 mr-1 hidden sm:inline" />命运树
                   </TabsTrigger>
                   <TabsTrigger value="quantum" className="text-[10px] sm:text-xs py-2 data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300">
                     <BarChart3 className="w-3 h-3 mr-1 hidden sm:inline" />量子态
