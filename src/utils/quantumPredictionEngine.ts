@@ -1242,8 +1242,57 @@ export const QuantumPredictionEngine = {
 
     // Legacy Phase 2-4
     const { branches, totalGenerated, perSystem } = generateInfiniteWorlds(systems, input, vedicReport, numerologyReport, fullReport);
-    const { timeline, states, entanglements, overallCoherence, deathAge } = quantumCollapse(systems, branches, input, baziProfile, fullReport, vedicReport, numerologyReport);
-    const { phases, lifeSummary } = revealDestiny(timeline, states, deathAge, input);
+    const { timeline, states, entanglements, overallCoherence, deathAge: legacyDeathAge } = quantumCollapse(systems, branches, input, baziProfile, fullReport, vedicReport, numerologyReport);
+    const { phases, lifeSummary: legacyLifeSummary } = revealDestiny(timeline, states, legacyDeathAge, input);
+
+    // ── Phase 5: Event-Driven Destiny Tree Generation ──
+    let destinyTree: RecursiveWorldTree | undefined;
+    let collapseResult: CollapseResult | undefined;
+    try {
+      // Extract event seeds from all executed engines
+      const allSeeds: DestinyEventSeed[] = [];
+      
+      if (rawData.fullReport && rawData.baziProfile) {
+        allSeeds.push(...extractTiebanEvents(rawData.fullReport, rawData.baziProfile, input.year));
+      }
+      if (rawData.deepBaziAnalysis) {
+        allSeeds.push(...extractBaziEvents(rawData.deepBaziAnalysis, input.year));
+      }
+      if (rawData.ziweiReport) {
+        allSeeds.push(...extractZiweiEvents(rawData.ziweiReport, input.year));
+      }
+      // Generic events from western, vedic, numerology, mayan, kabbalah
+      for (const eo of unifiedResult.engineOutputs) {
+        if (['western', 'vedic', 'numerology', 'mayan', 'kabbalah'].includes(eo.engineName)) {
+          allSeeds.push(...extractGenericEvents(eo, input.year));
+        }
+        // Instant engine events
+        if (['liuyao', 'meihua', 'qimen', 'liuren', 'taiyi'].includes(eo.engineName)) {
+          allSeeds.push(...extractInstantEvents(eo, si.queryTimeUtc));
+        }
+      }
+
+      // Build engine weight map for fusion
+      const engineWeightMap: Record<string, number> = {};
+      for (const w of unifiedResult.weightsUsed) {
+        engineWeightMap[w.engineName] = w.weight;
+      }
+
+      // Fuse event seeds
+      const fusionResult = fuseEventSeeds(allSeeds, engineWeightMap);
+
+      // Generate recursive world tree
+      destinyTree = generateWorldTree(fusionResult, unifiedResult.fusedFateVector, input.year, input.gender);
+
+      // Collapse to unique path
+      collapseResult = collapseWorldTree(destinyTree);
+    } catch (err) {
+      console.error('Destiny tree generation error:', err);
+    }
+
+    // Use destiny tree death age if available, otherwise legacy
+    const deathAge = collapseResult?.deathAge ?? legacyDeathAge;
+    const lifeSummary = collapseResult?.finalLifeSummary ?? legacyLifeSummary;
 
     const elCounts: Record<string, number> = {};
     Object.values(baziProfile.pillars).forEach(p => {
@@ -1257,12 +1306,14 @@ export const QuantumPredictionEngine = {
     const quantumSignature = `QS-${hex}-${sig}`;
 
     return {
-      systems, totalWorldsGenerated: totalGenerated, branchesPerSystem: perSystem,
+      systems, totalWorldsGenerated: destinyTree ? destinyTree.totalNodes : totalGenerated, branchesPerSystem: perSystem,
       states, destinyTimeline: timeline, entanglements, overallCoherence,
       destinyPhases: phases, lifeSummary, deathAge, quantumSignature, dominantElement,
       baziProfile, fullReport, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport,
       timestamp,
       unifiedResult,
+      destinyTree,
+      collapseResult,
     };
   },
 
