@@ -1,11 +1,12 @@
 /**
- * H-Pulse Recursive World Tree Generator v4.0
+ * H-Pulse Recursive World Tree Generator v5.0
  *
- * v4.0: Quantum Math Framework integration.
- *   - Collapse uses amplitude-based Born rule (|Ψ|²/Z)
- *   - Deterministic seeded PRNG replaces score-sorting
- *   - Fate potential drives world line selection
- *   - Full quantum collapse audit trail
+ * v5.0: Notion 全面改革
+ *   - Dynamic Branch Factor B(t) based on event significance
+ *   - Three-tier pruning: probability threshold, causal consistency, temporal consistency
+ *   - Quantum amplitude-based Born rule collapse
+ *   - Deterministic seeded PRNG
+ *   - Holographic Fate Map integration
  */
 
 import type {
@@ -33,7 +34,121 @@ function applyImpact(base: FateVector, impact: Partial<Record<FateDimension, num
 }
 
 // ═══════════════════════════════════════════════
-// World Tree Generator
+// Dynamic Branch Factor B(t)
+// Notion 规范：
+//   日常琐事: 1-2, 普通决策: 2-4, 重大选择: 4-8
+//   命运节点: 8-16, 生死关头: 16+
+// ═══════════════════════════════════════════════
+
+type EventSignificance = 'trivial' | 'ordinary' | 'major' | 'critical' | 'fatal';
+
+function classifySignificance(event: UnifiedEventCandidate): EventSignificance {
+  switch (event.intensity) {
+    case 'minor': return 'trivial';
+    case 'moderate': return 'ordinary';
+    case 'major': return 'major';
+    case 'critical': return 'critical';
+    case 'life_defining': return event.deathRelated ? 'fatal' : 'critical';
+    default: return 'trivial';
+  }
+}
+
+/**
+ * Dynamic Branch Factor B(t) = B_base · Π(1 + σ_s(t))
+ * Simplified: return [minBranches, maxBranches] for an event significance level.
+ */
+function getBranchRange(significance: EventSignificance): [number, number] {
+  switch (significance) {
+    case 'trivial':  return [1, 2];
+    case 'ordinary': return [2, 3];
+    case 'major':    return [3, 5];
+    case 'critical': return [4, 8];
+    case 'fatal':    return [2, 4]; // Death events: limited but meaningful branches
+    default:         return [1, 2];
+  }
+}
+
+/**
+ * Calculate actual branch count based on significance and event volatility.
+ * σ_s(t) = event volatility from engine consensus
+ */
+function calculateBranchFactor(
+  events: UnifiedEventCandidate[],
+  fateVector: FateVector,
+  age: number,
+): number {
+  if (events.length === 0) return 1;
+
+  const topEvent = events[0];
+  const significance = classifySignificance(topEvent);
+  const [minB, maxB] = getBranchRange(significance);
+
+  // Volatility factor: based on health + consensus
+  const healthVolatility = fateVector.health < 30 ? 1.3 : fateVector.health < 50 ? 1.1 : 1.0;
+  const consensusStability = topEvent.consensusCount >= 3 ? 0.9 : 1.1; // More consensus = fewer wild branches
+
+  // Base branch factor with volatility
+  let B = Math.round(minB + (maxB - minB) * healthVolatility * consensusStability * 0.5);
+  
+  // Clamp to available events count (can't branch more than event options)
+  B = Math.min(B, events.length, maxB);
+  B = Math.max(B, minB);
+
+  return B;
+}
+
+// ═══════════════════════════════════════════════
+// Pruning Strategies (Notion 规范)
+// ═══════════════════════════════════════════════
+
+/** Probability threshold pruning: discard branches with P < threshold */
+const PROBABILITY_THRESHOLD = 0.005; // 0.5%
+
+/** Causal consistency check: event prerequisites must be satisfied */
+function checkCausalConsistency(
+  event: UnifiedEventCandidate,
+  usedEventIds: Set<string>,
+  completedCategories: Set<string>,
+): boolean {
+  // All prerequisites must be met
+  for (const prereq of event.prerequisiteEventIds) {
+    if (!usedEventIds.has(prereq)) return false;
+  }
+  // No conflicting events should exist
+  for (const conflict of event.conflictingEventIds) {
+    if (usedEventIds.has(conflict)) return false;
+  }
+  return true;
+}
+
+/** Temporal consistency: events must occur within their age window */
+function checkTemporalConsistency(event: UnifiedEventCandidate, age: number): boolean {
+  return age >= event.ageWindow[0] && age <= event.ageWindow[1];
+}
+
+/** Combined pruning filter */
+function pruneEvents(
+  events: UnifiedEventCandidate[],
+  age: number,
+  usedEventIds: Set<string>,
+  completedCategories: Set<string>,
+  parentCumulativeProb: number,
+): UnifiedEventCandidate[] {
+  return events.filter(e => {
+    // 1. Already used
+    if (usedEventIds.has(e.id)) return false;
+    // 2. Temporal consistency
+    if (!checkTemporalConsistency(e, age)) return false;
+    // 3. Causal consistency
+    if (!checkCausalConsistency(e, usedEventIds, completedCategories)) return false;
+    // 4. Probability threshold
+    if (parentCumulativeProb * e.fusedProbability < PROBABILITY_THRESHOLD) return false;
+    return true;
+  });
+}
+
+// ═══════════════════════════════════════════════
+// World Tree Generator Core
 // ═══════════════════════════════════════════════
 
 const MAX_DEPTH = 25;
@@ -76,55 +191,24 @@ function createRootNode(ctx: TreeGenContext): WorldNode {
 }
 
 /**
- * Find candidate events applicable at a given age.
- * Respects event dependencies and exclusions.
- */
-function findEventsAtAge(
-  candidates: UnifiedEventCandidate[],
-  age: number,
-  usedEventIds: Set<string>,
-  completedCategories: Set<string>,
-): UnifiedEventCandidate[] {
-  return candidates.filter(c => {
-    if (usedEventIds.has(c.id)) return false;
-    if (age < c.ageWindow[0] || age > c.ageWindow[1]) return false;
-    // Check prerequisites: all must be in usedEventIds
-    for (const prereq of c.prerequisiteEventIds) {
-      if (!usedEventIds.has(prereq)) return false;
-    }
-    // Check exclusions: none should be in usedEventIds
-    for (const conflict of c.conflictingEventIds) {
-      if (usedEventIds.has(conflict)) return false;
-    }
-    return true;
-  });
-}
-
-/**
- * Determine if death should occur at this age based on DeathFusionResult.
- * No hash/random - purely event-driven.
+ * Death check at a given age.
  */
 function checkDeathAtAge(
   fateVector: FateVector,
   age: number,
   deathFusion: DeathFusionResult,
-  parentDeathChecked: Set<number>,
 ): { die: boolean; cause: DeathCause; description: string; reason: string } {
-  // Health critical threshold
   if (fateVector.health <= 10 && age >= 50) {
     return { die: true, cause: 'illness', description: '健康值极低，重病不治',
       reason: `健康值${fateVector.health}<=10且年龄${age}>=50` };
   }
 
-  // Check death candidates from fusion
   for (const dc of deathFusion.candidates) {
     if (age >= dc.ageWindow[0] && age <= dc.ageWindow[1]) {
-      // Strong candidates die at estimated age
       if (dc.strength === 'strong' && age >= dc.estimatedAge - 2) {
         return { die: true, cause: dc.cause, description: dc.description,
           reason: `强死亡候选(${dc.engines.join('+')}共识)在${dc.estimatedAge}岁` };
       }
-      // Weak candidates die at estimated age only if health is low
       if (dc.strength === 'weak' && age >= dc.estimatedAge && fateVector.health <= 40) {
         return { die: true, cause: dc.cause, description: dc.description,
           reason: `弱死亡候选在${dc.estimatedAge}岁，健康值${fateVector.health}偏低` };
@@ -132,14 +216,12 @@ function checkDeathAtAge(
     }
   }
 
-  // Natural aging: primary death age window
   const primary = deathFusion.primaryDeath;
   if (age >= primary.estimatedAge + 3) {
     return { die: true, cause: 'natural_aging', description: `${age}岁超过主要寿限候选(${primary.estimatedAge}岁)`,
       reason: `超过主要寿限${primary.estimatedAge}+3岁` };
   }
 
-  // Hard cap
   if (age >= MAX_AGE) {
     return { die: true, cause: 'lifespan_limit', description: '寿限已至',
       reason: `达到绝对上限${MAX_AGE}岁` };
@@ -148,9 +230,6 @@ function checkDeathAtAge(
   return { die: false, cause: 'natural_aging', description: '', reason: '' };
 }
 
-/**
- * Calculate enhancement bonus for an event based on enhancedByEventIds.
- */
 function calculateEnhancement(event: UnifiedEventCandidate, usedEventIds: Set<string>): number {
   let bonus = 0;
   for (const enhId of event.enhancedByEventIds) {
@@ -160,7 +239,7 @@ function calculateEnhancement(event: UnifiedEventCandidate, usedEventIds: Set<st
 }
 
 /**
- * Recursively expand a node's children.
+ * Recursively expand a node's children with dynamic branching and pruning.
  */
 function expandNode(
   parent: WorldNode,
@@ -174,10 +253,13 @@ function expandNode(
   const currentAge = parent.age;
   const candidatesByAge = new Map<number, UnifiedEventCandidate[]>();
 
-  // Look ahead for next events
+  // Look ahead for next events with pruning
   for (let lookAhead = 1; lookAhead <= 15 && currentAge + lookAhead <= MAX_AGE; lookAhead++) {
     const nextAge = currentAge + lookAhead;
-    const events = findEventsAtAge(ctx.fusionResult.candidates, nextAge, usedEventIds, completedCategories);
+    const events = pruneEvents(
+      ctx.fusionResult.candidates, nextAge, usedEventIds,
+      completedCategories, parent.cumulativeProbability,
+    );
     if (events.length > 0) {
       candidatesByAge.set(nextAge, events);
       break;
@@ -189,7 +271,7 @@ function expandNode(
     const nextDecade = Math.ceil((currentAge + 1) / 10) * 10;
     if (nextDecade <= MAX_AGE && nextDecade > currentAge) {
       ctx.nodeIdCounter++;
-      const deathCheck = checkDeathAtAge(parent.localFateVector, nextDecade, ctx.deathFusion, new Set());
+      const deathCheck = checkDeathAtAge(parent.localFateVector, nextDecade, ctx.deathFusion);
 
       const quietEvent: UnifiedEventCandidate = {
         id: `UEC-QUIET-${nextDecade}`, mergeKey: `quiet-${nextDecade}`,
@@ -231,101 +313,69 @@ function expandNode(
   }
 
   for (const [nextAge, events] of candidatesByAge) {
+    // Sort by enhanced probability
     const sorted = [...events].sort((a, b) => {
-      // Sort by: enhanced probability > fusedProbability > consensusCount
       const aEnhanced = a.fusedProbability + calculateEnhancement(a, usedEventIds);
       const bEnhanced = b.fusedProbability + calculateEnhancement(b, usedEventIds);
       return bEnhanced - aEnhanced;
     });
-    const mainEvent = sorted[0];
-    const altEvents = sorted.slice(1, 3);
 
-    // Main branch
-    const mainUsed = new Set(usedEventIds);
-    mainUsed.add(mainEvent.id);
-    const mainCats = new Set(completedCategories);
-    mainCats.add(mainEvent.category);
-    ctx.nodeIdCounter++;
+    // Dynamic branch factor B(t)
+    const branchFactor = calculateBranchFactor(sorted, parent.localFateVector, nextAge);
+    const branchEvents = sorted.slice(0, branchFactor);
 
-    const enhBonus = calculateEnhancement(mainEvent, usedEventIds);
-    const mainFate = applyImpact(parent.localFateVector, mainEvent.fateImpact as Partial<Record<FateDimension, number>>);
-    const mainDeathCheck = checkDeathAtAge(mainFate, nextAge, ctx.deathFusion, new Set());
-
-    // Build event relationships
-    const depsMet = mainEvent.prerequisiteEventIds.filter(id => usedEventIds.has(id));
-    const exclusionsApplied = mainEvent.conflictingEventIds.filter(id => usedEventIds.has(id));
-    const enhancementsReceived = mainEvent.enhancedByEventIds.filter(id => usedEventIds.has(id));
-    const transformationsTriggered: string[] = [];
-    if (mainEvent.transformsToEventId && usedEventIds.has(mainEvent.transformsToEventId)) {
-      transformationsTriggered.push(mainEvent.transformsToEventId);
-    }
-
-    const mainChild: WorldNode = {
-      id: `WN-${ctx.nodeIdCounter}`, parentId: parent.id,
-      depth, age: nextAge, year: ctx.birthYear + nextAge,
-      alive: !mainDeathCheck.die, isDeath: mainDeathCheck.die,
-      deathCause: mainDeathCheck.die ? mainDeathCheck.cause : undefined,
-      dominantEvent: mainEvent,
-      contributingEvents: events.filter(e => e.id !== mainEvent.id),
-      engineSupports: mainEvent.engineSupports.map(s => s.engineName),
-      transitionProbability: Math.min(0.95, mainEvent.fusedProbability + enhBonus),
-      cumulativeProbability: parent.cumulativeProbability * Math.min(0.95, mainEvent.fusedProbability + enhBonus),
-      causalChain: [...parent.causalChain, mainEvent.description],
-      localFateVector: mainFate,
-      collapseWeight: parent.collapseWeight * mainEvent.fusedProbability * (mainEvent.consensusCount * 0.2 + 0.6),
-      branchReason: mainDeathCheck.die ? mainDeathCheck.description : mainEvent.description,
-      parentCausalChain: [...parent.causalChain],
-      eventRelationships: { dependenciesMet: depsMet, exclusionsApplied, enhancementsReceived, transformationsTriggered },
-      children: [],
-    };
-
-    parent.children.push(mainChild);
-    ctx.nodeCount++;
-
-    if (!mainDeathCheck.die) {
-      expandNode(mainChild, ctx, mainUsed, mainCats, depth + 1);
-    }
-
-    // Alternative branches
-    for (const altEvent of altEvents) {
+    for (let bi = 0; bi < branchEvents.length; bi++) {
       if (ctx.nodeCount >= MAX_NODES) break;
-      const altUsed = new Set(usedEventIds);
-      altUsed.add(altEvent.id);
-      const altCats = new Set(completedCategories);
-      altCats.add(altEvent.category);
-      ctx.nodeIdCounter++;
-      const altEnhBonus = calculateEnhancement(altEvent, usedEventIds);
-      const altFate = applyImpact(parent.localFateVector, altEvent.fateImpact as Partial<Record<FateDimension, number>>);
-      const altDeathCheck = checkDeathAtAge(altFate, nextAge, ctx.deathFusion, new Set());
 
-      const altChild: WorldNode = {
+      const event = branchEvents[bi];
+      const isMain = bi === 0;
+      const branchUsed = new Set(usedEventIds);
+      branchUsed.add(event.id);
+      const branchCats = new Set(completedCategories);
+      branchCats.add(event.category);
+      ctx.nodeIdCounter++;
+
+      const enhBonus = calculateEnhancement(event, usedEventIds);
+      const branchFate = applyImpact(parent.localFateVector, event.fateImpact as Partial<Record<FateDimension, number>>);
+      const deathCheck = checkDeathAtAge(branchFate, nextAge, ctx.deathFusion);
+
+      // Transition probability: main branch gets full, alternatives get discounted
+      const transProb = isMain
+        ? Math.min(0.95, event.fusedProbability + enhBonus)
+        : Math.min(0.95, event.fusedProbability * (0.8 - bi * 0.1) + enhBonus);
+
+      const depsMet = event.prerequisiteEventIds.filter(id => usedEventIds.has(id));
+      const exclusionsApplied = event.conflictingEventIds.filter(id => usedEventIds.has(id));
+      const enhancementsReceived = event.enhancedByEventIds.filter(id => usedEventIds.has(id));
+      const transformationsTriggered: string[] = [];
+      if (event.transformsToEventId && usedEventIds.has(event.transformsToEventId)) {
+        transformationsTriggered.push(event.transformsToEventId);
+      }
+
+      const child: WorldNode = {
         id: `WN-${ctx.nodeIdCounter}`, parentId: parent.id,
         depth, age: nextAge, year: ctx.birthYear + nextAge,
-        alive: !altDeathCheck.die, isDeath: altDeathCheck.die,
-        deathCause: altDeathCheck.die ? altDeathCheck.cause : undefined,
-        dominantEvent: altEvent, contributingEvents: [],
-        engineSupports: altEvent.engineSupports.map(s => s.engineName),
-        transitionProbability: Math.min(0.95, altEvent.fusedProbability * 0.7 + altEnhBonus),
-        cumulativeProbability: parent.cumulativeProbability * altEvent.fusedProbability * 0.7,
-        causalChain: [...parent.causalChain, altEvent.description],
-        localFateVector: altFate,
-        collapseWeight: parent.collapseWeight * altEvent.fusedProbability * 0.5,
-        branchReason: altDeathCheck.die ? altDeathCheck.description : `分支：${altEvent.description}`,
+        alive: !deathCheck.die, isDeath: deathCheck.die,
+        deathCause: deathCheck.die ? deathCheck.cause : undefined,
+        dominantEvent: event,
+        contributingEvents: isMain ? events.filter(e => e.id !== event.id) : [],
+        engineSupports: event.engineSupports.map(s => s.engineName),
+        transitionProbability: transProb,
+        cumulativeProbability: parent.cumulativeProbability * transProb,
+        causalChain: [...parent.causalChain, event.description],
+        localFateVector: branchFate,
+        collapseWeight: parent.collapseWeight * event.fusedProbability * (event.consensusCount * 0.2 + 0.6) * (isMain ? 1.0 : 0.6),
+        branchReason: deathCheck.die ? deathCheck.description : (isMain ? event.description : `分支：${event.description}`),
         parentCausalChain: [...parent.causalChain],
-        eventRelationships: {
-          dependenciesMet: altEvent.prerequisiteEventIds.filter(id => usedEventIds.has(id)),
-          exclusionsApplied: altEvent.conflictingEventIds.filter(id => usedEventIds.has(id)),
-          enhancementsReceived: altEvent.enhancedByEventIds.filter(id => usedEventIds.has(id)),
-          transformationsTriggered: [],
-        },
+        eventRelationships: { dependenciesMet: depsMet, exclusionsApplied, enhancementsReceived, transformationsTriggered },
         children: [],
       };
 
-      parent.children.push(altChild);
+      parent.children.push(child);
       ctx.nodeCount++;
 
-      if (!altDeathCheck.die) {
-        expandNode(altChild, ctx, altUsed, altCats, depth + 1);
+      if (!deathCheck.die) {
+        expandNode(child, ctx, branchUsed, branchCats, depth + 1);
       }
     }
   }
@@ -390,7 +440,7 @@ export function generateWorldTree(
 }
 
 // ═══════════════════════════════════════════════
-// Quantum Collapse Engine v4.0 (Amplitude-Based)
+// Quantum Collapse Engine v5.0
 // ═══════════════════════════════════════════════
 
 function extractPath(root: WorldNode, targetId: string): WorldNode[] {
@@ -420,7 +470,6 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
     };
   }
 
-  // Build world line inputs for quantum collapse
   interface PathData {
     terminal: WorldNode;
     path: WorldNode[];
@@ -443,14 +492,12 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
       totalConsensus += n.dominantEvent.consensusCount;
     }
 
-    // Build engine supports for quantum amplitude calculation
     const engineSupports: EngineSupport[] = Object.entries(engineCounts).map(([engine, count]) => ({
       engineName: engine,
       weight: count / path.length,
       probability: Math.min(0.95, term.cumulativeProbability * (1 + count * 0.05)),
     }));
 
-    // Mainline and enhancement bonuses baked into collapse weight
     const mainlineCount = path.filter(n => n.dominantEvent.isMainline).length;
     const enhCount = path.reduce((s, n) => s + n.eventRelationships.enhancementsReceived.length, 0);
     const depCount = path.reduce((s, n) => s + n.eventRelationships.dependenciesMet.length, 0);
@@ -469,25 +516,21 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
     });
   }
 
-  // Generate deterministic collapse seed from birth data
   const collapseSeed = generateCollapseSeed(
     tree.birthYear, 1, 1, 0, 0,
     tree.gender as 'male' | 'female',
     0, 0,
   );
 
-  // Run quantum collapse pipeline
   const collapseDistribution = quantumCollapsePipeline(worldLineInputs, collapseSeed);
   
   const winnerIdx = collapseDistribution.collapsedIndex;
   const winner = pathDataList[winnerIdx >= 0 ? winnerIdx : 0];
   const rejected = pathDataList.filter((_, i) => i !== winnerIdx).slice(0, 5);
 
-  // Determine dominant engines
   const sortedEngines = Object.entries(winner.engineCounts).sort((a, b) => b[1] - a[1]);
   const dominantEngines = sortedEngines.slice(0, 3).map(([e]) => e);
 
-  // Build collapsed path
   const collapsedPath: CollapsedPathNode[] = winner.path.map(node => ({
     age: node.age,
     year: node.year,
@@ -502,7 +545,7 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
   const winnerAmplitude = collapseDistribution.worldLines[winnerIdx >= 0 ? winnerIdx : 0];
   const winnerProb = winnerAmplitude?.probability ?? 0;
 
-  const rejectedBranches: RejectedBranchSummary[] = rejected.map((r, i) => {
+  const rejectedBranches: RejectedBranchSummary[] = rejected.map((r) => {
     const rIdx = pathDataList.indexOf(r);
     const rAmplitude = collapseDistribution.worldLines[rIdx];
     return {
@@ -517,7 +560,6 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
     };
   });
 
-  // Conflict resolution notes
   const conflictResolutionNotes: string[] = [];
   for (const node of winner.path) {
     if (node.eventRelationships.exclusionsApplied.length > 0) {
@@ -525,7 +567,6 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
     }
   }
 
-  // Selected reason with quantum details
   const selectedReason =
     `量子坍缩选择此路径：波函数振幅P=${winnerProb.toFixed(4)}，` +
     `命理势能E=${winnerAmplitude?.fatePotential?.toFixed(3) ?? 'N/A'}，` +
@@ -541,7 +582,8 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
     `强度${tree.deathFusion.primaryDeath.strength})`;
 
   const collapseReasoning =
-    `量子坍缩v4.0：从${pathDataList.length}条世界线中，通过波函数振幅计算(Ψ=Ae^{-E/kT})，` +
+    `量子坍缩v5.0：从${pathDataList.length}条世界线中，通过波函数振幅计算(Ψ=Ae^{-E/kT})，` +
+    `动态分支因子B(t)生成分支，三级剪枝(概率阈值/因果一致性/时序一致性)优化，` +
     `配分函数归一化(Z=${collapseDistribution.partitionFunction.toFixed(3)})，` +
     `确定性种子PRNG(seed=${collapseSeed.toString(16).slice(0,8)}...)坍缩出唯一命运路径。` +
     `有效温度T=${collapseDistribution.effectiveTemperature.toFixed(2)}，` +
