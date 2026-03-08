@@ -25,6 +25,7 @@ import { NumerologyEngine, type NumerologyReport } from './worldSystems/numerolo
 import { MayanCalendarEngine, type MayanReport } from './worldSystems/mayanCalendar';
 import { KabbalahEngine, type KabbalahReport } from './worldSystems/kabbalah';
 import { runMeihua, type MeihuaResult } from './meihuaAlgorithm';
+import { runQimen, type QimenResult } from './qimenAlgorithm';
 
 import type {
   StandardizedInput,
