@@ -56,6 +56,22 @@ export interface YogaInfo {
   strength: number; // 0-100
 }
 
+/** v3.0: Kuja Dosha */
+export interface KujaDosha {
+  isPresent: boolean;
+  fromLagna: boolean;
+  fromMoon: boolean;
+  severity: 'none' | 'mild' | 'moderate' | 'severe';
+  interpretation: string;
+}
+
+/** v3.0: Sade Sati */
+export interface SadeSati {
+  isActive: boolean;
+  phase: 'rising' | 'peak' | 'setting' | 'none';
+  interpretation: string;
+}
+
 export interface VedicReport {
   rashiSign: string;
   rashiSignCN: string;
@@ -67,6 +83,9 @@ export interface VedicReport {
   ayanamsaUsed: number;
   moonSiderealLongitude: number;
   sunSiderealLongitude: number;
+  /** v3.0 */
+  kujaDosha: KujaDosha;
+  sadeSati: SadeSati;
 }
 
 const RASHIS = [
