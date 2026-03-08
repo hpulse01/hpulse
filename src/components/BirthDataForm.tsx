@@ -19,8 +19,16 @@ import { ChevronDown } from 'lucide-react';
 import { TiebanEngine, type TiebanInput } from '@/utils/tiebanAlgorithm';
 import { LocationSearch, type GeocodedLocation } from '@/components/LocationSearch';
 
+/** Extended birth data that includes P0.5 location metadata */
+export interface BirthDataWithGeo extends TiebanInput {
+  normalizedLocationName: string;
+  timezoneIana: string;
+  sourceProvider: string;
+  sourceConfidence: number;
+}
+
 interface BirthDataFormProps {
-  onSubmit: (data: TiebanInput) => void;
+  onSubmit: (data: BirthDataWithGeo) => void;
   isLoading?: boolean;
 }
 
@@ -46,6 +54,8 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
   });
   const [locationName, setLocationName] = useState('北京');
   const [timezoneIana, setTimezoneIana] = useState('Asia/Shanghai');
+  const [sourceProvider, setSourceProvider] = useState('default');
+  const [sourceConfidence, setSourceConfidence] = useState(0.9);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [errorText, setErrorText] = useState('');
 
@@ -77,7 +87,13 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
       return;
     }
 
-    onSubmit(formData);
+    onSubmit({
+      ...formData,
+      normalizedLocationName: locationName,
+      timezoneIana,
+      sourceProvider,
+      sourceConfidence,
+    });
   };
 
   const handleLocationSelect = (loc: GeocodedLocation) => {
@@ -89,6 +105,8 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
     }));
     setLocationName(loc.normalizedLocationName);
     setTimezoneIana(loc.timezoneIana);
+    setSourceProvider(loc.sourceProvider);
+    setSourceConfidence(1.0);
   };
 
   const chineseHour = TiebanEngine.getChineseHour(formData.hour);
