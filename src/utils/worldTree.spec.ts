@@ -41,7 +41,7 @@ function buildTestFusionResult() {
         seeds.push(...extractGenericEvents(eo, 1990));
       }
       if (['liuyao', 'meihua', 'qimen', 'liuren', 'taiyi'].includes(eo.engineName)) {
-        seeds.push(...extractInstantEvents(eo, '2025-01-01T00:00:00.000Z'));
+        seeds.push(...extractInstantEvents(eo, '2025-01-01T00:00:00.000Z', 1990));
       }
     }
   }
