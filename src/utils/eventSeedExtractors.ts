@@ -1246,10 +1246,10 @@ export function extractVedicEvents(
       triggerConditions: [], deathRelated: false,
       mergeKey: `age-35-${isWealthYoga ? 'wealth' : isCareerYoga ? 'career' : 'spiritual'}`,
       fateImpact: isWealthYoga ? { wealth: 8 } : isCareerYoga ? { life: 8 } : { spirit: 5, wisdom: 3 },
-      sourceDetail: `吠陀${yoga}`,
-      sourceFieldPath: `yogas[${yoga}]`,
-      sourceEvidence: `Yoga: ${yoga}`,
-      reasoning: `${yoga}表示${isWealthYoga ? '财富' : isCareerYoga ? '权力' : '灵性'}天赋`,
+      sourceDetail: `吠陀${yogaName}`,
+      sourceFieldPath: `yogas[${yogaName}]`,
+      sourceEvidence: `Yoga: ${yogaName}`,
+      reasoning: `${yogaName}表示${isWealthYoga ? '财富' : isCareerYoga ? '权力' : '灵性'}天赋`,
       confidence: 0.5, conflictTags: ['yoga-talent'],
     });
   }
