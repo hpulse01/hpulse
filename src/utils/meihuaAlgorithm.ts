@@ -1,9 +1,12 @@
 /**
- * 梅花易数引擎 (Meihua Yishu / Plum Blossom Numerology)
+ * 梅花易数引擎 v2.0 (Meihua Yishu / Plum Blossom Numerology)
  *
  * 即时感应型体系，核心能力：
  * 1. 时间起卦 (Time-based hexagram)
  * 2. 数字起卦 (Number-based hexagram)
+ * 3. 万物类象 (Universal Correspondence)
+ * 4. 体用生克深层分析
+ * 5. 应期推算
  *
  * 算法参考：邵雍《梅花易数》原典
  */
@@ -54,6 +57,39 @@ export interface TiYongRelation {
   explanation: string;
 }
 
+/** 万物类象 */
+export interface WanWuLeiXiang {
+  category: string;
+  items: string[];
+}
+
+/** 应期信息 */
+export interface YingQi {
+  type: string;
+  timing: string;
+  explanation: string;
+}
+
+/** 卦象深度分析 */
+export interface GuaAnalysis {
+  /** 卦象意象 */
+  imagery: string;
+  /** 万物类象 */
+  leiXiang: WanWuLeiXiang[];
+  /** 季节旺衰 */
+  seasonalStrength: { season: string; strength: '旺' | '相' | '休' | '囚' | '死' };
+  /** 应期推算 */
+  yingQi: YingQi[];
+  /** 互卦分析 */
+  huGuaAnalysis: string;
+  /** 变卦趋势 */
+  bianGuaTrend: string;
+  /** 综合格局 */
+  pattern: string;
+  /** 综合评语 */
+  summary: string;
+}
+
 export interface MeihuaResult {
   /** 起卦方式 */
   method: 'time' | 'number';
@@ -77,6 +113,8 @@ export interface MeihuaResult {
   score: number;
   /** 卦象简析 */
   interpretation: string;
+  /** v2: 深度分析 */
+  analysis: GuaAnalysis;
 }
 
 export interface MeihuaInput {
@@ -109,7 +147,6 @@ const TRIGRAMS: Trigram[] = [
 
 /** 先天八卦数：乾1兑2离3震4巽5坎6艮7坤8 → 转为0-indexed */
 function trigramByXiantianNumber(n: number): Trigram {
-  // 先天数1-8 → index mapping: 1→乾(0), 2→兑(1), 3→离(2), 4→震(3), 5→巽(4), 6→坎(5), 7→艮(6), 8→坤(7)
   const idx = ((n - 1) % 8 + 8) % 8;
   return TRIGRAMS[idx];
 }
@@ -135,20 +172,108 @@ const HEXAGRAM_NAMES: Record<number, string> = {
 };
 
 // ═══════════════════════════════════════════════
-// 五行生克
+// 万物类象字典
+// ═══════════════════════════════════════════════
+
+const TRIGRAM_LEI_XIANG: Record<string, WanWuLeiXiang[]> = {
+  '乾': [
+    { category: '人物', items: ['君王', '父亲', '长者', '领导', '贵人'] },
+    { category: '身体', items: ['头', '骨', '肺', '大肠'] },
+    { category: '方位', items: ['西北', '上方'] },
+    { category: '时序', items: ['秋冬之交', '戌亥月', '九十月'] },
+    { category: '物象', items: ['金玉', '宝珠', '圆物', '冠帽', '镜'] },
+  ],
+  '兑': [
+    { category: '人物', items: ['少女', '歌伎', '妾', '说客', '巫师'] },
+    { category: '身体', items: ['口', '舌', '咽喉', '肺', '痰'] },
+    { category: '方位', items: ['正西'] },
+    { category: '时序', items: ['仲秋', '酉月', '八月'] },
+    { category: '物象', items: ['金刃', '乐器', '杯盏', '破碎之物'] },
+  ],
+  '离': [
+    { category: '人物', items: ['中女', '文人', '兵士', '美人'] },
+    { category: '身体', items: ['目', '心', '小肠', '血液'] },
+    { category: '方位', items: ['正南'] },
+    { category: '时序', items: ['仲夏', '午月', '五月'] },
+    { category: '物象', items: ['文书', '甲胄', '干燥物', '红色物'] },
+  ],
+  '震': [
+    { category: '人物', items: ['长男', '商旅', '将帅'] },
+    { category: '身体', items: ['足', '肝', '声音', '筋'] },
+    { category: '方位', items: ['正东'] },
+    { category: '时序', items: ['仲春', '卯月', '二月'] },
+    { category: '物象', items: ['木竹', '乐器', '花草', '鹰蛇'] },
+  ],
+  '巽': [
+    { category: '人物', items: ['长女', '秀士', '僧道', '工匠'] },
+    { category: '身体', items: ['股', '胆', '肱', '气管'] },
+    { category: '方位', items: ['东南'] },
+    { category: '时序', items: ['暮春初夏', '辰巳月', '三四月'] },
+    { category: '物象', items: ['绳索', '木香', '扇', '长物'] },
+  ],
+  '坎': [
+    { category: '人物', items: ['中男', '渔人', '盗贼', '江湖人'] },
+    { category: '身体', items: ['耳', '肾', '腰', '血'] },
+    { category: '方位', items: ['正北'] },
+    { category: '时序', items: ['仲冬', '子月', '十一月'] },
+    { category: '物象', items: ['酒', '水具', '带核物', '弓轮'] },
+  ],
+  '艮': [
+    { category: '人物', items: ['少男', '童子', '山人', '僧侣'] },
+    { category: '身体', items: ['手', '指', '背', '鼻', '脾胃'] },
+    { category: '方位', items: ['东北'] },
+    { category: '时序', items: ['冬春之交', '丑寅月', '正腊月'] },
+    { category: '物象', items: ['石', '门', '墙', '寺庙', '小路'] },
+  ],
+  '坤': [
+    { category: '人物', items: ['母亲', '老妇', '众人', '大臣'] },
+    { category: '身体', items: ['腹', '脾', '胃', '肉'] },
+    { category: '方位', items: ['西南'] },
+    { category: '时序', items: ['夏秋之交', '未申月', '六七月'] },
+    { category: '物象', items: ['布帛', '五谷', '柔物', '方物', '牛'] },
+  ],
+};
+
+// ═══════════════════════════════════════════════
+// 五行生克 & 季节旺衰
 // ═══════════════════════════════════════════════
 
 type WuXingRelation = '生' | '克' | '比';
 
+const SHENG: Record<WuXing, WuXing> = { '木': '火', '火': '土', '土': '金', '金': '水', '水': '木' };
+const KE: Record<WuXing, WuXing> = { '木': '土', '土': '水', '水': '火', '火': '金', '金': '木' };
+
 function wuxingRelation(a: WuXing, b: WuXing): { from: WuXing; to: WuXing; rel: WuXingRelation } {
-  const sheng: Record<WuXing, WuXing> = { '木': '火', '火': '土', '土': '金', '金': '水', '水': '木' };
-  const ke: Record<WuXing, WuXing> = { '木': '土', '土': '水', '水': '火', '火': '金', '金': '木' };
   if (a === b) return { from: a, to: b, rel: '比' };
-  if (sheng[a] === b) return { from: a, to: b, rel: '生' };
-  if (ke[a] === b) return { from: a, to: b, rel: '克' };
-  if (sheng[b] === a) return { from: b, to: a, rel: '生' };
-  if (ke[b] === a) return { from: b, to: a, rel: '克' };
+  if (SHENG[a] === b) return { from: a, to: b, rel: '生' };
+  if (KE[a] === b) return { from: a, to: b, rel: '克' };
+  if (SHENG[b] === a) return { from: b, to: a, rel: '生' };
+  if (KE[b] === a) return { from: b, to: a, rel: '克' };
   return { from: a, to: b, rel: '比' };
+}
+
+/** 五行季节旺衰表 */
+const SEASONAL_STRENGTH: Record<WuXing, Record<string, '旺' | '相' | '休' | '囚' | '死'>> = {
+  '木': { '春': '旺', '夏': '休', '秋': '死', '冬': '相', '四季': '囚' },
+  '火': { '春': '相', '夏': '旺', '秋': '囚', '冬': '死', '四季': '休' },
+  '土': { '春': '死', '夏': '相', '秋': '休', '冬': '囚', '四季': '旺' },
+  '金': { '春': '囚', '夏': '死', '秋': '旺', '冬': '休', '四季': '相' },
+  '水': { '春': '休', '夏': '囚', '秋': '相', '冬': '旺', '四季': '死' },
+};
+
+function getSeason(month: number): string {
+  if (month >= 1 && month <= 3) return '春';
+  if (month >= 4 && month <= 6) return '夏';
+  if (month >= 7 && month <= 9) return '秋';
+  if (month >= 10 && month <= 12) return '冬';
+  return '四季';
+}
+
+function getSeasonalStrength(element: WuXing, month: number): { season: string; strength: '旺' | '相' | '休' | '囚' | '死' } {
+  // 辰戌丑未月为四季土旺
+  const isSiJi = [3, 6, 9, 12].includes(month);
+  const season = isSiJi ? '四季' : getSeason(month);
+  return { season, strength: SEASONAL_STRENGTH[element][season] || '休' };
 }
 
 // ═══════════════════════════════════════════════
@@ -165,49 +290,8 @@ function makeGua(upper: Trigram, lower: Trigram): MeihuaGua {
   };
 }
 
-/** 互卦：取2,3,4爻为下卦，3,4,5爻为上卦（爻从下往上1-6） */
-function computeHuGua(upper: Trigram, lower: Trigram): MeihuaGua {
-  // 六爻二进制：爻1(最下)到爻6(最上)
-  // lower trigram: 爻1,2,3; upper trigram: 爻4,5,6
-  // 卦的二进制表示（阳=1，阴=0，从下到上）
-  const lines = trigramToLines(lower).concat(trigramToLines(upper));
-  // 互卦下卦 = 爻2,3,4
-  const huLower = linesToTrigram([lines[1], lines[2], lines[3]]);
-  // 互卦上卦 = 爻3,4,5
-  const huUpper = linesToTrigram([lines[2], lines[3], lines[4]]);
-  return makeGua(huUpper, huLower);
-}
-
-/** 变卦：动爻变阴阳 */
-function computeBianGua(upper: Trigram, lower: Trigram, dongYao: number): MeihuaGua {
-  const lines = trigramToLines(lower).concat(trigramToLines(upper));
-  const idx = dongYao - 1; // 0-indexed
-  lines[idx] = lines[idx] === 1 ? 0 : 1;
-  const bianLower = linesToTrigram([lines[0], lines[1], lines[2]]);
-  const bianUpper = linesToTrigram([lines[3], lines[4], lines[5]]);
-  return makeGua(bianUpper, bianLower);
-}
-
-/** Trigram → 3 lines (bottom to top), 乾=[1,1,1], 坤=[0,0,0] */
+/** Trigram → 3 lines (bottom to top) */
 function trigramToLines(t: Trigram): number[] {
-  // 乾=111, 兑=110, 离=101, 震=001, 巽=011, 坎=010, 艮=100, 坤=000
-  const map: Record<number, number[]> = {
-    0: [1,1,1], // 乾
-    1: [0,1,1], // 兑 (bottom yin)
-    2: [1,0,1], // 离 (middle yin)
-    3: [1,0,0], // 震 (top yang only → bottom yang)
-    4: [0,1,1].map(x => 1-x) as number[], // 巽=110→ wait...
-    5: [0,1,0], // 坎
-    6: [0,0,1], // 艮
-    7: [0,0,0], // 坤
-  };
-  // Actually let me redefine properly. Traditional binary (bottom to top):
-  // 乾☰=111, 兑☱=011, 离☲=101, 震☳=100, 巽☴=011→NO
-  // Let me use standard: bottom-to-top
-  // 乾(≡)=1,1,1  兑(☱)=1,1,0  离(☲)=1,0,1  震(☳)=0,0,1
-  // 巽(☴)=1,1,0→NO  巽(☴)=0,1,1→NO
-  // Standard encoding bottom-to-top:
-  // 乾=111, 兑=110, 离=101, 震=100, 巽=011, 坎=010, 艮=001, 坤=000
   const standard: Record<number, [number,number,number]> = {
     0: [1,1,1], // 乾
     1: [1,1,0], // 兑
@@ -223,21 +307,31 @@ function trigramToLines(t: Trigram): number[] {
 
 function linesToTrigram(lines: number[]): Trigram {
   const val = (lines[0] << 2) | (lines[1] << 1) | lines[2];
-  // Reverse mapping from binary to trigram index
   const binToIdx: Record<number, number> = {
-    7: 0, // 111→乾
-    6: 1, // 110→兑
-    5: 2, // 101→离
-    4: 3, // 100→震
-    3: 4, // 011→巽
-    2: 5, // 010→坎
-    1: 6, // 001→艮
-    0: 7, // 000→坤
+    7: 0, 6: 1, 5: 2, 4: 3, 3: 4, 2: 5, 1: 6, 0: 7,
   };
   return TRIGRAMS[binToIdx[val] ?? 7];
 }
 
-/** 体用判定：动爻在上卦则上卦为用、下卦为体；动爻在下卦则下卦为用、上卦为体 */
+/** 互卦：取2,3,4爻为下卦，3,4,5爻为上卦 */
+function computeHuGua(upper: Trigram, lower: Trigram): MeihuaGua {
+  const lines = trigramToLines(lower).concat(trigramToLines(upper));
+  const huLower = linesToTrigram([lines[1], lines[2], lines[3]]);
+  const huUpper = linesToTrigram([lines[2], lines[3], lines[4]]);
+  return makeGua(huUpper, huLower);
+}
+
+/** 变卦：动爻变阴阳 */
+function computeBianGua(upper: Trigram, lower: Trigram, dongYao: number): MeihuaGua {
+  const lines = trigramToLines(lower).concat(trigramToLines(upper));
+  const idx = dongYao - 1;
+  lines[idx] = lines[idx] === 1 ? 0 : 1;
+  const bianLower = linesToTrigram([lines[0], lines[1], lines[2]]);
+  const bianUpper = linesToTrigram([lines[3], lines[4], lines[5]]);
+  return makeGua(bianUpper, bianLower);
+}
+
+/** 体用判定 */
 function determineTiYong(benGua: MeihuaGua, dongYao: number): TiYongRelation {
   const inUpper = dongYao > 3;
   const tiGua = inUpper ? benGua.lower : benGua.upper;
@@ -275,15 +369,120 @@ function determineTiYong(benGua: MeihuaGua, dongYao: number): TiYongRelation {
 }
 
 /** 基础吉凶评分 */
-function calculateScore(tiYong: TiYongRelation): number {
+function calculateScore(tiYong: TiYongRelation, seasonal: { strength: string }): number {
   const baseScores: Record<TiYongRelation['tendency'], number> = {
-    '大吉': 85,
-    '吉': 72,
-    '中': 55,
-    '凶': 35,
-    '大凶': 18,
+    '大吉': 85, '吉': 72, '中': 55, '凶': 35, '大凶': 18,
   };
-  return baseScores[tiYong.tendency] ?? 50;
+  let score = baseScores[tiYong.tendency] ?? 50;
+
+  // 季节修正：体卦旺相加分，休囚死减分
+  const seasonMod: Record<string, number> = { '旺': 10, '相': 5, '休': 0, '囚': -5, '死': -10 };
+  score += seasonMod[seasonal.strength] || 0;
+
+  return Math.max(5, Math.min(95, score));
+}
+
+// ═══════════════════════════════════════════════
+// 应期推算
+// ═══════════════════════════════════════════════
+
+function calculateYingQi(tiYong: TiYongRelation, seasonal: { season: string; strength: string }): YingQi[] {
+  const results: YingQi[] = [];
+  const tiEl = tiYong.tiElement;
+
+  // 体卦旺相：近期应验
+  if (seasonal.strength === '旺' || seasonal.strength === '相') {
+    results.push({
+      type: '近应',
+      timing: `体卦${tiEl}当令，应期较近`,
+      explanation: `体卦得时令之助，事可速成。`,
+    });
+  }
+
+  // 生体之五行所主之时
+  const shengTi = Object.entries(SHENG).find(([, v]) => v === tiEl)?.[0] as WuXing | undefined;
+  if (shengTi) {
+    const shengSeason = Object.entries(SEASONAL_STRENGTH[shengTi]).find(([, v]) => v === '旺')?.[0];
+    results.push({
+      type: '生体应期',
+      timing: `${shengTi}旺之时（${shengSeason || ''}）`,
+      explanation: `生助体卦之五行当旺时，事情可成。`,
+    });
+  }
+
+  // 克用之五行所主之时
+  const keYong = tiYong.tiElement;
+  results.push({
+    type: '克用应期',
+    timing: `${keYong}旺之时可克制用卦`,
+    explanation: `体卦五行当旺，可制约用卦，事有转机。`,
+  });
+
+  return results;
+}
+
+// ═══════════════════════════════════════════════
+// 深度分析
+// ═══════════════════════════════════════════════
+
+function performDeepAnalysis(
+  benGua: MeihuaGua, huGua: MeihuaGua, bianGua: MeihuaGua,
+  tiYong: TiYongRelation, dongYao: number, month: number,
+): GuaAnalysis {
+  const tiEl = tiYong.tiElement;
+  const yongEl = tiYong.yongElement;
+  const seasonal = getSeasonalStrength(tiEl, month);
+
+  // 万物类象
+  const leiXiang = [
+    ...(TRIGRAM_LEI_XIANG[tiYong.tiGua.nameCN] || []),
+    ...(TRIGRAM_LEI_XIANG[tiYong.yongGua.nameCN] || []),
+  ];
+
+  // 互卦分析（事态发展过程）
+  const huTiRel = wuxingRelation(tiEl, huGua.upper.element);
+  const huAnalysis = `互卦${huGua.name}，五行${huGua.upper.element}${huGua.lower.element}。` +
+    `与体卦${huTiRel.rel === '生' ? '相生，过程顺遂' : huTiRel.rel === '克' ? '相克，过程多阻' : '比和，平稳推进'}。`;
+
+  // 变卦趋势（最终结果）
+  const bianTiRel = wuxingRelation(tiEl, bianGua.upper.element);
+  const bianTrend = `变卦${bianGua.name}，${bianTiRel.rel === '生' && bianTiRel.from !== tiEl ? '生体，终局有利' :
+    bianTiRel.rel === '克' && bianTiRel.from !== tiEl ? '克体，终局不利' :
+    bianTiRel.rel === '比' ? '比和，结局平稳' :
+    bianTiRel.rel === '生' ? '泄体，需防损耗' : '体克之，可得其利'}。`;
+
+  // 格局判定
+  const patterns: string[] = [];
+  if (tiYong.relation === '用生体' && seasonal.strength === '旺') patterns.push('体旺得生·大吉格');
+  if (tiYong.relation === '用克体' && seasonal.strength === '死') patterns.push('体衰被克·大凶格');
+  if (benGua.upper.index === benGua.lower.index) patterns.push('纯卦·事态专一');
+  if (huGua.upper.element === huGua.lower.element) patterns.push('互卦同元·内部和谐');
+  if (tiEl === bianGua.upper.element || tiEl === bianGua.lower.element) patterns.push('体化入变·事可转圜');
+  if (dongYao === 1 || dongYao === 6) patterns.push('初末动爻·始终之应');
+  if (patterns.length === 0) patterns.push('常格');
+
+  // 卦象意象
+  const imagery = `${benGua.name}卦，${benGua.upper.nature}在上，${benGua.lower.nature}在下。` +
+    `动第${dongYao}爻，体${tiYong.tiGua.nameCN}用${tiYong.yongGua.nameCN}。`;
+
+  // 应期
+  const yingQi = calculateYingQi(tiYong, seasonal);
+
+  // 综合评语
+  const summary = `本卦${benGua.name}，${tiYong.relation}，${tiYong.tendency}之象。` +
+    `体卦${tiEl}在${seasonal.season}${seasonal.strength === '旺' || seasonal.strength === '相' ? '得时' : '失时'}。` +
+    `${huAnalysis.includes('顺遂') ? '过程较顺' : '过程有波折'}，${bianTrend.includes('有利') ? '终局可期' : '需谨慎行事'}。`;
+
+  return {
+    imagery,
+    leiXiang,
+    seasonalStrength: seasonal,
+    yingQi,
+    huGuaAnalysis: huAnalysis,
+    bianGuaTrend: bianTrend,
+    pattern: patterns.join('·'),
+    summary,
+  };
 }
 
 // ═══════════════════════════════════════════════
@@ -291,10 +490,7 @@ function calculateScore(tiYong: TiYongRelation): number {
 // ═══════════════════════════════════════════════
 
 function divineByTime(year: number, month: number, day: number, hour: number): MeihuaResult {
-  // 梅花起卦法：年数+月数+日数 = 上卦数，年+月+日+时 = 下卦数
-  // 先天数取余8得卦，总数取余6得动爻
-  // 地支时辰：子1丑2寅3卯4辰5巳6午7未8申9酉10戌11亥12
-  const zhiHour = Math.floor(((hour + 1) % 24) / 2) + 1; // 简化地支时辰
+  const zhiHour = Math.floor(((hour + 1) % 24) / 2) + 1;
 
   const upperNum = year + month + day;
   const lowerNum = upperNum + zhiHour;
@@ -311,20 +507,16 @@ function divineByTime(year: number, month: number, day: number, hour: number): M
   const huGua = computeHuGua(upper, lower);
   const bianGua = computeBianGua(upper, lower, dongYao);
   const tiYong = determineTiYong(benGua, dongYao);
-  const score = calculateScore(tiYong);
+  const analysis = performDeepAnalysis(benGua, huGua, bianGua, tiYong, dongYao, month);
+  const score = calculateScore(tiYong, analysis.seasonalStrength);
 
   return {
     method: 'time',
-    benGua,
-    huGua,
-    bianGua,
-    dongYao,
-    tiYong,
-    upperNumber: upperNum,
-    lowerNumber: lowerNum,
-    totalNumber: totalNum,
+    benGua, huGua, bianGua, dongYao, tiYong,
+    upperNumber: upperNum, lowerNumber: lowerNum, totalNumber: totalNum,
     score,
     interpretation: buildInterpretation(benGua, huGua, bianGua, tiYong, dongYao),
+    analysis,
   };
 }
 
@@ -345,20 +537,17 @@ function divineByNumber(num1: number, num2: number): MeihuaResult {
   const huGua = computeHuGua(upper, lower);
   const bianGua = computeBianGua(upper, lower, dongYao);
   const tiYong = determineTiYong(benGua, dongYao);
-  const score = calculateScore(tiYong);
+  const now = new Date();
+  const analysis = performDeepAnalysis(benGua, huGua, bianGua, tiYong, dongYao, now.getMonth() + 1);
+  const score = calculateScore(tiYong, analysis.seasonalStrength);
 
   return {
     method: 'number',
-    benGua,
-    huGua,
-    bianGua,
-    dongYao,
-    tiYong,
-    upperNumber: num1,
-    lowerNumber: num2,
-    totalNumber: totalNum,
+    benGua, huGua, bianGua, dongYao, tiYong,
+    upperNumber: num1, lowerNumber: num2, totalNumber: totalNum,
     score,
     interpretation: buildInterpretation(benGua, huGua, bianGua, tiYong, dongYao),
+    analysis,
   };
 }
 
@@ -375,31 +564,35 @@ function buildInterpretation(
 }
 
 // ═══════════════════════════════════════════════
-// FateVector 映射
+// FateVector 映射（增强版）
 // ═══════════════════════════════════════════════
 
 function meihuaToFateVector(result: MeihuaResult): FateVector {
   const base = result.score;
   const tiEl = result.tiYong.tiElement;
+  const analysis = result.analysis;
 
-  // 五行 → 六维偏向
   const elementBonus: Record<WuXing, Partial<Record<keyof FateVector, number>>> = {
-    '金': { wealth: 8, life: 5 },
-    '木': { health: 8, wisdom: 5 },
-    '水': { wisdom: 8, spirit: 5 },
-    '火': { life: 8, relation: 5 },
+    '金': { wealth: 8, life: 5, health: 3 },
+    '木': { health: 8, wisdom: 5, relation: 3 },
+    '水': { wisdom: 8, spirit: 5, wealth: 3 },
+    '火': { life: 8, relation: 5, spirit: 3 },
     '土': { health: 5, wealth: 5, relation: 3 },
   };
+
+  // 季节旺衰修正
+  const seasonMod: Record<string, number> = { '旺': 5, '相': 3, '休': 0, '囚': -3, '死': -5 };
+  const sMod = seasonMod[analysis.seasonalStrength.strength] || 0;
 
   const bonus = elementBonus[tiEl] || {};
   const clamp = (v: number) => Math.max(5, Math.min(95, Math.round(v)));
 
   return {
-    life:     clamp(base + (bonus.life ?? 0)),
-    wealth:   clamp(base + (bonus.wealth ?? 0)),
+    life:     clamp(base + (bonus.life ?? 0) + sMod),
+    wealth:   clamp(base + (bonus.wealth ?? 0) + sMod),
     relation: clamp(base + (bonus.relation ?? 0)),
     health:   clamp(base + (bonus.health ?? 0)),
-    wisdom:   clamp(base + (bonus.wisdom ?? 0)),
+    wisdom:   clamp(base + (bonus.wisdom ?? 0) + sMod),
     spirit:   clamp(base + (bonus.spirit ?? 0)),
   };
 }
@@ -414,11 +607,9 @@ export function runMeihua(standardizedInput: StandardizedInput): {
 } {
   const t0 = performance.now();
 
-  // Determine divination method based on input
   let result: MeihuaResult;
 
   if (standardizedInput.questionText) {
-    // 文本转数字起卦：取文本字符编码和
     const chars = standardizedInput.questionText;
     const halfLen = Math.ceil(chars.length / 2);
     let n1 = 0, n2 = 0;
@@ -430,13 +621,8 @@ export function runMeihua(standardizedInput: StandardizedInput): {
     if (n2 === 0) n2 = 1;
     result = divineByNumber(n1, n2);
   } else {
-    // 时间起卦：使用 queryTimeUtc
     const qt = new Date(standardizedInput.queryTimeUtc);
-    const lunarYear = qt.getFullYear();
-    const lunarMonth = qt.getMonth() + 1;
-    const lunarDay = qt.getDate();
-    const lunarHour = qt.getHours();
-    result = divineByTime(lunarYear, lunarMonth, lunarDay, lunarHour);
+    result = divineByTime(qt.getFullYear(), qt.getMonth() + 1, qt.getDate(), qt.getHours());
   }
 
   const fateVector = meihuaToFateVector(result);
@@ -446,11 +632,11 @@ export function runMeihua(standardizedInput: StandardizedInput): {
     eo: {
       engineName: 'meihua',
       engineNameCN: '梅花易数',
-      engineVersion: '1.0.0',
+      engineVersion: '2.0.0',
       sourceUrls: ['https://en.wikipedia.org/wiki/Plum_Blossom_Numerology'],
       sourceGrade: 'B',
       ruleSchool: '邵雍梅花易数',
-      confidence: 0.62,
+      confidence: 0.68,
       computationTimeMs: Math.round(t1 - t0),
       rawInputSnapshot: {
         method: result.method,
@@ -465,9 +651,11 @@ export function runMeihua(standardizedInput: StandardizedInput): {
         '动爻': String(result.dongYao),
         '体用': result.tiYong.relation,
         '吉凶': result.tiYong.tendency,
+        '格局': result.analysis.pattern,
+        '季节旺衰': `${result.analysis.seasonalStrength.season}·${result.analysis.seasonalStrength.strength}`,
       },
       warnings: ['梅花易数基于起卦时间而非出生时间，适用于即时感应占断'],
-      uncertaintyNotes: ['梅花体用评分为启发式映射', '时间起卦使用公历近似'],
+      uncertaintyNotes: ['体用评分含季节旺衰修正', '应期推算为参考性质'],
       timingBasis: 'query',
     },
     meihuaResult: result,
@@ -480,7 +668,6 @@ export const MeihuaEngine = {
   divineByNumber,
   meihuaToFateVector,
   runMeihua,
-  // Expose internals for testing
   _internals: {
     trigramByXiantianNumber,
     makeGua,
@@ -489,5 +676,8 @@ export const MeihuaEngine = {
     determineTiYong,
     wuxingRelation,
     TRIGRAMS,
+    getSeasonalStrength,
+    calculateYingQi,
+    performDeepAnalysis,
   },
 };
