@@ -261,11 +261,11 @@ export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelPr
         <TabsContent value="entangle" className="mt-5 space-y-5">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4">
-              <h3 className="text-sm font-serif text-violet-300 mb-3"><Network className="w-4 h-4 inline mr-1" />量子纠缠图</h3>
+              <h3 className="text-sm font-serif text-violet-300 mb-3"><Network className="w-4 h-4 inline mr-1" />{t('quantum.entangle_map')}</h3>
               <QuantumEntanglementMap entanglements={result.entanglements} />
             </div>
             <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4">
-              <h3 className="text-sm font-serif text-violet-300 mb-3">维度关联</h3>
+              <h3 className="text-sm font-serif text-violet-300 mb-3">{t('quantum.dim_correlation')}</h3>
               <div className="space-y-2">
                 {result.entanglements.sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation)).map((e, i) => {
                   const isPos = e.correlation > 0;
