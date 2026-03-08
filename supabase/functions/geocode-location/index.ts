@@ -86,13 +86,13 @@ async function getTimezoneInfo(lat: number, lon: number): Promise<TimezoneResult
  */
 function refineOffsetForDate(ianaTimezone: string, standardOffset: number, birthDate: Date): number {
   try {
-    // Try using Intl.DateTimeFormat to get the actual offset at the birth date
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone: ianaTimezone,
       timeZoneName: 'longOffset',
     });
     const parts = formatter.formatToParts(birthDate);
     const tzPart = parts.find(p => p.type === 'timeZoneName');
+    console.log(`[DEBUG] Intl parts for ${ianaTimezone}:`, JSON.stringify(tzPart));
     if (tzPart) {
       if (tzPart.value === 'GMT') return 0;
       const match = tzPart.value.match(/GMT([+-])(\d{1,2}):(\d{2})/);
@@ -100,13 +100,16 @@ function refineOffsetForDate(ianaTimezone: string, standardOffset: number, birth
         const sign = match[1] === '+' ? 1 : -1;
         const hours = parseInt(match[2], 10);
         const minutes = parseInt(match[3], 10);
-        return sign * (hours * 60 + minutes);
+        const result = sign * (hours * 60 + minutes);
+        console.log(`[DEBUG] Intl offset result: ${result} minutes`);
+        return result;
       }
+      console.log(`[DEBUG] Intl regex did not match: "${tzPart.value}"`);
     }
-  } catch {
-    // fall through
+  } catch (e) {
+    console.log(`[DEBUG] Intl error: ${e}`);
   }
-  // If Intl fails, return the standard offset from timeapi.io
+  console.log(`[DEBUG] Falling back to standardOffset: ${standardOffset}`);
   return standardOffset;
 }
 
