@@ -1,15 +1,13 @@
 /**
- * Destiny Tree Layer — Shows event seeds, fusion, tree generation, death termination, collapse path
- * Combines what was previously in DestinyTreePanel into a more complete visualization.
+ * Destiny Tree Layer — tree stats, collapse path, rejected branches, death, audit
  */
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { RecursiveWorldTree, CollapseResult, CollapsedPathNode, RejectedBranchSummary } from '@/types/destinyTree';
+import type { RecursiveWorldTree, CollapseResult } from '@/types/destinyTree';
 import {
   TreePine, Skull, GitBranch, ArrowRight, Sparkles,
-  CheckCircle, XCircle, Shield, Activity, TrendingUp, FileSearch,
-  Layers, Target,
+  CheckCircle, XCircle, Shield, Activity, TrendingUp, Target,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -25,11 +23,11 @@ const DEATH_LABELS: Record<string, string> = {
 };
 
 const INTENSITY_COLORS: Record<string, string> = {
-  minor: 'border-border/30 text-muted-foreground',
-  moderate: 'border-blue-500/30 text-blue-400',
-  major: 'border-amber-500/30 text-amber-400',
-  critical: 'border-rose-500/30 text-rose-400',
-  life_defining: 'border-fuchsia-500/30 text-fuchsia-400',
+  minor: 'border-border/20 text-muted-foreground/60',
+  moderate: 'border-blue-500/20 text-blue-400/70',
+  major: 'border-amber-500/20 text-amber-400/70',
+  critical: 'border-rose-500/20 text-rose-400/70',
+  life_defining: 'border-purple-500/20 text-purple-400/70',
 };
 
 interface Props {
@@ -39,100 +37,97 @@ interface Props {
 
 export function DestinyTreeLayer({ tree, collapse }: Props) {
   const [tab, setTab] = useState('path');
-
   const events = collapse.collapsedPath.filter(n => n.age > 0);
   const turningPoints = events.filter(n => n.event.intensity === 'major' || n.event.intensity === 'critical' || n.event.intensity === 'life_defining');
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="p-4 rounded-xl bg-card/40 border border-primary/20">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-serif text-primary flex items-center gap-1.5">
-            <TreePine className="w-4 h-4" />递归命运树 · 量子坍缩
+      <div className="glass-elevated rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-serif text-foreground flex items-center gap-2">
+            <TreePine className="w-4 h-4 text-primary" />递归命运树
           </h2>
-          <Badge variant="outline" className="text-[9px] border-primary/20 text-primary/70 font-mono">
-            {tree.totalNodes}节点 · {tree.totalPaths}路径 · 深度{tree.maxDepth}
-          </Badge>
+          <span className="text-[10px] text-muted-foreground/40 font-mono font-sans">
+            {tree.totalNodes} nodes · {tree.totalPaths} paths · depth {tree.maxDepth}
+          </span>
         </div>
-        <p className="text-xs text-muted-foreground">
-          由{tree.totalPaths}条命运路径坍缩为唯一确定态，终止于{collapse.deathAge}岁({DEATH_LABELS[collapse.deathCause] || '寿终'})。
-          置信度 {Math.round(collapse.collapseConfidence * 100)}%。
+        <p className="text-xs text-muted-foreground/60 font-sans leading-relaxed">
+          由 {tree.totalPaths} 条命运路径坍缩为唯一确定态，终止于 {collapse.deathAge} 岁（{DEATH_LABELS[collapse.deathCause] || '寿终'}），置信度 {Math.round(collapse.collapseConfidence * 100)}%。
         </p>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      {/* Stats */}
+      <div className="grid grid-cols-5 gap-2">
         {[
-          { label: '总节点', value: tree.totalNodes, icon: Activity },
-          { label: '总路径', value: tree.totalPaths, icon: GitBranch },
-          { label: '最大深度', value: tree.maxDepth, icon: TrendingUp },
-          { label: '关键转折', value: turningPoints.length, icon: Target },
-          { label: '坍缩寿命', value: `${collapse.deathAge}岁`, icon: Skull },
+          { label: '节点', value: tree.totalNodes, icon: Activity },
+          { label: '路径', value: tree.totalPaths, icon: GitBranch },
+          { label: '深度', value: tree.maxDepth, icon: TrendingUp },
+          { label: '转折', value: turningPoints.length, icon: Target },
+          { label: '寿命', value: `${collapse.deathAge}`, icon: Skull },
         ].map(({ label, value, icon: Icon }) => (
-          <div key={label} className="p-3 rounded-lg bg-card/30 border border-border/20 text-center">
-            <Icon className="w-4 h-4 mx-auto mb-1 text-primary/60" />
-            <div className="text-lg font-mono font-bold text-foreground">{value}</div>
-            <div className="text-[10px] text-muted-foreground">{label}</div>
+          <div key={label} className="glass rounded-xl p-3 text-center">
+            <Icon className="w-3.5 h-3.5 mx-auto mb-1.5 text-primary/40" />
+            <div className="text-base font-mono font-semibold text-foreground">{value}</div>
+            <div className="text-[9px] text-muted-foreground/40 font-sans">{label}</div>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid w-full grid-cols-4 bg-secondary/30 border border-primary/20 h-auto">
-          <TabsTrigger value="path" className="text-[9px] sm:text-xs py-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">坍缩主路径</TabsTrigger>
-          <TabsTrigger value="rejected" className="text-[9px] sm:text-xs py-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">被拒支线({collapse.rejectedBranches.length})</TabsTrigger>
-          <TabsTrigger value="death" className="text-[9px] sm:text-xs py-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">终局判定</TabsTrigger>
-          <TabsTrigger value="audit" className="text-[9px] sm:text-xs py-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">坍缩审计</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-card/50 border border-border/20 h-auto p-1 rounded-xl">
+          <TabsTrigger value="path" className="text-[10px] sm:text-xs py-2 rounded-lg font-sans data-[state=active]:bg-primary/15 data-[state=active]:text-primary">主路径</TabsTrigger>
+          <TabsTrigger value="rejected" className="text-[10px] sm:text-xs py-2 rounded-lg font-sans data-[state=active]:bg-primary/15 data-[state=active]:text-primary">被拒支线</TabsTrigger>
+          <TabsTrigger value="death" className="text-[10px] sm:text-xs py-2 rounded-lg font-sans data-[state=active]:bg-primary/15 data-[state=active]:text-primary">终局</TabsTrigger>
+          <TabsTrigger value="audit" className="text-[10px] sm:text-xs py-2 rounded-lg font-sans data-[state=active]:bg-primary/15 data-[state=active]:text-primary">审计</TabsTrigger>
         </TabsList>
 
         <TabsContent value="path" className="mt-4">
-          <div className="bg-card/40 border border-primary/20 rounded-xl p-4">
-            <ScrollArea className="h-[600px] pr-2">
-              <h3 className="text-sm font-serif text-primary flex items-center gap-1.5 mb-3">
-                <ArrowRight className="w-4 h-4" />唯一坍缩路径 ({events.length} 个节点)
+          <div className="glass-elevated rounded-2xl p-5">
+            <ScrollArea className="h-[550px]">
+              <h3 className="text-xs font-sans text-foreground/70 flex items-center gap-2 mb-4">
+                <ArrowRight className="w-3.5 h-3.5 text-primary/60" />坍缩路径 · {events.length} 节点
               </h3>
               <div className="relative">
-                <div className="absolute left-4 top-0 bottom-0 w-px bg-primary/20" />
-                <div className="space-y-1">
+                <div className="absolute left-[15px] top-0 bottom-0 w-px bg-border/15" />
+                <div className="space-y-1.5">
                   {events.map((node, i) => (
                     <div key={i} className="relative pl-10">
-                      <div className={`absolute left-[11px] top-3 w-[10px] h-[10px] rounded-full border-2 ${
-                        node.isDeath ? 'bg-rose-500 border-rose-400'
-                          : node.event.isMainline ? 'bg-primary border-primary'
-                          : 'bg-muted border-muted-foreground'
+                      <div className={`absolute left-[11px] top-3.5 w-[10px] h-[10px] rounded-full border-2 ${
+                        node.isDeath ? 'bg-destructive border-destructive/60'
+                          : node.event.isMainline ? 'bg-primary/80 border-primary/40'
+                          : 'bg-muted/50 border-border/30'
                       }`} />
-                      <div className={`p-3 rounded-lg border ${
-                        node.isDeath ? 'border-rose-500/30 bg-rose-500/5' : 'border-border/20 bg-card/30'
+                      <div className={`p-3 rounded-xl border transition-colors ${
+                        node.isDeath ? 'border-destructive/20 bg-destructive/5' : 'border-border/10 bg-card/20 hover:bg-card/30'
                       }`}>
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-serif text-foreground">{node.age}岁</span>
-                            <span className="text-[10px] text-muted-foreground">({node.year}年)</span>
+                            <span className="text-[10px] text-muted-foreground/40 font-sans">{node.year}</span>
                             {node.isDeath && (
-                              <Badge variant="outline" className="text-[9px] border-rose-500/30 text-rose-400">
-                                <Skull className="w-3 h-3 mr-0.5" />
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive/70 border border-destructive/15 font-sans">
                                 {DEATH_LABELS[node.deathCause || ''] || '终'}
-                              </Badge>
+                              </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <Badge variant="outline" className={`text-[8px] px-1 ${INTENSITY_COLORS[node.event.intensity] || ''}`}>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full border font-sans ${INTENSITY_COLORS[node.event.intensity] || ''}`}>
                               {node.event.intensity}
-                            </Badge>
-                            <span className={`text-[10px] font-mono ${sc(node.cumulativeProbability)}`}>
-                              P={node.cumulativeProbability.toFixed(3)}
+                            </span>
+                            <span className={`text-[9px] font-mono ${sc(node.cumulativeProbability)}`}>
+                              {node.cumulativeProbability.toFixed(3)}
                             </span>
                           </div>
                         </div>
-                        <p className="text-xs text-foreground/80 leading-relaxed">
-                          {node.event.description.length > 120 ? node.event.description.slice(0, 120) + '...' : node.event.description}
+                        <p className="text-[11px] text-foreground/60 leading-relaxed font-sans">
+                          {node.event.description.length > 120 ? node.event.description.slice(0, 120) + '…' : node.event.description}
                         </p>
                         {node.engineSupports.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1.5">
+                          <div className="flex flex-wrap gap-1 mt-2">
                             {node.engineSupports.map(e => (
-                              <Badge key={e} variant="outline" className="text-[8px] px-1 border-primary/20 text-primary/70">{e}</Badge>
+                              <span key={e} className="text-[8px] px-1.5 py-0.5 rounded-full border border-border/10 text-muted-foreground/40 font-sans">{e}</span>
                             ))}
                           </div>
                         )}
@@ -146,26 +141,23 @@ export function DestinyTreeLayer({ tree, collapse }: Props) {
         </TabsContent>
 
         <TabsContent value="rejected" className="mt-4">
-          <div className="bg-card/40 border border-primary/20 rounded-xl p-4">
-            <ScrollArea className="h-[500px] pr-2">
+          <div className="glass-elevated rounded-2xl p-5">
+            <ScrollArea className="h-[450px]">
               {collapse.rejectedBranches.length === 0 ? (
-                <div className="p-4 text-center text-xs text-muted-foreground">
-                  <Sparkles className="w-5 h-5 mx-auto mb-2 text-emerald-400" />
-                  命运路径高度确定，无显著被拒支线
+                <div className="p-8 text-center">
+                  <Sparkles className="w-5 h-5 mx-auto mb-2 text-primary/40" />
+                  <p className="text-xs text-muted-foreground/40 font-sans">命运路径高度确定，无显著被拒支线</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <h3 className="text-sm font-serif text-primary flex items-center gap-1.5">
-                    <GitBranch className="w-4 h-4" />被拒支线 ({collapse.rejectedBranches.length})
-                  </h3>
                   {collapse.rejectedBranches.map((b, i) => (
-                    <div key={i} className="p-3 rounded-lg border border-border/20 bg-card/20 opacity-70">
+                    <div key={i} className="p-3 rounded-xl border border-border/10 bg-card/15 opacity-60 hover:opacity-80 transition-opacity">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-muted-foreground">{b.branchAge}岁分叉</span>
-                        <span className="text-[10px] font-mono text-rose-400">P={b.probability.toFixed(4)}</span>
+                        <span className="text-xs text-muted-foreground/60 font-sans">{b.branchAge}岁分叉</span>
+                        <span className="text-[10px] font-mono text-destructive/60">P={b.probability.toFixed(4)}</span>
                       </div>
-                      <p className="text-[10px] text-muted-foreground/80">{b.branchEvent}</p>
-                      <p className="text-[10px] text-muted-foreground/60 mt-0.5">{b.rejectedReason}</p>
+                      <p className="text-[10px] text-muted-foreground/50 font-sans">{b.branchEvent}</p>
+                      <p className="text-[10px] text-muted-foreground/30 mt-0.5 font-sans">{b.rejectedReason}</p>
                     </div>
                   ))}
                 </div>
@@ -175,107 +167,101 @@ export function DestinyTreeLayer({ tree, collapse }: Props) {
         </TabsContent>
 
         <TabsContent value="death" className="mt-4">
-          <div className="bg-card/40 border border-primary/20 rounded-xl p-4 space-y-4">
-            {/* Death determination */}
-            <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/5">
-              <div className="flex items-center gap-2 mb-2">
-                <Skull className="w-5 h-5 text-rose-400" />
-                <span className="text-sm font-serif text-rose-300">终局判定 · {collapse.deathAge}岁</span>
+          <div className="glass-elevated rounded-2xl p-5 space-y-4">
+            <div className="p-5 rounded-xl border border-destructive/15 bg-destructive/5">
+              <div className="flex items-center gap-2 mb-3">
+                <Skull className="w-5 h-5 text-destructive/60" />
+                <span className="text-sm font-serif text-foreground/80">终局判定 · {collapse.deathAge}岁</span>
               </div>
-              <p className="text-xs text-foreground/80 mb-2">{collapse.deathDescription}</p>
-              <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                <span>死因: <strong className="text-rose-400">{DEATH_LABELS[collapse.deathCause] || collapse.deathCause}</strong></span>
+              <p className="text-xs text-foreground/60 mb-3 font-sans leading-relaxed">{collapse.deathDescription}</p>
+              <div className="flex items-center gap-4 text-[10px] text-muted-foreground/50 font-sans">
+                <span>死因: <strong className="text-destructive/70">{DEATH_LABELS[collapse.deathCause] || collapse.deathCause}</strong></span>
                 <span>置信度: <strong className={sc(collapse.collapseConfidence)}>{Math.round(collapse.collapseConfidence * 100)}%</strong></span>
               </div>
-              <p className="text-[10px] text-muted-foreground/70 mt-2">{collapse.deathBoundaryReason}</p>
+              {collapse.deathBoundaryReason && (
+                <p className="text-[10px] text-muted-foreground/30 mt-2 font-sans">{collapse.deathBoundaryReason}</p>
+              )}
             </div>
 
-            {/* Death fusion candidates */}
             {tree.deathFusion && (
               <div className="space-y-2">
-                <h4 className="text-xs font-serif text-rose-300">死亡候选融合</h4>
+                <h4 className="text-xs font-sans text-foreground/60">死亡候选融合</h4>
                 {tree.deathFusion.strongCandidates.length > 0 && (
-                  <div className="p-3 rounded-lg border border-rose-500/20 bg-rose-500/5">
-                    <div className="text-[10px] text-rose-400 mb-1">强候选 ({tree.deathFusion.strongCandidates.length})</div>
+                  <div className="p-3 rounded-xl border border-destructive/10 bg-destructive/3">
+                    <div className="text-[10px] text-destructive/60 mb-1 font-sans">强候选</div>
                     {tree.deathFusion.strongCandidates.map((dc, i) => (
-                      <div key={i} className="text-[10px] text-muted-foreground">
-                        · {dc.estimatedAge}岁 ({dc.cause}) — {dc.engines.join('+')} — {dc.description}
+                      <div key={i} className="text-[10px] text-muted-foreground/50 font-sans">
+                        · {dc.estimatedAge}岁 ({dc.cause}) — {dc.engines.join(' + ')}
                       </div>
                     ))}
                   </div>
                 )}
                 {tree.deathFusion.weakCandidates.length > 0 && (
-                  <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
-                    <div className="text-[10px] text-amber-400 mb-1">弱候选 ({tree.deathFusion.weakCandidates.length})</div>
+                  <div className="p-3 rounded-xl border border-amber-500/10 bg-amber-500/3">
+                    <div className="text-[10px] text-amber-400/60 mb-1 font-sans">弱候选</div>
                     {tree.deathFusion.weakCandidates.map((dc, i) => (
-                      <div key={i} className="text-[10px] text-muted-foreground">
-                        · {dc.estimatedAge}岁 ({dc.cause}) — {dc.engines.join('+')}
+                      <div key={i} className="text-[10px] text-muted-foreground/50 font-sans">
+                        · {dc.estimatedAge}岁 ({dc.cause}) — {dc.engines.join(' + ')}
                       </div>
                     ))}
                   </div>
                 )}
-                <p className="text-[10px] text-muted-foreground/60">{tree.deathFusion.fusionReasoning}</p>
+                <p className="text-[10px] text-muted-foreground/30 font-sans">{tree.deathFusion.fusionReasoning}</p>
               </div>
             )}
           </div>
         </TabsContent>
 
         <TabsContent value="audit" className="mt-4">
-          <div className="bg-card/40 border border-primary/20 rounded-xl p-4 space-y-4">
-            <ScrollArea className="h-[500px] pr-2">
-              {/* Dominant engines */}
-              {collapse.dominantEngines.length > 0 && (
-                <div className="p-3 rounded-lg border border-primary/20 bg-card/30 mb-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <FileSearch className="w-4 h-4 text-primary/60" />
-                    <span className="text-xs font-serif text-primary">主导引擎</span>
+          <div className="glass-elevated rounded-2xl p-5">
+            <ScrollArea className="h-[450px]">
+              <div className="space-y-3">
+                {collapse.dominantEngines.length > 0 && (
+                  <div className="p-4 rounded-xl border border-border/10 bg-card/20">
+                    <div className="text-[10px] text-muted-foreground/40 font-sans mb-2">主导引擎</div>
+                    <div className="flex gap-1.5">
+                      {collapse.dominantEngines.map(e => (
+                        <span key={e} className="text-[10px] px-2 py-0.5 rounded-full border border-primary/20 text-primary/70 font-sans">{e}</span>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex gap-1.5">
-                    {collapse.dominantEngines.map(e => (
-                      <Badge key={e} variant="outline" className="text-[9px] border-primary/30 text-primary">{e}</Badge>
+                )}
+
+                <div className="p-4 rounded-xl border border-border/10 bg-card/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400/60" />
+                    <span className="text-[10px] text-muted-foreground/40 font-sans">选择理由</span>
+                  </div>
+                  <p className="text-[11px] text-foreground/50 leading-relaxed font-sans">{collapse.selectedReason}</p>
+                </div>
+
+                {collapse.conflictResolutionNotes.length > 0 && (
+                  <div className="p-4 rounded-xl border border-amber-500/10 bg-amber-500/3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <XCircle className="w-3.5 h-3.5 text-amber-400/60" />
+                      <span className="text-[10px] text-muted-foreground/40 font-sans">冲突解决</span>
+                    </div>
+                    {collapse.conflictResolutionNotes.map((note, i) => (
+                      <p key={i} className="text-[10px] text-foreground/40 font-sans">{note}</p>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Selected reason */}
-              <div className="p-3 rounded-lg border border-primary/20 bg-card/30 mb-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs font-serif text-primary">选择理由</span>
-                </div>
-                <p className="text-[10px] text-muted-foreground leading-relaxed">{collapse.selectedReason}</p>
-              </div>
-
-              {/* Conflict resolution */}
-              {collapse.conflictResolutionNotes.length > 0 && (
-                <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 mb-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <XCircle className="w-4 h-4 text-amber-400" />
-                    <span className="text-xs font-serif text-amber-300">冲突解决</span>
+                <div className="p-4 rounded-xl border border-border/10 bg-card/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield className="w-3.5 h-3.5 text-primary/40" />
+                    <span className="text-[10px] text-muted-foreground/40 font-sans">坍缩推理</span>
                   </div>
-                  {collapse.conflictResolutionNotes.map((note, i) => (
-                    <p key={i} className="text-[10px] text-muted-foreground">{note}</p>
-                  ))}
+                  <p className="text-[11px] text-foreground/50 leading-relaxed font-sans">{collapse.collapseReasoning}</p>
                 </div>
-              )}
 
-              {/* Collapse reasoning */}
-              <div className="p-3 rounded-lg border border-primary/20 bg-card/30 mb-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <Shield className="w-4 h-4 text-primary/60" />
-                  <span className="text-xs font-serif text-primary">坍缩推理</span>
+                <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="w-3.5 h-3.5 text-primary/60" />
+                    <span className="text-[10px] text-primary/60 font-sans">命运总评</span>
+                  </div>
+                  <p className="text-xs text-foreground/60 leading-relaxed font-sans">{collapse.finalLifeSummary}</p>
                 </div>
-                <p className="text-[10px] text-muted-foreground leading-relaxed">{collapse.collapseReasoning}</p>
-              </div>
-
-              {/* Final life summary */}
-              <div className="p-3 rounded-lg border border-primary/20 bg-primary/5">
-                <div className="flex items-center gap-2 mb-1">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-serif text-primary">命运总评</span>
-                </div>
-                <p className="text-xs text-foreground/80 leading-relaxed">{collapse.finalLifeSummary}</p>
               </div>
             </ScrollArea>
           </div>
