@@ -176,10 +176,11 @@ Deno.serve(async (req: Request) => {
       // Get IANA timezone + standard offset from TimeAPI.io
       const tzInfo = await getTimezoneInfo(lat, lon);
 
-      // Refine offset for the specific birth date (handles DST)
+      // Use timeapi.io standard offset as primary source (Deno Intl has timezone bugs)
+      // Only fall back to Intl if timeapi.io returned 0 (i.e. failed to parse)
       const birthDate = new Date(Date.UTC(birthYear, birthMonth - 1, birthDay, birthHour, 0, 0));
       const offsetMinutes = tzInfo.standardOffsetMinutes !== 0
-        ? refineOffsetForDate(tzInfo.ianaTimezone, tzInfo.standardOffsetMinutes, birthDate)
+        ? tzInfo.standardOffsetMinutes
         : refineOffsetForDate(tzInfo.ianaTimezone, 0, birthDate);
 
       results.push({
