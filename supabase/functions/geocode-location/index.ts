@@ -171,12 +171,14 @@ Deno.serve(async (req: Request) => {
       // importance is 0-1 from Nominatim
       const confidence = Math.min(1, Math.max(0, parseFloat(item.importance) || 0.5));
 
-      // Get IANA timezone
-      const ianaTimezone = await getIanaTimezone(lat, lon);
+      // Get IANA timezone + standard offset from TimeAPI.io
+      const tzInfo = await getTimezoneInfo(lat, lon);
 
-      // Compute offset at birth date
+      // Refine offset for the specific birth date (handles DST)
       const birthDate = new Date(Date.UTC(birthYear, birthMonth - 1, birthDay, birthHour, 0, 0));
-      const offsetMinutes = getOffsetAtDate(ianaTimezone, birthDate);
+      const offsetMinutes = tzInfo.standardOffsetMinutes !== 0
+        ? refineOffsetForDate(tzInfo.ianaTimezone, tzInfo.standardOffsetMinutes, birthDate)
+        : refineOffsetForDate(tzInfo.ianaTimezone, 0, birthDate);
 
       results.push({
         normalizedLocationName: displayName,
