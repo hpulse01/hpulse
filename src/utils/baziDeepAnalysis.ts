@@ -329,6 +329,317 @@ function calculateShenSha(
 }
 
 // ═══════════════════════════════════════════════
+// v3.0: 地支刑冲合害 (Branch Interactions)
+// ═══════════════════════════════════════════════
+
+export interface BranchInteraction {
+  type: '六合' | '三合' | '半合' | '六冲' | '三刑' | '自刑' | '六害' | '六破';
+  branches: string[];
+  positions: string[];
+  effect: '吉' | '凶' | '中性';
+  description: string;
+}
+
+/** 地支六合 */
+const LIUHE_PAIRS: [string, string, string][] = [
+  ['子', '丑', '土'], ['寅', '亥', '木'], ['卯', '戌', '火'],
+  ['辰', '酉', '金'], ['巳', '申', '水'], ['午', '未', '火'],
+];
+
+/** 地支三合局 */
+const SANHE_GROUPS: [string, string, string, string][] = [
+  ['申', '子', '辰', '水'], ['寅', '午', '戌', '火'],
+  ['巳', '酉', '丑', '金'], ['亥', '卯', '未', '木'],
+];
+
+/** 地支六冲 */
+const LIUCHONG_PAIRS: [string, string][] = [
+  ['子', '午'], ['丑', '未'], ['寅', '申'], ['卯', '酉'], ['辰', '戌'], ['巳', '亥'],
+];
+
+/** 地支三刑 */
+const SANXING_GROUPS: { branches: string[]; name: string; desc: string }[] = [
+  { branches: ['寅', '巳', '申'], name: '无恩之刑', desc: '主忘恩负义，恩将仇报' },
+  { branches: ['丑', '戌', '未'], name: '持势之刑', desc: '主依仗权势，招惹是非' },
+  { branches: ['子', '卯'], name: '无礼之刑', desc: '主不守规矩，礼数欠缺' },
+];
+
+/** 地支自刑 */
+const ZIXING_BRANCHES = ['辰', '午', '酉', '亥'];
+
+/** 地支六害 */
+const LIUHAI_PAIRS: [string, string][] = [
+  ['子', '未'], ['丑', '午'], ['寅', '巳'], ['卯', '辰'], ['申', '亥'], ['酉', '戌'],
+];
+
+/** 地支六破 */
+const LIUPO_PAIRS: [string, string][] = [
+  ['子', '酉'], ['丑', '辰'], ['寅', '亥'], ['卯', '午'], ['巳', '申'], ['未', '戌'],
+];
+
+function calculateBranchInteractions(
+  pillars: { year: string; month: string; day: string; hour: string },
+): BranchInteraction[] {
+  const results: BranchInteraction[] = [];
+  const positions = [
+    { branch: pillars.year.charAt(1), label: '年支' },
+    { branch: pillars.month.charAt(1), label: '月支' },
+    { branch: pillars.day.charAt(1), label: '日支' },
+    { branch: pillars.hour.charAt(1), label: '时支' },
+  ];
+
+  // 六合
+  for (let i = 0; i < positions.length; i++) {
+    for (let j = i + 1; j < positions.length; j++) {
+      for (const [a, b, element] of LIUHE_PAIRS) {
+        if ((positions[i].branch === a && positions[j].branch === b) ||
+            (positions[i].branch === b && positions[j].branch === a)) {
+          results.push({
+            type: '六合', branches: [positions[i].branch, positions[j].branch],
+            positions: [positions[i].label, positions[j].label], effect: '吉',
+            description: `${positions[i].label}${positions[i].branch}与${positions[j].label}${positions[j].branch}六合化${element}`,
+          });
+        }
+      }
+    }
+  }
+
+  // 三合
+  const branchSet = positions.map(p => p.branch);
+  for (const [a, b, c, element] of SANHE_GROUPS) {
+    const hasA = branchSet.includes(a), hasB = branchSet.includes(b), hasC = branchSet.includes(c);
+    if (hasA && hasB && hasC) {
+      results.push({
+        type: '三合', branches: [a, b, c],
+        positions: positions.filter(p => [a, b, c].includes(p.branch)).map(p => p.label),
+        effect: '吉', description: `${a}${b}${c}三合${element}局`,
+      });
+    } else if ((hasA && hasB) || (hasB && hasC) || (hasA && hasC)) {
+      const present = [hasA ? a : null, hasB ? b : null, hasC ? c : null].filter(Boolean) as string[];
+      results.push({
+        type: '半合', branches: present,
+        positions: positions.filter(p => present.includes(p.branch)).map(p => p.label),
+        effect: '中性', description: `${present.join('')}半合${element}局`,
+      });
+    }
+  }
+
+  // 六冲
+  for (let i = 0; i < positions.length; i++) {
+    for (let j = i + 1; j < positions.length; j++) {
+      for (const [a, b] of LIUCHONG_PAIRS) {
+        if ((positions[i].branch === a && positions[j].branch === b) ||
+            (positions[i].branch === b && positions[j].branch === a)) {
+          results.push({
+            type: '六冲', branches: [positions[i].branch, positions[j].branch],
+            positions: [positions[i].label, positions[j].label], effect: '凶',
+            description: `${positions[i].label}${positions[i].branch}与${positions[j].label}${positions[j].branch}相冲，主动荡变化`,
+          });
+        }
+      }
+    }
+  }
+
+  // 三刑
+  for (const xing of SANXING_GROUPS) {
+    const present = xing.branches.filter(b => branchSet.includes(b));
+    if (present.length >= 2) {
+      results.push({
+        type: '三刑', branches: present,
+        positions: positions.filter(p => present.includes(p.branch)).map(p => p.label),
+        effect: '凶', description: `${xing.name}：${xing.desc}`,
+      });
+    }
+  }
+
+  // 自刑
+  for (const branch of ZIXING_BRANCHES) {
+    const count = branchSet.filter(b => b === branch).length;
+    if (count >= 2) {
+      results.push({
+        type: '自刑', branches: [branch],
+        positions: positions.filter(p => p.branch === branch).map(p => p.label),
+        effect: '凶', description: `${branch}${branch}自刑，主自我矛盾伤害`,
+      });
+    }
+  }
+
+  // 六害
+  for (let i = 0; i < positions.length; i++) {
+    for (let j = i + 1; j < positions.length; j++) {
+      for (const [a, b] of LIUHAI_PAIRS) {
+        if ((positions[i].branch === a && positions[j].branch === b) ||
+            (positions[i].branch === b && positions[j].branch === a)) {
+          results.push({
+            type: '六害', branches: [positions[i].branch, positions[j].branch],
+            positions: [positions[i].label, positions[j].label], effect: '凶',
+            description: `${positions[i].label}${positions[i].branch}与${positions[j].label}${positions[j].branch}相害，主暗损不利`,
+          });
+        }
+      }
+    }
+  }
+
+  // 六破
+  for (let i = 0; i < positions.length; i++) {
+    for (let j = i + 1; j < positions.length; j++) {
+      for (const [a, b] of LIUPO_PAIRS) {
+        if ((positions[i].branch === a && positions[j].branch === b) ||
+            (positions[i].branch === b && positions[j].branch === a)) {
+          results.push({
+            type: '六破', branches: [positions[i].branch, positions[j].branch],
+            positions: [positions[i].label, positions[j].label], effect: '凶',
+            description: `${positions[i].label}${positions[i].branch}与${positions[j].label}${positions[j].branch}相破，主破耗不顺`,
+          });
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: 天干合化 (Stem Combinations)
+// ═══════════════════════════════════════════════
+
+export interface StemCombination {
+  type: '天干五合' | '天干相冲';
+  stems: string[];
+  positions: string[];
+  resultElement?: string;
+  canTransform: boolean;
+  description: string;
+}
+
+/** 天干五合 */
+const TIANGANWUHE: [string, string, string][] = [
+  ['甲', '己', '土'], ['乙', '庚', '金'], ['丙', '辛', '水'],
+  ['丁', '壬', '木'], ['戊', '癸', '火'],
+];
+
+/** 天干相冲 */
+const TIANGAN_CLASH: [string, string][] = [
+  ['甲', '庚'], ['乙', '辛'], ['丙', '壬'], ['丁', '癸'],
+];
+
+function calculateStemCombinations(
+  pillars: { year: string; month: string; day: string; hour: string },
+  monthBranch: string,
+): StemCombination[] {
+  const results: StemCombination[] = [];
+  const positions = [
+    { stem: pillars.year.charAt(0), label: '年干' },
+    { stem: pillars.month.charAt(0), label: '月干' },
+    { stem: pillars.day.charAt(0), label: '日干' },
+    { stem: pillars.hour.charAt(0), label: '时干' },
+  ];
+
+  // 天干五合
+  for (let i = 0; i < positions.length; i++) {
+    for (let j = i + 1; j < positions.length; j++) {
+      for (const [a, b, element] of TIANGANWUHE) {
+        if ((positions[i].stem === a && positions[j].stem === b) ||
+            (positions[i].stem === b && positions[j].stem === a)) {
+          // 判断是否化成：需月令五行配合
+          const monthEl = BRANCH_ELEMENTS[monthBranch];
+          const canTransform = monthEl === element;
+          results.push({
+            type: '天干五合', stems: [positions[i].stem, positions[j].stem],
+            positions: [positions[i].label, positions[j].label],
+            resultElement: element, canTransform,
+            description: canTransform
+              ? `${positions[i].label}${positions[i].stem}与${positions[j].label}${positions[j].stem}合化${element}，化成`
+              : `${positions[i].label}${positions[i].stem}与${positions[j].label}${positions[j].stem}合${element}，合而不化`,
+          });
+        }
+      }
+    }
+  }
+
+  // 天干相冲
+  for (let i = 0; i < positions.length; i++) {
+    for (let j = i + 1; j < positions.length; j++) {
+      for (const [a, b] of TIANGAN_CLASH) {
+        if ((positions[i].stem === a && positions[j].stem === b) ||
+            (positions[i].stem === b && positions[j].stem === a)) {
+          results.push({
+            type: '天干相冲', stems: [positions[i].stem, positions[j].stem],
+            positions: [positions[i].label, positions[j].label],
+            canTransform: false,
+            description: `${positions[i].label}${positions[i].stem}与${positions[j].label}${positions[j].stem}相冲克战`,
+          });
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: 空亡 (Kong Wang / Void)
+// ═══════════════════════════════════════════════
+
+export interface KongWangInfo {
+  /** 空亡地支 */
+  voidBranches: string[];
+  /** 四柱中是否有空亡 */
+  affectedPillars: { pillar: string; branch: string; isVoid: boolean }[];
+  /** 描述 */
+  description: string;
+}
+
+/**
+ * 空亡计算：以日柱查旬空
+ * 甲子旬空戌亥, 甲戌旬空申酉, 甲申旬空午未,
+ * 甲午旬空辰巳, 甲辰旬空寅卯, 甲寅旬空子丑
+ */
+const KONG_WANG_TABLE: Record<string, string[]> = {
+  '甲子': ['戌', '亥'], '乙丑': ['戌', '亥'], '丙寅': ['戌', '亥'], '丁卯': ['戌', '亥'], '戊辰': ['戌', '亥'],
+  '己巳': ['戌', '亥'], '庚午': ['戌', '亥'], '辛未': ['戌', '亥'], '壬申': ['戌', '亥'], '癸酉': ['戌', '亥'],
+  '甲戌': ['申', '酉'], '乙亥': ['申', '酉'], '丙子': ['申', '酉'], '丁丑': ['申', '酉'], '戊寅': ['申', '酉'],
+  '己卯': ['申', '酉'], '庚辰': ['申', '酉'], '辛巳': ['申', '酉'], '壬午': ['申', '酉'], '癸未': ['申', '酉'],
+  '甲申': ['午', '未'], '乙酉': ['午', '未'], '丙戌': ['午', '未'], '丁亥': ['午', '未'], '戊子': ['午', '未'],
+  '己丑': ['午', '未'], '庚寅': ['午', '未'], '辛卯': ['午', '未'], '壬辰': ['午', '未'], '癸巳': ['午', '未'],
+  '甲午': ['辰', '巳'], '乙未': ['辰', '巳'], '丙申': ['辰', '巳'], '丁酉': ['辰', '巳'], '戊戌': ['辰', '巳'],
+  '己亥': ['辰', '巳'], '庚子': ['辰', '巳'], '辛丑': ['辰', '巳'], '壬寅': ['辰', '巳'], '癸卯': ['辰', '巳'],
+  '甲辰': ['寅', '卯'], '乙巳': ['寅', '卯'], '丙午': ['寅', '卯'], '丁未': ['寅', '卯'], '戊申': ['寅', '卯'],
+  '己酉': ['寅', '卯'], '庚戌': ['寅', '卯'], '辛亥': ['寅', '卯'], '壬子': ['寅', '卯'], '癸丑': ['寅', '卯'],
+  '甲寅': ['子', '丑'], '乙卯': ['子', '丑'], '丙辰': ['子', '丑'], '丁巳': ['子', '丑'], '戊午': ['子', '丑'],
+  '己未': ['子', '丑'], '庚申': ['子', '丑'], '辛酉': ['子', '丑'], '壬戌': ['子', '丑'], '癸亥': ['子', '丑'],
+};
+
+function calculateKongWang(
+  pillars: { year: string; month: string; day: string; hour: string },
+): KongWangInfo {
+  const dayGanZhi = pillars.day;
+  const voidBranches = KONG_WANG_TABLE[dayGanZhi] || [];
+  
+  const pillarList = [
+    { pillar: '年支', branch: pillars.year.charAt(1) },
+    { pillar: '月支', branch: pillars.month.charAt(1) },
+    { pillar: '日支', branch: pillars.day.charAt(1) },
+    { pillar: '时支', branch: pillars.hour.charAt(1) },
+  ];
+
+  const affectedPillars = pillarList.map(p => ({
+    ...p,
+    isVoid: voidBranches.includes(p.branch),
+  }));
+
+  const voidPillars = affectedPillars.filter(p => p.isVoid);
+  let description = `日柱${dayGanZhi}旬空${voidBranches.join('')}。`;
+  if (voidPillars.length > 0) {
+    description += `${voidPillars.map(p => `${p.pillar}(${p.branch})`).join('、')}落空亡，力量减弱。`;
+  } else {
+    description += '四柱无空亡。';
+  }
+
+  return { voidBranches, affectedPillars, description };
+}
+
+// ═══════════════════════════════════════════════
 // 十神关系矩阵
 // ═══════════════════════════════════════════════
 
@@ -413,6 +724,12 @@ export interface BaZiChartResult {
   elementBalance: ElementBalance[];
   twelveStages: TwelveStageInfo[];
   shenSha: ShenShaInfo[];
+  /** v3.0: 地支刑冲合害 */
+  branchInteractions: BranchInteraction[];
+  /** v3.0: 天干合化 */
+  stemCombinations: StemCombination[];
+  /** v3.0: 空亡 */
+  kongWang: KongWangInfo;
 }
 
 /** 三层输出：Layer 3 - 分析结论 */
@@ -464,6 +781,10 @@ export interface DeepBaZiAnalysis {
   unfavorable: BaZiAnalysisConclusion['unfavorable'];
   pattern: BaZiAnalysisConclusion['pattern'];
   summary: string;
+  /** v3.0 */
+  branchInteractions: BranchInteraction[];
+  stemCombinations: StemCombination[];
+  kongWang: KongWangInfo;
 }
 
 // ═══════════════════════════════════════════════
@@ -501,12 +822,16 @@ export function performDeepBaZiAnalysis(
   const elementBalance = calculateElementBalance(fourPillars, hiddenStems);
   const twelveStages = calculateTwelveStages(fourPillars, dayGan);
   const shenSha = calculateShenSha(fourPillars, dayGan);
+  // v3.0
+  const branchInteractions = calculateBranchInteractions(fourPillars);
+  const stemCombinations = calculateStemCombinations(fourPillars, monthBranch);
+  const kongWang = calculateKongWang(fourPillars);
 
   // Layer 3 computations
   const strengthResult = calculateDayMasterStrength(fourPillars, dayElement, monthBranch, twelveStages);
   const { favorable, unfavorable } = calculateFavorableElements(dayElement, strengthResult.level, elementBalance);
   const pattern = determinePattern(tenGods, strengthResult.level, elementBalance);
-  const summary = generateSummary(dayGan, dayElement, dayYinYang, strengthResult, pattern, favorable, unfavorable, shenSha);
+  const summary = generateSummary(dayGan, dayElement, dayYinYang, strengthResult, pattern, favorable, unfavorable, shenSha, branchInteractions, stemCombinations, kongWang);
 
   // Build three-layer output
   const rawParams: BaZiRawParams = {
@@ -526,6 +851,9 @@ export function performDeepBaZiAnalysis(
     elementBalance,
     twelveStages,
     shenSha,
+    branchInteractions,
+    stemCombinations,
+    kongWang,
   };
 
   const dayMaster = {
@@ -561,6 +889,9 @@ export function performDeepBaZiAnalysis(
     unfavorable,
     pattern,
     summary,
+    branchInteractions,
+    stemCombinations,
+    kongWang,
   };
 }
 
@@ -881,6 +1212,9 @@ function generateSummary(
   favorable: { elements: string[]; gods: string[]; description: string },
   unfavorable: { elements: string[]; gods: string[]; description: string },
   shenSha: ShenShaInfo[],
+  branchInteractions?: BranchInteraction[],
+  stemCombinations?: StemCombination[],
+  kongWang?: KongWangInfo,
 ): string {
   const yinYangDesc = dayYinYang === '阳' ? '阳刚' : '阴柔';
   const auspicious = shenSha.filter(s => s.type === '吉星').map(s => s.name);
@@ -892,6 +1226,31 @@ function generateSummary(
   if (unfavorable.description) text += `${unfavorable.description}。`;
   if (auspicious.length > 0) text += `命带吉星：${[...new Set(auspicious)].join('、')}。`;
   if (inauspicious.length > 0) text += `命带凶星：${[...new Set(inauspicious)].join('、')}，需注意化解。`;
+
+  // v3.0: 刑冲合害
+  if (branchInteractions && branchInteractions.length > 0) {
+    const heHe = branchInteractions.filter(i => ['六合', '三合', '半合'].includes(i.type));
+    const chongXing = branchInteractions.filter(i => ['六冲', '三刑', '六害'].includes(i.type));
+    if (heHe.length > 0) text += `地支有${heHe.map(i => i.type).join('、')}，人际关系多助力。`;
+    if (chongXing.length > 0) text += `地支见${chongXing.map(i => i.type).join('、')}，注意动荡变化。`;
+  }
+
+  // v3.0: 天干合化
+  if (stemCombinations && stemCombinations.length > 0) {
+    const wuhe = stemCombinations.filter(s => s.type === '天干五合');
+    if (wuhe.length > 0) {
+      text += wuhe.map(s => s.canTransform ? `${s.stems.join('')}合化${s.resultElement}成功。` : `${s.stems.join('')}合而不化。`).join('');
+    }
+  }
+
+  // v3.0: 空亡
+  if (kongWang) {
+    const voidPillars = kongWang.affectedPillars.filter(p => p.isVoid);
+    if (voidPillars.length > 0) {
+      text += `${voidPillars.map(p => p.pillar).join('、')}落空亡。`;
+    }
+  }
+
   return text;
 }
 

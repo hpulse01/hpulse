@@ -124,6 +124,25 @@ const LUO_SHU_GRID = [
   [8, 1, 6],
 ];
 
+/** v3.0: 河图配数 */
+const HE_TU_MAP: Record<string, number> = {
+  '水': 1, '火': 2, '木': 3, '金': 4, '土': 5,
+};
+const HE_TU_PAIRS: [number, number][] = [[1, 6], [2, 7], [3, 8], [4, 9], [5, 10]];
+
+/** v3.0: 先天八卦数 */
+const XIANTIAN_GUA_MAP: Record<string, number> = {
+  '乾': 1, '兑': 2, '离': 3, '震': 4,
+  '巽': 5, '坎': 6, '艮': 7, '坤': 8,
+};
+
+/** v3.0: 地支对应先天卦 */
+const BRANCH_XIANTIAN_GUA: Record<string, string> = {
+  '子': '坎', '丑': '艮', '寅': '艮', '卯': '震',
+  '辰': '巽', '巳': '巽', '午': '离', '未': '坤',
+  '申': '坤', '酉': '兑', '戌': '乾', '亥': '乾',
+};
+
 /** v2.0: 五行相生相克 */
 const WUXING_SHENG: Record<string, string> = { '木': '火', '火': '土', '土': '金', '金': '水', '水': '木' };
 const WUXING_KE: Record<string, string> = { '木': '土', '火': '金', '土': '水', '金': '木', '水': '火' };
@@ -144,6 +163,103 @@ const DA_YUN_START_TABLE = {
   autumn: { male: 8, female: 2 },
   winter: { male: 2, female: 8 },
 };
+
+// ── v3.0: 河图和谐度分析 ──
+
+export interface HeTuHarmony {
+  /** 四柱河图配数 */
+  pillarNumbers: { pillar: string; element: string; heTuNumber: number }[];
+  /** 河图成数配对数 */
+  pairedCount: number;
+  /** 和谐度 0-100 */
+  harmonyScore: number;
+  /** 评价 */
+  evaluation: string;
+}
+
+/** v3.0: 先天卦数交叉 */
+export interface XianTianGuaAnalysis {
+  /** 四柱先天卦数 */
+  pillarGua: { pillar: string; branch: string; gua: string; number: number }[];
+  /** 总数 */
+  totalNumber: number;
+  /** 互参后条文偏移 */
+  guaOffset: number;
+  /** 卦象组合评价 */
+  evaluation: string;
+}
+
+function calculateHeTuHarmony(pillars: GanZhiPillars): HeTuHarmony {
+  const pillarList = [
+    { pillar: '年柱', ganZhi: pillars.year },
+    { pillar: '月柱', ganZhi: pillars.month },
+    { pillar: '日柱', ganZhi: pillars.day },
+    { pillar: '时柱', ganZhi: pillars.hour },
+  ];
+
+  const pillarNumbers = pillarList.map(p => {
+    const stem = p.ganZhi.charAt(0);
+    const element = STEM_ELEMENTS[stem] || '土';
+    const heTuNumber = HE_TU_MAP[element] || 5;
+    return { pillar: p.pillar, element, heTuNumber };
+  });
+
+  // 检查河图成数配对
+  const numbers = pillarNumbers.map(p => p.heTuNumber);
+  let pairedCount = 0;
+  for (const [a, b] of HE_TU_PAIRS) {
+    if (numbers.includes(a) && numbers.includes(b)) pairedCount++;
+    // 生成数 = 基数 + 5
+    const genA = a + 5;
+    if (numbers.includes(a) && numbers.includes(genA % 10 || 10)) pairedCount++;
+  }
+
+  let harmonyScore = 30 + pairedCount * 15;
+  // 五行均衡加分
+  const uniqueElements = new Set(pillarNumbers.map(p => p.element));
+  harmonyScore += uniqueElements.size * 8;
+  harmonyScore = Math.max(10, Math.min(100, harmonyScore));
+
+  let evaluation: string;
+  if (harmonyScore >= 75) evaluation = '河图配数和谐，先天根基深厚';
+  else if (harmonyScore >= 50) evaluation = '河图配数尚可，根基中等';
+  else evaluation = '河图配数不谐，先天稍弱';
+
+  return { pillarNumbers, pairedCount, harmonyScore, evaluation };
+}
+
+function calculateXianTianGua(pillars: GanZhiPillars): XianTianGuaAnalysis {
+  const pillarList = [
+    { pillar: '年柱', branch: pillars.year.charAt(1) },
+    { pillar: '月柱', branch: pillars.month.charAt(1) },
+    { pillar: '日柱', branch: pillars.day.charAt(1) },
+    { pillar: '时柱', branch: pillars.hour.charAt(1) },
+  ];
+
+  const pillarGua = pillarList.map(p => {
+    const gua = BRANCH_XIANTIAN_GUA[p.branch] || '坤';
+    const number = XIANTIAN_GUA_MAP[gua] || 8;
+    return { ...p, gua, number };
+  });
+
+  const totalNumber = pillarGua.reduce((s, p) => s + p.number, 0);
+  const guaOffset = totalNumber % 64; // 先天卦数映射到64卦
+
+  // 评价
+  const guaNames = pillarGua.map(p => p.gua);
+  const hasQian = guaNames.includes('乾');
+  const hasKun = guaNames.includes('坤');
+  const hasKanLi = guaNames.includes('坎') && guaNames.includes('离');
+
+  let evaluation = '';
+  if (hasQian && hasKun) evaluation = '乾坤定位，天地交泰之象';
+  else if (hasKanLi) evaluation = '坎离既济，水火调和之象';
+  else if (hasQian) evaluation = '先天有乾卦之气，刚健进取';
+  else if (hasKun) evaluation = '先天有坤卦之气，厚德载物';
+  else evaluation = `先天卦数总和${totalNumber}，${totalNumber > 20 ? '偏阳刚' : '偏阴柔'}`;
+
+  return { pillarGua, totalNumber, guaOffset, evaluation };
+}
 
 // ==========================================
 // 2. INTERFACES
@@ -237,6 +353,10 @@ export interface FullDestinyReport {
   twelvePalaces?: TwelvePalaceAnalysis[];
   /** v2.0: 洛书和谐度 */
   luoShuHarmony?: LuoShuHarmony;
+  /** v3.0: 河图和谐度 */
+  heTuHarmony?: HeTuHarmony;
+  /** v3.0: 先天卦数交叉 */
+  xianTianGua?: XianTianGuaAnalysis;
   /** v2.0: 三层输出 */
   threeLayerReport?: TiebanThreeLayerReport;
 }
@@ -821,6 +941,10 @@ export const TiebanEngine = {
     // v2.0: Luo Shu harmony
     const luoShuHarmony = calculateLuoShuHarmony(pillars);
 
+    // v3.0: He Tu harmony + Xian Tian Gua
+    const heTuHarmony = calculateHeTuHarmony(pillars);
+    const xianTianGua = calculateXianTianGua(pillars);
+
     // v2.0: Na Yin profile
     const naYinProfile = [
       { pillar: '年柱', ganZhi: pillars.year, naYin: NA_YIN_TABLE[pillars.year] || '未知', element: NA_YIN_ELEMENT[pillars.year] || '土' },
@@ -861,14 +985,14 @@ export const TiebanEngine = {
         strongPalaces,
         weakPalaces,
         keyTurningAges,
-        lifeSummary: `铁板命局${overallGrade}等，${strongPalaces.length > 0 ? `${strongPalaces.join('、')}为强宫` : '无特强宫位'}，${weakPalaces.length > 0 ? `${weakPalaces.join('、')}需注意` : '无特弱宫位'}。洛书和谐度${luoShuHarmony.harmonyScore}分。`,
+        lifeSummary: `铁板命局${overallGrade}等，${strongPalaces.length > 0 ? `${strongPalaces.join('、')}为强宫` : '无特强宫位'}，${weakPalaces.length > 0 ? `${weakPalaces.join('、')}需注意` : '无特弱宫位'}。洛书和谐度${luoShuHarmony.harmonyScore}分。河图和谐度${heTuHarmony.harmonyScore}分。${xianTianGua.evaluation}。`,
         luoShuBalance: luoShuHarmony.evaluation,
       },
     };
 
     return {
       baziProfile, lifeCycles, flowYears, destinyProjection,
-      twelvePalaces, luoShuHarmony, threeLayerReport,
+      twelvePalaces, luoShuHarmony, heTuHarmony, xianTianGua, threeLayerReport,
     };
   },
 };
