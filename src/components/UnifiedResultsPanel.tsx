@@ -562,6 +562,7 @@ export function UnifiedResultsPanel({ result }: UnifiedResultsPanelProps) {
               <MeihuaDetail result={result} />
               <QimenDetail result={result} />
               <LiuRenDetail result={result} />
+              <TaiyiDetail result={result} />
             </ScrollArea>
           </div>
         </TabsContent>
