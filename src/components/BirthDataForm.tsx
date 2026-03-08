@@ -42,6 +42,7 @@ function formatTimezone(offsetMinutes: number): string {
 }
 
 export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
+  const { t, lang } = useI18n();
   const [formData, setFormData] = useState<TiebanInput>({
     year: 1990,
     month: 1,
