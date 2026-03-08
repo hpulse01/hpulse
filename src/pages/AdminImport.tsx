@@ -14,6 +14,15 @@ import clausesData from '@/data/tieban-clauses.json';
 export default function AdminImport() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { isSuperAdmin, isChecking } = useSuperAdmin();
+  const [isImporting, setIsImporting] = useState(false);
+  const [result, setResult] = useState<{
+    success?: boolean;
+    imported?: number;
+    total?: number;
+    errors?: string[];
+  } | null>(null);
+  const [clauseCount, setClauseCount] = useState<number | null>(null);
+  const { toast } = useToast();
 
   // Auth gate
   if (authLoading || isChecking) {
@@ -26,17 +35,6 @@ export default function AdminImport() {
   if (!isAuthenticated || !isSuperAdmin) {
     return <Navigate to="/" replace />;
   }
-
-  const [isImporting, setIsImporting] = useState(false);
-  const [result, setResult] = useState<{
-    success?: boolean;
-    imported?: number;
-    total?: number;
-    errors?: string[];
-  } | null>(null);
-  const [clauseCount, setClauseCount] = useState<number | null>(null);
-
-  const { toast } = useToast();
 
   const handleCheckCount = async () => {
     const count = await getClauseCount();
