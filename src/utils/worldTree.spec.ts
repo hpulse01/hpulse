@@ -37,8 +37,16 @@ function buildTestFusionResult() {
   seeds.push(...extractTiebanEvents(result.fullReport, result.baziProfile, 1990));
   if (result.unifiedResult) {
     for (const eo of result.unifiedResult.engineOutputs) {
-      if (['western', 'vedic', 'numerology', 'mayan', 'kabbalah'].includes(eo.engineName)) {
-        seeds.push(...extractGenericEvents(eo, 1990));
+      if (eo.engineName === 'western') {
+        seeds.push(...extractWesternEvents(result.westernReport, 1990));
+      } else if (eo.engineName === 'vedic') {
+        seeds.push(...extractVedicEvents(result.vedicReport, 1990));
+      } else if (eo.engineName === 'numerology') {
+        seeds.push(...extractNumerologyEvents(result.numerologyReport, 1990));
+      } else if (eo.engineName === 'mayan') {
+        seeds.push(...extractMayanEvents(result.mayanReport, 1990));
+      } else if (eo.engineName === 'kabbalah') {
+        seeds.push(...extractKabbalahEvents(result.kabbalahReport, 1990));
       }
       if (['liuyao', 'meihua', 'qimen', 'liuren', 'taiyi'].includes(eo.engineName)) {
         seeds.push(...extractInstantEvents(eo, '2025-01-01T00:00:00.000Z', 1990));
