@@ -1,12 +1,12 @@
 /**
- * Mayan Calendar Engine v2.0 (玛雅历法)
+ * Mayan Calendar Engine v3.0 (玛雅历法)
  *
- * Upgrades:
- * - Dreamspell Cross (Guide, Analog, Antipode, Occult, Hidden)
- * - Earth Family classification
- * - Color cycle (Red/White/Blue/Yellow)
- * - Castle cycle (5 castles of 52 kins)
- * - Enhanced wavespell analysis
+ * v3.0 Upgrades:
+ * - Galactic Activation Portal (GAP) day detection
+ * - Year Bearer analysis
+ * - Wavespell power day identification
+ * - Enhanced castle cycle interpretation
+ * - Tone-Sign synergy analysis
  */
 
 export interface MayanInput {
