@@ -67,8 +67,6 @@ async function getTimezoneInfo(lat: number, lon: number): Promise<TimezoneResult
 
         // Check DST at birth date using Intl if possible
         // For now, return the standard offset (covers China, India, most of Asia correctly)
-        console.log(`[DEBUG] timeapi.io response:`, JSON.stringify({ timeZone: data.timeZone, standardUtcOffset: data.standardUtcOffset, currentUtcOffset: data.currentUtcOffset }));
-        console.log(`[DEBUG] parsed offsetMinutes: ${offsetMinutes}`);
         return { ianaTimezone: data.timeZone, standardOffsetMinutes: offsetMinutes };
       }
     }
