@@ -1,12 +1,13 @@
 /**
- * Western Astrology Engine v2.0 (西方占星术)
+ * Western Astrology Engine v3.0 (西方占星术)
  *
- * Upgrades:
- * - Planetary Dignities (Domicile, Exaltation, Detriment, Fall)
- * - House Lord Analysis (Whole Sign)
- * - Pattern Detection (Grand Trine, T-Square, Grand Cross, Stellium, Yod)
- * - Retrograde detection
- * - Element & Modality balance with weighted scoring
+ * v3.0 Upgrades:
+ * - Yod (Finger of God) pattern detection
+ * - Grand Cross pattern detection
+ * - Mutual Reception detection
+ * - Dispositor chain analysis
+ * - Singleton planet detection
+ * - Enhanced life vector with pattern weight
  */
 
 import {
