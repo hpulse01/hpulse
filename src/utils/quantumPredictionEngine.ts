@@ -804,6 +804,7 @@ function orchestrate(
       meihuaResult,
       qimenResult,
       liurenResult,
+      taiyiResult,
     },
     systems,
   };

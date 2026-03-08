@@ -439,6 +439,52 @@ function LiuRenDetail({ result }: { result: UnifiedPredictionResult }) {
   );
 }
 
+// ── Taiyi Detail Display ──
+
+function TaiyiDetail({ result }: { result: UnifiedPredictionResult }) {
+  const taiyi = result.engineOutputs.find(e => e.engineName === 'taiyi');
+  if (!taiyi) return null;
+
+  const no = taiyi.normalizedOutput;
+  return (
+    <div className="mt-4 space-y-2">
+      <h3 className="text-sm font-serif text-violet-300 flex items-center gap-1.5">
+        <Sun className="w-4 h-4" />太乙神数
+      </h3>
+      <div className="grid grid-cols-3 gap-2">
+        {(['局式', '太乙值位', '格局'] as const).map(label => (
+          <div key={label} className="p-2.5 rounded-lg bg-card/30 border border-border/20 text-center">
+            <div className="text-[10px] text-muted-foreground mb-1">{label}</div>
+            <div className="text-xs font-serif text-foreground">{no[label] || '—'}</div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {(['主算', '客算', '趋势', '吉凶'] as const).map(label => (
+          <div key={label} className="p-2 rounded-lg bg-card/30 border border-border/20 text-center">
+            <div className="text-[10px] text-muted-foreground mb-1">{label}</div>
+            <div className={`text-xs font-serif ${
+              label === '吉凶' ? (
+                no[label] === '大吉' || no[label] === '吉' ? 'text-emerald-400' :
+                no[label] === '大凶' || no[label] === '凶' ? 'text-rose-400' : 'text-amber-300'
+              ) : label === '趋势' ? (
+                no[label] === '大旺' || no[label] === '旺' ? 'text-emerald-400' :
+                no[label] === '大衰' || no[label] === '衰' ? 'text-rose-400' : 'text-amber-300'
+              ) : 'text-foreground'
+            }`}>{no[label] || '—'}</div>
+          </div>
+        ))}
+      </div>
+      {no['应期'] && (
+        <div className="p-2 rounded-lg bg-card/30 border border-border/20">
+          <div className="text-[10px] text-muted-foreground mb-1">应期摘要</div>
+          <div className="text-[10px] text-foreground leading-relaxed">{no['应期']}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════
 // Main Component
 // ═══════════════════════════════════════════════
