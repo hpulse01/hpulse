@@ -238,7 +238,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
       <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
         <CollapsibleTrigger className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors font-sans">
           <ChevronDown className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-          手动修正坐标与时区
+          {t('form.manual_coords')}
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-3">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
