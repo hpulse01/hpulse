@@ -105,6 +105,24 @@ export interface QuantumEntanglement {
 
 // ── Phase 4 output ──
 
+export interface QuantumTimeline {
+  age: number;
+  year: number;
+  energy: number;
+  element: string;
+  phase: string;
+  ganZhi: string;
+  isCurrentAge: boolean;
+}
+
+export interface SystemContribution {
+  system: string;
+  weight: number;
+  rawScore: number;
+  normalizedScore: number;
+  detail: string;
+}
+
 export interface DestinyPhase {
   name: string;
   startAge: number;
@@ -140,6 +158,7 @@ export interface QuantumPredictionResult {
 
   // Raw system data for detail panel
   baziProfile: BaZiProfile;
+  fullReport: FullDestinyReport;
   ziweiReport: ZiweiReport;
   liuYaoResult: LiuYaoResult;
   westernReport: WesternAstrologyReport;
@@ -189,7 +208,7 @@ const BRANCH_ELEMENTS: Record<string, string> = {
 // Phase 1: Multi-System Analysis
 // ═══════════════════════════════════════════════
 
-function runAllSystems(input: QuantumInput): {
+function runAllSystems(input: QuantumInput, systemOffset: number = 0): {
   systems: SystemAnalysis[];
   baziProfile: BaZiProfile;
   fullReport: FullDestinyReport;
@@ -204,7 +223,7 @@ function runAllSystems(input: QuantumInput): {
   const tiebanInput: TiebanInput = { ...input };
   const baziProfile = TiebanEngine.calculateBaZiProfile(tiebanInput);
   const theoBase = TiebanEngine.calculateTheoreticalBase(tiebanInput);
-  const fullReport = TiebanEngine.generateFullDestinyReport(tiebanInput, theoBase, 0);
+  const fullReport = TiebanEngine.generateFullDestinyReport(tiebanInput, theoBase, systemOffset);
   const ziweiReport = ZiweiEngine.generateReport({ year: input.year, month: input.month, day: input.day, hour: input.hour, gender: input.gender });
   const liuYaoResult = calculateLiuYaoHexagram(new Date());
   const westernReport = WesternAstrologyEngine.calculate(input);
@@ -713,11 +732,11 @@ function clamp(v: number): number {
 // ═══════════════════════════════════════════════
 
 export const QuantumPredictionEngine = {
-  predict(input: QuantumInput): QuantumPredictionResult {
+  predict(input: QuantumInput, systemOffset: number = 0): QuantumPredictionResult {
     const timestamp = new Date();
 
     // Phase 1
-    const { systems, baziProfile, fullReport, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport } = runAllSystems(input);
+    const { systems, baziProfile, fullReport, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport } = runAllSystems(input, systemOffset);
 
     // Phase 2
     const { branches, totalGenerated, perSystem } = generateInfiniteWorlds(systems, input, vedicReport, numerologyReport, fullReport);
@@ -755,7 +774,7 @@ export const QuantumPredictionEngine = {
       deathAge,
       quantumSignature,
       dominantElement,
-      baziProfile, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport,
+      baziProfile, fullReport, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport,
       timestamp,
     };
   },
