@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateWorldTree, collapseWorldTree } from './worldTreeGenerator';
 import { fuseEventSeeds } from './eventFusion';
-import { extractBaziEvents, extractTiebanEvents, extractZiweiEvents, extractGenericEvents, extractInstantEvents } from './eventSeedExtractors';
+import { extractBaziEvents, extractTiebanEvents, extractZiweiEvents, extractWesternEvents, extractVedicEvents, extractNumerologyEvents, extractMayanEvents, extractKabbalahEvents, extractInstantEvents } from './eventSeedExtractors';
 import { QuantumPredictionEngine } from './quantumPredictionEngine';
 import type { StandardizedInput, FateVector } from '@/types/prediction';
 import type { DestinyEventSeed, WorldNode } from '@/types/destinyTree';
