@@ -524,7 +524,7 @@ export function buildLiuRenEngineOutput(si: StandardizedInput): { eo: EngineOutp
       '吉凶': result.auspiciousness,
       '类神': result.leishenAnalysis,
       '日辰': `${result.chart.riGan}${result.chart.riBranch}`,
-      '时辰': `${result.chart.shiGan}${result.chart.shiBranch}`,
+      '时辰': result.chart.shiBranch,
     },
     warnings: result.meta.warnings,
     uncertaintyNotes: result.meta.uncertaintyNotes,
