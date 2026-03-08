@@ -712,12 +712,26 @@ export function runQimen(standardizedInput: StandardizedInput): {
   const chart = buildChart(input);
   const patterns = detectPatterns(chart);
   const { score, pattern, hourPalaceAnalysis } = evaluateChart(chart, patterns);
+  const kongWang = calculateKongWang(chart.xunShou);
+  const maXing = calculateMaXing(chart.hourBranch, chart);
+  const yongShenAnalysis = analyzeYongShen(chart);
   const fateVector = qimenToFateVector(chart, score);
   const t1 = performance.now();
 
+  // v3.0: 空亡修正评分
+  let finalScore = score;
+  for (const p of kongWang.affectedPalaces) {
+    const palace = chart.palaces.find(pp => pp.position === p);
+    if (palace && palace.heavenStem === chart.hourStem) {
+      finalScore -= 5; // 时干落空亡减分
+    }
+  }
+  finalScore = Math.max(5, Math.min(95, finalScore));
+
   const summary = `${chart.dunType}${chart.juNumber}局，时干${chart.hourStem}${chart.hourBranch}。` +
     `值符${chart.zhiFu}，值使${chart.zhiShi}。旬首${chart.xunShou}。` +
-    `格局：${patterns.map(p => p.name).join('、')}。综合评分${score}分。`;
+    `${kongWang.interpretation} ${maXing.interpretation}` +
+    `格局：${patterns.map(p => p.name).join('、')}。综合评分${finalScore}分。`;
 
   let primaryGate = chart.zhiShi;
   let primaryStar = chart.zhiFu;
@@ -730,10 +744,10 @@ export function runQimen(standardizedInput: StandardizedInput): {
 
   return {
     eo: {
-      engineName: 'qimen', engineNameCN: '奇门遁甲', engineVersion: '2.0.0',
+      engineName: 'qimen', engineNameCN: '奇门遁甲', engineVersion: '3.0.0',
       sourceUrls: ['https://en.wikipedia.org/wiki/Qi_Men_Dun_Jia'],
-      sourceGrade: 'B', ruleSchool: '时家奇门·拆补法',
-      confidence: 0.62, computationTimeMs: Math.round(t1 - t0),
+      sourceGrade: 'B', ruleSchool: '时家奇门·拆补法（空亡马星v3）',
+      confidence: 0.65, computationTimeMs: Math.round(t1 - t0),
       rawInputSnapshot: { year: input.year, month: input.month, day: input.day, hour: input.hour, queryTimeUtc: standardizedInput.queryTimeUtc },
       fateVector,
       normalizedOutput: {
@@ -744,12 +758,15 @@ export function runQimen(standardizedInput: StandardizedInput): {
         '旬首': chart.xunShou,
         '格局': patterns.map(p => p.name).join('、'),
         '时干宫分析': hourPalaceAnalysis,
+        '空亡': kongWang.interpretation,
+        '马星': maXing.interpretation,
+        '用神': yongShenAnalysis.map(y => `${y.category}:${y.assessment}`).join('；'),
       },
       warnings: ['奇门遁甲基于起局时间而非出生时间，适用于时态决策分析'],
-      uncertaintyNotes: ['拆补法实现，置闰法尚未接入', '节气切换使用公历近似', '三元判定使用日期近似'],
+      uncertaintyNotes: ['拆补法实现，置闰法尚未接入', '节气切换使用公历近似', 'v3.0增加空亡马星用神分析'],
       timingBasis: 'query',
     },
-    qimenResult: { chart, score, summary, pattern, patterns, hourPalaceAnalysis },
+    qimenResult: { chart, score: finalScore, summary, pattern, patterns, hourPalaceAnalysis, kongWang, maXing, yongShenAnalysis },
   };
 }
 
@@ -759,5 +776,5 @@ export const QimenEngine = {
     return evaluateChart(chart, patterns);
   },
   qimenToFateVector, runQimen,
-  _internals: { getGanZhi, getJuNumber, getXunShouInfo, PALACE_NAMES, NINE_STARS, EIGHT_GATES },
+  _internals: { getGanZhi, getJuNumber, getXunShouInfo, PALACE_NAMES, NINE_STARS, EIGHT_GATES, calculateKongWang, calculateMaXing },
 };

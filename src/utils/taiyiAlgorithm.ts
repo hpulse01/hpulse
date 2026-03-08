@@ -479,27 +479,72 @@ function mapToFateVector(result: TaiyiResult): FateVector {
 export function runTaiyi(input: TaiyiInput): TaiyiResult {
   const chart = buildChart(input);
   const patterns = detectPatterns(chart);
-  const { trendLevel, auspiciousness, trendAnalysis } = assessTrend(chart, patterns);
-  const yingQi = buildYingQi(chart);
+  const sanMenSiHu = calculateSanMenSiHu(chart.juNumber, chart.taiyiGong);
+  const twelveStage = calculateTwelveStage(chart.taiyiGong, chart.juNumber);
+  const wenChang = analyzeWenChang(chart);
+  const { trendLevel, auspiciousness, trendAnalysis } = assessTrend(chart, patterns, twelveStage);
+  const yingQi = buildYingQi(chart, sanMenSiHu);
 
   const patternNames = patterns.map(p => p.name).join('、');
   const summary = `太乙神数第${chart.juNumber}局，太乙在${chart.taiyiZhiWei.replace('太乙在', '')}。` +
     `主算第${chart.zhuSuanGong}宫（值${chart.zhuSuanValue}），客算第${chart.keSuanGong}宫（值${chart.keSuanValue}）。` +
-    `${chart.zhuKeRelation}。格局：${patternNames}。趋势${trendLevel}，判定${auspiciousness}。${yingQi}`;
+    `${chart.zhuKeRelation}。太乙${twelveStage.stage}(${twelveStage.strength})。` +
+    `${sanMenSiHu.interpretation} ${wenChang.interpretation} ` +
+    `格局：${patternNames}。趋势${trendLevel}，判定${auspiciousness}。${yingQi}`;
 
   return {
     chart, patterns, trendLevel, auspiciousness, yingQi, summary, trendAnalysis,
+    sanMenSiHu, twelveStage, wenChang,
     meta: {
-      engineVersion: '2.0.0',
-      ruleSchool: '太乙统宗（扩展版）',
+      engineVersion: '3.0.0',
+      ruleSchool: '太乙统宗（三门四户·十二运v3）',
       warnings: ['太乙神数反映时态趋势而非固定命盘'],
       uncertaintyNotes: [
         '积年算法使用简化公元纪年法',
-        '十六神已完整排布',
+        'v3.0增加三门四户、十二运、文昌分析',
         '主客和战关系已增强',
         '节气/历法周期为简化实现',
       ],
     },
+  };
+}
+
+// ═══════════════════════════════════════════════
+// FateVector Mapping (v3.0 enhanced)
+// ═══════════════════════════════════════════════
+
+function mapToFateVector(result: TaiyiResult): FateVector {
+  const baseMap: Record<string, number> = { '大吉': 78, '吉': 64, '中平': 50, '凶': 36, '大凶': 22 };
+  const base = baseMap[result.auspiciousness] || 50;
+  const taiyiWx = NINE_PALACES.find(p => p.number === result.chart.taiyiGong)!.wuxing;
+
+  const wxBoost: Record<string, Record<string, number>> = {
+    '木': { life: 4, wisdom: 5, health: 3, wealth: 0, relation: 2, spirit: 3 },
+    '火': { life: 5, wisdom: 3, health: -2, wealth: 2, relation: 4, spirit: 6 },
+    '土': { life: 2, wisdom: 0, health: 5, wealth: 5, relation: 3, spirit: 0 },
+    '金': { life: 3, wisdom: 4, health: 1, wealth: 4, relation: -1, spirit: 2 },
+    '水': { life: 1, wisdom: 6, health: 3, wealth: 2, relation: 3, spirit: 5 },
+  };
+
+  const boost = wxBoost[taiyiWx] || {};
+  let patternMod = 0;
+  for (const p of result.patterns) patternMod += Math.round(p.impact * 0.3);
+
+  // v3.0: 十二运修正
+  const stageMod: Record<string, number> = { '旺': 4, '相': 2, '休': 0, '囚': -2, '死': -4 };
+  const sm = stageMod[result.twelveStage.strength] || 0;
+
+  // v3.0: 文昌修正
+  const wenChangMod = result.wenChang.isActive ? 3 : 0;
+
+  const clamp = (v: number) => Math.max(5, Math.min(95, Math.round(v)));
+  return {
+    life: clamp(base + (boost.life || 0) + patternMod + sm),
+    wealth: clamp(base + (boost.wealth || 0) + patternMod + sm),
+    relation: clamp(base + (boost.relation || 0)),
+    health: clamp(base + (boost.health || 0) + sm),
+    wisdom: clamp(base + (boost.wisdom || 0) + wenChangMod),
+    spirit: clamp(base + (boost.spirit || 0) + patternMod + sm),
   };
 }
 
@@ -520,7 +565,7 @@ export function buildTaiyiEngineOutput(si: StandardizedInput): { eo: EngineOutpu
     engineName: 'taiyi', engineNameCN: '太乙神数', engineVersion: result.meta.engineVersion,
     sourceUrls: ['https://zh.wikipedia.org/wiki/太乙神數'],
     sourceGrade: 'B', ruleSchool: result.meta.ruleSchool,
-    confidence: 0.56, computationTimeMs: Math.round(t1 - t0),
+    confidence: 0.58, computationTimeMs: Math.round(t1 - t0),
     rawInputSnapshot: { queryTimeUtc: si.queryTimeUtc, jiNian: result.chart.jiNian, juNumber: result.chart.juNumber },
     fateVector,
     normalizedOutput: {
@@ -532,6 +577,9 @@ export function buildTaiyiEngineOutput(si: StandardizedInput): { eo: EngineOutpu
       '格局': patternNames,
       '吉凶': result.auspiciousness,
       '趋势': result.trendLevel,
+      '太乙十二运': `${result.twelveStage.stage}(${result.twelveStage.strength})`,
+      '三门四户': result.sanMenSiHu.interpretation,
+      '文昌': result.wenChang.interpretation,
       '应期': result.yingQi,
       '趋势分析': result.trendAnalysis,
     },

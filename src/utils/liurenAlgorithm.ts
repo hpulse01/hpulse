@@ -588,24 +588,45 @@ export function runLiuRen(input: LiuRenInput): LiuRenResult {
   const { auspiciousness, score } = assessAuspiciousness(sanChuan, tianJiang, riGan, category);
   const leishenAnalysis = analyzeLeishen(sanChuan, tianJiang, riGan);
 
+  // v3.0
+  const kongWang = calculateKongWang(riGan, riBranch, sanChuan);
+  const deHe = analyzeDeHe(riGan, localMonth);
+  const nianMing = analyzeNianMing(input.birthYear, sanChuan);
+
+  // v3.0: 空亡修正
+  let finalScore = score;
+  if (kongWang.chuInKong) finalScore -= 5;
+  if (kongWang.moInKong) finalScore -= 3;
+  if (deHe.hasDe) finalScore += 4;
+  finalScore = Math.max(5, Math.min(95, finalScore));
+
+  // Recalculate auspiciousness with adjusted score
+  let finalAuspiciousness = auspiciousness;
+  if (finalScore >= 75) finalAuspiciousness = '大吉';
+  else if (finalScore >= 60) finalAuspiciousness = '吉';
+  else if (finalScore >= 40) finalAuspiciousness = '中平';
+  else if (finalScore >= 25) finalAuspiciousness = '凶';
+  else finalAuspiciousness = '大凶';
+
   const summary = `课体「${keType}」(${category})，取传法：${sanChuan.method}。` +
     `三传${sanChuan.chu}→${sanChuan.zhong}→${sanChuan.mo}(${sanChuan.chuElement}${sanChuan.zhongElement}${sanChuan.moElement})。` +
-    `${tianJiang.guiType}贵人临${tianJiang.guiRen}。综合判定：${auspiciousness}。` +
-    `${leishenAnalysis}`;
+    `${tianJiang.guiType}贵人临${tianJiang.guiRen}。${kongWang.interpretation} ${deHe.interpretation} ` +
+    `${nianMing.interpretation} 综合判定：${finalAuspiciousness}。${leishenAnalysis}`;
 
   return {
     chart: { tianPan, diPan: [...BRANCHES], yueJiang, shiBranch, riGan, riBranch },
     siKe, sanChuan, tianJiang, keType,
     keTypeCategory: category,
-    auspiciousness, summary, leishenAnalysis,
+    auspiciousness: finalAuspiciousness, summary, leishenAnalysis,
+    kongWang, deHe, nianMing,
     meta: {
-      engineVersion: '2.0.0',
-      ruleSchool: '古法大六壬（涉害取传法v2）',
+      engineVersion: '3.0.0',
+      ruleSchool: '古法大六壬（空亡德合v3）',
       warnings: ['大六壬结果基于起课时间而非出生时间，适用于即时问事占断'],
       uncertaintyNotes: [
         '涉害法已增强深度比较',
         '课体分类扩展至12种标准类型',
-        '月将取法为简化太阳过宫法',
+        'v3.0增加空亡/德合/年命分析',
         '遥克法使用简化规则',
       ],
     },
@@ -634,7 +655,7 @@ export function buildLiuRenEngineOutput(si: StandardizedInput): { eo: EngineOutp
     engineName: 'liuren', engineNameCN: '大六壬', engineVersion: result.meta.engineVersion,
     sourceUrls: ['https://en.wikipedia.org/wiki/Da_Liu_Ren'],
     sourceGrade: 'B', ruleSchool: result.meta.ruleSchool,
-    confidence: 0.62, computationTimeMs: Math.round(t1 - t0),
+    confidence: 0.65, computationTimeMs: Math.round(t1 - t0),
     rawInputSnapshot: { queryTimeUtc: si.queryTimeUtc, riGan: result.chart.riGan, riBranch: result.chart.riBranch },
     fateVector,
     normalizedOutput: {
@@ -648,6 +669,9 @@ export function buildLiuRenEngineOutput(si: StandardizedInput): { eo: EngineOutp
       '类神': result.leishenAnalysis,
       '日辰': `${result.chart.riGan}${result.chart.riBranch}`,
       '时辰': result.chart.shiBranch,
+      '空亡': result.kongWang.interpretation,
+      '德合': result.deHe.interpretation,
+      '年命': result.nianMing.interpretation,
     },
     warnings: result.meta.warnings,
     uncertaintyNotes: result.meta.uncertaintyNotes,
