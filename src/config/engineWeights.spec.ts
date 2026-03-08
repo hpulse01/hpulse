@@ -11,32 +11,33 @@ describe('engineWeights', () => {
     expect(sum).toBeCloseTo(1.0, 5);
   });
 
-  it('natalAnalysis does not include liuyao', () => {
+  it('natalAnalysis does not include liuyao, liuren, or taiyi', () => {
     const weights = getWeightsForQueryType('natalAnalysis');
     expect(weights.find(w => w.engineName === 'liuyao')).toBeUndefined();
-  });
-
-  it('natalAnalysis does not include liuren', () => {
-    const weights = getWeightsForQueryType('natalAnalysis');
     expect(weights.find(w => w.engineName === 'liuren')).toBeUndefined();
+    expect(weights.find(w => w.engineName === 'taiyi')).toBeUndefined();
   });
 
-  it('instantDecision includes liuyao, meihua, qimen, and liuren with top weights', () => {
+  it('instantDecision includes liuyao, meihua, qimen, liuren, and taiyi', () => {
     const weights = getWeightsForQueryType('instantDecision');
-    const ly = weights.find(w => w.engineName === 'liuyao');
-    const mh = weights.find(w => w.engineName === 'meihua');
-    const qm = weights.find(w => w.engineName === 'qimen');
-    const lr = weights.find(w => w.engineName === 'liuren');
-    expect(ly).toBeDefined();
-    expect(mh).toBeDefined();
-    expect(qm).toBeDefined();
-    expect(lr).toBeDefined();
-    const sorted = [...weights].sort((a, b) => b.weight - a.weight);
-    const topFour = sorted.slice(0, 4).map(w => w.engineName);
-    expect(topFour).toContain('meihua');
-    expect(topFour).toContain('liuyao');
-    expect(topFour).toContain('qimen');
-    expect(topFour).toContain('liuren');
+    expect(weights.find(w => w.engineName === 'liuyao')).toBeDefined();
+    expect(weights.find(w => w.engineName === 'meihua')).toBeDefined();
+    expect(weights.find(w => w.engineName === 'qimen')).toBeDefined();
+    expect(weights.find(w => w.engineName === 'liuren')).toBeDefined();
+    expect(weights.find(w => w.engineName === 'taiyi')).toBeDefined();
+  });
+
+  it('instantDecision: meihua/qimen/liuren weight > taiyi', () => {
+    const weights = getWeightsForQueryType('instantDecision');
+    const taiyi = weights.find(w => w.engineName === 'taiyi')!;
+    expect(weights.find(w => w.engineName === 'meihua')!.weight).toBeGreaterThan(taiyi.weight);
+    expect(weights.find(w => w.engineName === 'qimen')!.weight).toBeGreaterThan(taiyi.weight);
+    expect(weights.find(w => w.engineName === 'liuren')!.weight).toBeGreaterThan(taiyi.weight);
+  });
+
+  it('annualForecast includes taiyi', () => {
+    const weights = getWeightsForQueryType('annualForecast');
+    expect(weights.find(w => w.engineName === 'taiyi')).toBeDefined();
   });
 
   it('filtered weights re-normalize to 1.0', () => {

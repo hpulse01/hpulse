@@ -27,6 +27,7 @@ import { KabbalahEngine, type KabbalahReport } from './worldSystems/kabbalah';
 import { runMeihua, type MeihuaResult } from './meihuaAlgorithm';
 import { runQimen, type QimenResult } from './qimenAlgorithm';
 import { buildLiuRenEngineOutput, type LiuRenResult } from './liurenAlgorithm';
+import { buildTaiyiEngineOutput, type TaiyiResult } from './taiyiAlgorithm';
 
 import type {
   StandardizedInput,
@@ -611,6 +612,7 @@ interface OrchestrationResult {
     meihuaResult: MeihuaResult | null;
     qimenResult: QimenResult | null;
     liurenResult: LiuRenResult | null;
+    taiyiResult: TaiyiResult | null;
   };
   systems: SystemAnalysis[];
 }
@@ -703,6 +705,14 @@ function orchestrate(
     liurenResult = lrResult.liurenResult;
   }
 
+  // ── Taiyi (太乙神数) — only run if active ──
+  let taiyiResult: TaiyiResult | null = null;
+  if (isActive('taiyi')) {
+    const tyResult = buildTaiyiEngineOutput(standardizedInput);
+    engineOutputs.push(tyResult.eo);
+    taiyiResult = tyResult.taiyiResult;
+  }
+
   // ── Dynamic weights (filtered to active engines only) ──
   const activeNames = engineOutputs.map(e => e.engineName);
   const weightConfigs = getWeightsForQueryType(queryType, activeNames);
@@ -776,6 +786,7 @@ function orchestrate(
     ...(meihuaResult ? [{ id: 'meihua', name: 'Meihua Yishu', nameCN: '梅花易数', origin: '中国', weight: 0.10, lifeVectors: {}, meta: { '本卦': meihuaResult.benGua.name, '变卦': meihuaResult.bianGua.name, '体用': meihuaResult.tiYong.relation } }] : []),
     ...(qimenResult ? [{ id: 'qimen', name: 'Qi Men Dun Jia', nameCN: '奇门遁甲', origin: '中国', weight: 0.10, lifeVectors: {}, meta: { '遁局': `${qimenResult.chart.dunType}${qimenResult.chart.juNumber}局`, '值符': qimenResult.chart.zhiFu, '值使': qimenResult.chart.zhiShi } }] : []),
     ...(liurenResult ? [{ id: 'liuren', name: 'Da Liu Ren', nameCN: '大六壬', origin: '中国', weight: 0.10, lifeVectors: {}, meta: { '课体': liurenResult.keType, '三传': `${liurenResult.sanChuan.chu}→${liurenResult.sanChuan.zhong}→${liurenResult.sanChuan.mo}`, '吉凶': liurenResult.auspiciousness } }] : []),
+    ...(taiyiResult ? [{ id: 'taiyi', name: 'Taiyi Shenshu', nameCN: '太乙神数', origin: '中国', weight: 0.08, lifeVectors: {}, meta: { '局式': `第${taiyiResult.chart.juNumber}局`, '太乙值位': taiyiResult.chart.taiyiZhiWei, '格局': taiyiResult.patterns.map(p => p.name).join('、'), '吉凶': taiyiResult.auspiciousness } }] : []),
   ];
 
   return {
@@ -793,6 +804,7 @@ function orchestrate(
       meihuaResult,
       qimenResult,
       liurenResult,
+      taiyiResult,
     },
     systems,
   };

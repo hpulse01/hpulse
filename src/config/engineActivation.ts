@@ -1,7 +1,5 @@
 /**
  * P1 Engine Activation Strategy
- *
- * Defines which engines are activated for each queryType.
  */
 
 import type { QueryType, EngineName, EngineActivationRule } from '@/types/prediction';
@@ -20,6 +18,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     meihua:     { active: false, reason: '梅花易数为即时感应体系，不适用于本命分析' },
     qimen:      { active: false, reason: '奇门遁甲为时态决策体系，不适用于本命分析' },
     liuren:     { active: false, reason: '大六壬为即时问事体系，不适用于确定性本命分析' },
+    taiyi:      { active: false, reason: '太乙神数为时态趋势体系，不适用于确定性本命分析' },
   },
   annualForecast: {
     tieban:     { active: true,  reason: '铁板流年条文为年度预测核心' },
@@ -34,6 +33,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     meihua:     { active: false, reason: '梅花易数不适用于年度确定性预测' },
     qimen:      { active: false, reason: '奇门遁甲不适用于年度确定性预测' },
     liuren:     { active: false, reason: '大六壬不适用于年度确定性预测' },
+    taiyi:      { active: true,  reason: '太乙神数可提供年度趋势与应期参考' },
   },
   monthlyForecast: {
     tieban:     { active: true,  reason: '铁板流月条文可用但精度有限' },
@@ -48,6 +48,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     meihua:     { active: true,  reason: '梅花易数可用于月度感应占断，低权重' },
     qimen:      { active: true,  reason: '奇门遁甲可用于月度时态分析，低权重' },
     liuren:     { active: true,  reason: '大六壬可用于月度问事占断，低权重' },
+    taiyi:      { active: true,  reason: '太乙神数可提供月度趋势参考，低权重' },
   },
   dailyForecast: {
     tieban:     { active: false, reason: '铁板不具备日度精度' },
@@ -62,6 +63,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     meihua:     { active: true,  reason: '梅花易数可用于日度感应占断' },
     qimen:      { active: true,  reason: '奇门遁甲时家盘与日度决策高度相关' },
     liuren:     { active: true,  reason: '大六壬日课占断与日度分析相关' },
+    taiyi:      { active: true,  reason: '太乙神数日度趋势参考' },
   },
   instantDecision: {
     tieban:     { active: false, reason: '铁板不适用即时决策' },
@@ -76,6 +78,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     meihua:     { active: true,  reason: '梅花易数为即时感应占断核心体系' },
     qimen:      { active: true,  reason: '奇门遁甲时家盘为即时决策核心体系' },
     liuren:     { active: true,  reason: '大六壬为即时问事占断核心体系' },
+    taiyi:      { active: true,  reason: '太乙神数提供时态趋势与应期补充' },
   },
 };
 
