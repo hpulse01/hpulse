@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.check-registration-ip]
 verify_jwt = false
+
+[functions.geocode-location]
+verify_jwt = false

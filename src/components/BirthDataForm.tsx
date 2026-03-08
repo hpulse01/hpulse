@@ -10,23 +10,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 import { TiebanEngine, type TiebanInput } from '@/utils/tiebanAlgorithm';
+import { LocationSearch, type GeocodedLocation } from '@/components/LocationSearch';
 
 interface BirthDataFormProps {
   onSubmit: (data: TiebanInput) => void;
   isLoading?: boolean;
 }
-
-const LOCATION_PRESETS = [
-  { key: 'beijing', label: '北京 (39.9042, 116.4074, UTC+8)', lat: 39.9042, lon: 116.4074, tz: 480 },
-  { key: 'shanghai', label: '上海 (31.2304, 121.4737, UTC+8)', lat: 31.2304, lon: 121.4737, tz: 480 },
-  { key: 'guangzhou', label: '广州 (23.1291, 113.2644, UTC+8)', lat: 23.1291, lon: 113.2644, tz: 480 },
-  { key: 'hongkong', label: '香港 (22.3193, 114.1694, UTC+8)', lat: 22.3193, lon: 114.1694, tz: 480 },
-  { key: 'taipei', label: '台北 (25.0330, 121.5654, UTC+8)', lat: 25.0330, lon: 121.5654, tz: 480 },
-  { key: 'tokyo', label: '东京 (35.6762, 139.6503, UTC+9)', lat: 35.6762, lon: 139.6503, tz: 540 },
-  { key: 'newyork', label: '纽约 (40.7128, -74.0060, UTC-5)', lat: 40.7128, lon: -74.0060, tz: -300 },
-  { key: 'london', label: '伦敦 (51.5074, -0.1278, UTC+0)', lat: 51.5074, lon: -0.1278, tz: 0 },
-];
 
 function formatTimezone(offsetMinutes: number): string {
   const sign = offsetMinutes >= 0 ? '+' : '-';
@@ -48,7 +44,9 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
     geoLongitude: 116.4074,
     timezoneOffsetMinutes: 480,
   });
-  const [presetKey, setPresetKey] = useState('beijing');
+  const [locationName, setLocationName] = useState('北京');
+  const [timezoneIana, setTimezoneIana] = useState('Asia/Shanghai');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [errorText, setErrorText] = useState('');
 
   const currentYear = new Date().getFullYear();
@@ -82,16 +80,15 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
     onSubmit(formData);
   };
 
-  const handlePresetChange = (key: string) => {
-    setPresetKey(key);
-    const preset = LOCATION_PRESETS.find((p) => p.key === key);
-    if (!preset) return;
+  const handleLocationSelect = (loc: GeocodedLocation) => {
     setFormData((prev) => ({
       ...prev,
-      geoLatitude: preset.lat,
-      geoLongitude: preset.lon,
-      timezoneOffsetMinutes: preset.tz,
+      geoLatitude: loc.geoLatitude,
+      geoLongitude: loc.geoLongitude,
+      timezoneOffsetMinutes: loc.timezoneOffsetMinutesAtBirth,
     }));
+    setLocationName(loc.normalizedLocationName);
+    setTimezoneIana(loc.timezoneIana);
   };
 
   const chineseHour = TiebanEngine.getChineseHour(formData.hour);
@@ -101,10 +98,11 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
       <div className="text-center border-b border-border pb-4">
         <h2 className="text-2xl font-display text-primary tracking-wider">输入生辰</h2>
         <p className="text-muted-foreground text-sm mt-2">
-          请填写出生地经纬度与时区，主流程将据此计算真实上升点与中天
+          搜索出生地自动解析经纬度与时区，也可手动调整
         </p>
       </div>
 
+      {/* Date */}
       <div className="space-y-2">
         <Label className="text-foreground/80 text-sm">出生日期</Label>
         <div className="grid grid-cols-3 gap-3">
@@ -143,6 +141,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
         </div>
       </div>
 
+      {/* Time */}
       <div className="space-y-2">
         <Label className="text-foreground/80 text-sm">出生时间（本地时间）</Label>
         <div className="grid grid-cols-2 gap-3">
@@ -175,61 +174,83 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-foreground/80 text-sm">出生地（可选预设）</Label>
-        <Select value={presetKey} onValueChange={handlePresetChange}>
-          <SelectTrigger className="bg-secondary border-border hover:border-primary/50 transition-colors">
-            <SelectValue placeholder="选择城市预设" />
-          </SelectTrigger>
-          <SelectContent>
-            {LOCATION_PRESETS.map((preset) => (
-              <SelectItem key={preset.key} value={preset.key}>{preset.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Location Search */}
+      <LocationSearch
+        birthYear={formData.year}
+        birthMonth={formData.month}
+        birthDay={formData.day}
+        birthHour={formData.hour}
+        onSelect={handleLocationSelect}
+        initialLocationName="北京"
+      />
 
-      <div className="space-y-2">
-        <Label className="text-foreground/80 text-sm">出生地经纬度与时区</Label>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">纬度（北纬+）</Label>
-            <Input
-              type="number"
-              step="0.0001"
-              value={formData.geoLatitude}
-              onChange={(e) => setFormData({ ...formData, geoLatitude: Number(e.target.value) })}
-              className="bg-secondary border-border"
-            />
+      {/* Resolved location info */}
+      <div className="bg-secondary/20 border border-border/50 rounded p-3 space-y-1">
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          <div>
+            <span className="text-muted-foreground">纬度: </span>
+            <span className="text-foreground font-mono">{formData.geoLatitude.toFixed(4)}°</span>
           </div>
-
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">经度（东经+）</Label>
-            <Input
-              type="number"
-              step="0.0001"
-              value={formData.geoLongitude}
-              onChange={(e) => setFormData({ ...formData, geoLongitude: Number(e.target.value) })}
-              className="bg-secondary border-border"
-            />
+          <div>
+            <span className="text-muted-foreground">经度: </span>
+            <span className="text-foreground font-mono">{formData.geoLongitude.toFixed(4)}°</span>
           </div>
-
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">时区偏移（分钟）</Label>
-            <Input
-              type="number"
-              step="1"
-              value={formData.timezoneOffsetMinutes}
-              onChange={(e) => setFormData({ ...formData, timezoneOffsetMinutes: Number(e.target.value) })}
-              className="bg-secondary border-border"
-            />
+          <div>
+            <span className="text-muted-foreground">时区: </span>
+            <span className="text-foreground font-mono">{formatTimezone(formData.timezoneOffsetMinutes)}</span>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          当前时区：<span className="text-foreground">{formatTimezone(formData.timezoneOffsetMinutes)}</span>
-        </p>
+        {timezoneIana && (
+          <p className="text-[11px] text-muted-foreground">
+            IANA: <span className="text-foreground">{timezoneIana}</span>
+            {locationName && <span> · {locationName.split(', ').slice(0, 2).join(', ')}</span>}
+          </p>
+        )}
       </div>
 
+      {/* Advanced override */}
+      <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+        <CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+          手动修正经纬度和时区
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">纬度（北纬+）</Label>
+              <Input
+                type="number"
+                step="0.0001"
+                value={formData.geoLatitude}
+                onChange={(e) => setFormData({ ...formData, geoLatitude: Number(e.target.value) })}
+                className="bg-secondary border-border"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">经度（东经+）</Label>
+              <Input
+                type="number"
+                step="0.0001"
+                value={formData.geoLongitude}
+                onChange={(e) => setFormData({ ...formData, geoLongitude: Number(e.target.value) })}
+                className="bg-secondary border-border"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">时区偏移（分钟）</Label>
+              <Input
+                type="number"
+                step="1"
+                value={formData.timezoneOffsetMinutes}
+                onChange={(e) => setFormData({ ...formData, timezoneOffsetMinutes: Number(e.target.value) })}
+                className="bg-secondary border-border"
+              />
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Gender */}
       <div className="space-y-3">
         <Label className="text-foreground/80 text-sm">性别</Label>
         <RadioGroup
@@ -253,13 +274,6 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
           {errorText}
         </div>
       )}
-
-      <div className="bg-secondary/20 border border-border/50 rounded p-4">
-        <p className="text-muted-foreground text-xs leading-relaxed text-center">
-          本地出生时间 + 出生地经纬度 + 时区会转换为 UTC 后进入天文引擎，
-          用于上升点与中天计算。
-        </p>
-      </div>
 
       <Button
         type="submit"
