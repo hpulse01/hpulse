@@ -606,6 +606,7 @@ interface OrchestrationResult {
     numerologyReport: NumerologyReport;
     mayanReport: MayanReport;
     kabbalahReport: KabbalahReport;
+    meihuaResult: MeihuaResult | null;
   };
   systems: SystemAnalysis[];
 }
