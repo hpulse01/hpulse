@@ -370,6 +370,38 @@ function MeihuaDetail({ result }: { result: UnifiedPredictionResult }) {
   );
 }
 
+// ── Qimen Detail Display ──
+
+function QimenDetail({ result }: { result: UnifiedPredictionResult }) {
+  const qimen = result.engineOutputs.find(e => e.engineName === 'qimen');
+  if (!qimen) return null;
+
+  const no = qimen.normalizedOutput;
+  return (
+    <div className="mt-4 space-y-2">
+      <h3 className="text-sm font-serif text-violet-300 flex items-center gap-1.5">
+        <Shield className="w-4 h-4" />奇门遁甲盘面
+      </h3>
+      <div className="grid grid-cols-4 gap-2">
+        {(['遁局', '值符', '值使', '时干'] as const).map(label => (
+          <div key={label} className="p-2 rounded-lg bg-card/30 border border-border/20 text-center">
+            <div className="text-[10px] text-muted-foreground mb-1">{label}</div>
+            <div className="text-xs font-serif text-foreground">{no[label] || '—'}</div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {(['主要门', '主要星', '主要神'] as const).map(label => (
+          <div key={label} className="p-2 rounded-lg bg-card/30 border border-border/20 text-center">
+            <div className="text-[10px] text-muted-foreground mb-1">{label}</div>
+            <div className="text-xs font-serif text-foreground">{no[label] || '—'}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════
 // Main Component
 // ═══════════════════════════════════════════════
@@ -445,6 +477,7 @@ export function UnifiedResultsPanel({ result }: UnifiedResultsPanelProps) {
             <ScrollArea className="h-[500px] pr-2">
               <EngineConfidenceList result={result} />
               <MeihuaDetail result={result} />
+              <QimenDetail result={result} />
             </ScrollArea>
           </div>
         </TabsContent>

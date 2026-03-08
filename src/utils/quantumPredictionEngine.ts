@@ -25,6 +25,7 @@ import { NumerologyEngine, type NumerologyReport } from './worldSystems/numerolo
 import { MayanCalendarEngine, type MayanReport } from './worldSystems/mayanCalendar';
 import { KabbalahEngine, type KabbalahReport } from './worldSystems/kabbalah';
 import { runMeihua, type MeihuaResult } from './meihuaAlgorithm';
+import { runQimen, type QimenResult } from './qimenAlgorithm';
 
 import type {
   StandardizedInput,
@@ -607,6 +608,7 @@ interface OrchestrationResult {
     mayanReport: MayanReport;
     kabbalahReport: KabbalahReport;
     meihuaResult: MeihuaResult | null;
+    qimenResult: QimenResult | null;
   };
   systems: SystemAnalysis[];
 }
@@ -683,6 +685,14 @@ function orchestrate(
     meihuaResult = mhResult.meihuaResult;
   }
 
+  // ── Qimen (奇门遁甲) — only run if active ──
+  let qimenResult: QimenResult | null = null;
+  if (isActive('qimen')) {
+    const qmResult = runQimen(standardizedInput);
+    engineOutputs.push(qmResult.eo);
+    qimenResult = qmResult.qimenResult;
+  }
+
   // ── Dynamic weights (filtered to active engines only) ──
   const activeNames = engineOutputs.map(e => e.engineName);
   const weightConfigs = getWeightsForQueryType(queryType, activeNames);
@@ -754,6 +764,7 @@ function orchestrate(
     { id: 'mayan', name: 'Mayan Calendar', nameCN: '玛雅历法', origin: '中美洲', weight: 0.08, lifeVectors: mayanResult.mayanReport.lifeVectors, meta: { '日符': mayanResult.mayanReport.daySignCN, '银河音': String(mayanResult.mayanReport.galacticTone), 'Kin': String(mayanResult.mayanReport.kin) } },
     { id: 'kabbalah', name: 'Kabbalah', nameCN: '卡巴拉', origin: '希伯来', weight: 0.08, lifeVectors: kabResult.kabbalahReport.lifeVectors, meta: { '灵魂质点': kabResult.kabbalahReport.soulSephirah.nameCN, '人格质点': kabResult.kabbalahReport.personalitySephirah.nameCN } },
     ...(meihuaResult ? [{ id: 'meihua', name: 'Meihua Yishu', nameCN: '梅花易数', origin: '中国', weight: 0.10, lifeVectors: {}, meta: { '本卦': meihuaResult.benGua.name, '变卦': meihuaResult.bianGua.name, '体用': meihuaResult.tiYong.relation } }] : []),
+    ...(qimenResult ? [{ id: 'qimen', name: 'Qi Men Dun Jia', nameCN: '奇门遁甲', origin: '中国', weight: 0.10, lifeVectors: {}, meta: { '遁局': `${qimenResult.chart.dunType}${qimenResult.chart.juNumber}局`, '值符': qimenResult.chart.zhiFu, '值使': qimenResult.chart.zhiShi } }] : []),
   ];
 
   return {
@@ -769,6 +780,7 @@ function orchestrate(
       mayanReport: mayanResult.mayanReport,
       kabbalahReport: kabResult.kabbalahReport,
       meihuaResult,
+      qimenResult,
     },
     systems,
   };
