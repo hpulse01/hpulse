@@ -157,30 +157,54 @@ function detectKarmicDebts(year: number, month: number, day: number): KarmicDebt
   return debts;
 }
 
+// v3.0: Bridge Numbers
+function calculateBridgeNumbers(lifePath: number, birthday: number, destiny: number): BridgeNumber[] {
+  const bridges: BridgeNumber[] = [];
+  const b1 = Math.abs(reduceStrict(lifePath) - reduceStrict(destiny));
+  bridges.push({ between: ['Life Path', 'Destiny'], number: b1, meaning: NUMBER_MEANINGS[b1] || '过渡调和' });
+  const b2 = Math.abs(reduceStrict(lifePath) - reduceStrict(birthday));
+  bridges.push({ between: ['Life Path', 'Birthday'], number: b2, meaning: NUMBER_MEANINGS[b2] || '内外平衡' });
+  return bridges;
+}
+
+// v3.0: Missing Numbers
+function detectMissingNumbers(year: number, month: number, day: number): MissingNumber[] {
+  const allDigitStr = `${year}${month}${day}`;
+  const present = new Set(allDigitStr.split('').map(Number).filter(n => n >= 1 && n <= 9));
+  const lessons: Record<number, string> = {
+    1: '需发展独立性与领导力', 2: '需学习合作与耐心',
+    3: '需培养创造力与自我表达', 4: '需建立稳固基础与纪律',
+    5: '需拥抱变化与自由', 6: '需承担责任与学会关爱',
+    7: '需深入内在探索与灵性', 8: '需面对权力与物质课题',
+    9: '需培养同理心与宽容',
+  };
+  const missing: MissingNumber[] = [];
+  for (let i = 1; i <= 9; i++) {
+    if (!present.has(i)) {
+      missing.push({ number: i, lesson: lessons[i] || '' });
+    }
+  }
+  return missing;
+}
+
 function clamp(v: number): number {
   return Math.max(5, Math.min(95, Math.round(v)));
 }
 
 export const NumerologyEngine = {
   calculate(input: NumerologyInput): NumerologyReport {
-    // Life Path
     const yearSum = reduceToSingle(digitSum(input.year));
     const monthSum = reduceToSingle(input.month);
     const daySum = reduceToSingle(input.day);
     const lifePath = reduceToSingle(yearSum + monthSum + daySum);
     const isMasterNumber = [11, 22, 33, 44].includes(lifePath);
 
-    // Birthday Number
     const birthdayNumber = reduceToSingle(input.day);
-
-    // Destiny Expression (from date digits)
     const allDigits = digitSum(input.year) + digitSum(input.month) + digitSum(input.day);
     const destinyExpression = reduceToSingle(allDigits);
-
-    // Maturity Number (Life Path + Destiny)
     const maturityNumber = reduceToSingle(reduceStrict(lifePath) + reduceStrict(destinyExpression));
 
-    // Hidden Passion (most frequent digit)
+    // Hidden Passion
     const allDigitStr = `${input.year}${input.month}${input.day}`;
     const digitFreq: Record<string, number> = {};
     for (const ch of allDigitStr) {
@@ -188,10 +212,15 @@ export const NumerologyEngine = {
     }
     const hiddenPassion = parseInt(Object.entries(digitFreq).sort((a, b) => b[1] - a[1])[0]?.[0] || '1');
 
-    // Karmic Debts
     const karmicDebts = detectKarmicDebts(input.year, input.month, input.day);
 
-    // Life Periods (3 periods based on month, day, year)
+    // v3.0
+    const bridgeNumbers = calculateBridgeNumbers(lifePath, birthdayNumber, destinyExpression);
+    const missingNumbers = detectMissingNumbers(input.year, input.month, input.day);
+    const presentDigits = new Set(allDigitStr.split('').map(Number).filter(n => n >= 1 && n <= 9));
+    const subconciousSelf = presentDigits.size;
+
+    // Life Periods
     const periodTransition1 = 36 - reduceStrict(lifePath);
     const lifePeriods: LifePeriodInfo[] = [
       { period: '成长期', number: monthSum, startAge: 0, endAge: Math.max(periodTransition1, 25), theme: `${NUMBER_MEANINGS[reduceStrict(monthSum)] || '探索'}` },
@@ -199,7 +228,7 @@ export const NumerologyEngine = {
       { period: '收获期', number: yearSum, startAge: Math.max(periodTransition1, 25) + 28, endAge: 99, theme: `${NUMBER_MEANINGS[reduceStrict(yearSum)] || '圆满'}` },
     ];
 
-    // Pinnacles (4 periods)
+    // Pinnacles
     const firstPinnacleEnd = 36 - reduceStrict(lifePath);
     const pinnacles: PinnacleInfo[] = [
       { number: reduceToSingle(monthSum + daySum), meaning: NUMBER_MEANINGS[reduceToSingle(monthSum + daySum)] || '', startAge: 0, endAge: Math.max(firstPinnacleEnd, 27) },
@@ -249,9 +278,10 @@ export const NumerologyEngine = {
     const boosts = lpBoost[lifePath] || {};
     const karmicPenalty = karmicDebts.length * -3;
     const masterBonus = isMasterNumber ? 5 : 0;
+    const missingPenalty = missingNumbers.length > 4 ? -3 : 0;
 
     const lifeVectors: Record<string, number> = {
-      career: clamp(base + (boosts.career || 0) + masterBonus),
+      career: clamp(base + (boosts.career || 0) + masterBonus + missingPenalty),
       wealth: clamp(base + (boosts.wealth || 0) + karmicPenalty),
       love: clamp(base + (boosts.love || 0)),
       health: clamp(base + (boosts.health || 0) + karmicPenalty),
@@ -266,7 +296,9 @@ export const NumerologyEngine = {
     return {
       lifePath, lifePathMeaning: NUMBER_MEANINGS[lifePath] || '', birthdayNumber, destinyExpression,
       maturityNumber, hiddenPassion, karmicDebts, isMasterNumber,
-      pinnacles, challenges, lifePeriods, personalYears, lifeVectors,
+      pinnacles, challenges, lifePeriods, personalYears,
+      bridgeNumbers, missingNumbers, subconciousSelf,
+      lifeVectors,
     };
   },
 };

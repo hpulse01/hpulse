@@ -213,6 +213,52 @@ function calculateFourWorlds(activeSephiroth: SephirahInfo[]): FourWorldsBalance
   return { ...normalized, dominantWorld: dominant, interpretation: interpretations[dominant] || '' };
 }
 
+// v3.0: Lightning Flash
+function analyzeLightningFlash(soulIdx: number): LightningFlashInfo {
+  // The Lightning Flash descends: 1→2→3→4→5→6→7→8→9→10
+  const sequence = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const currentPosition = soulIdx;
+  const positionFromTop = sequence.indexOf(currentPosition);
+  
+  let interpretation: string;
+  if (positionFromTop <= 2) interpretation = '灵魂处于闪电之路上方，与高层灵性直接相连，适合灵性引导。';
+  else if (positionFromTop <= 5) interpretation = '灵魂处于闪电之路中段，在创造与形式之间平衡，适合艺术与领导。';
+  else interpretation = '灵魂处于闪电之路下方，擅长物质显化与实际行动。';
+  
+  return { sequence, currentPosition, interpretation };
+}
+
+// v3.0: Da'at Gateway
+function analyzeDaatGateway(activeSephiroth: SephirahInfo[]): DaatGateway {
+  // Da'at is active when Chokmah(2) and Binah(3) are both strongly activated
+  const chokmahEnergy = activeSephiroth.find(s => s.index === 2)?.energy || 0;
+  const binahEnergy = activeSephiroth.find(s => s.index === 3)?.energy || 0;
+  const strength = Math.min(chokmahEnergy, binahEnergy);
+  const isActive = strength > 60;
+  
+  const interpretation = isActive
+    ? `知识之门(Da\'at)开启(强度${strength})：智慧与理解汇聚，超越二元对立的洞见力显现。`
+    : `知识之门(Da\'at)未完全开启(强度${strength})：需进一步发展智慧与理解的平衡。`;
+  
+  return { isActive, strength, interpretation };
+}
+
+// v3.0: Active Paths
+const FLAMING_SWORD_PATHS = new Set([
+  '1-2', '2-3', '3-4', '4-5', '5-6', '6-7', '7-8', '8-9', '9-10',
+]);
+
+function analyzeActivePaths(soulIdx: number, persIdx: number, activeSephiroth: SephirahInfo[]): ActivePathInfo[] {
+  return PATHS.filter((_, i) => i < 10).map(path => {
+    const fromEnergy = activeSephiroth.find(s => s.index === path.from)?.energy || 0;
+    const toEnergy = activeSephiroth.find(s => s.index === path.to)?.energy || 0;
+    const strength = Math.round((fromEnergy + toEnergy) / 2);
+    const pathKey = `${path.from}-${path.to}`;
+    const isOnFlamingSword = FLAMING_SWORD_PATHS.has(pathKey);
+    return { path, strength, isOnFlamingSword };
+  }).filter(p => p.strength > 50);
+}
+
 function clamp(v: number): number {
   return Math.max(5, Math.min(95, Math.round(v)));
 }
@@ -234,55 +280,50 @@ export const KabbalahEngine = {
     const pathIdx = (soulIdx + personalityIdx) % PATHS.length;
     const lifePath = PATHS[pathIdx];
 
-    // Enhanced pillar balance
     const mercyPillar = [2, 4, 7].reduce((s, i) => s + (activeSephiroth[i - 1]?.energy || 0), 0) / 3;
     const severityPillar = [3, 5, 8].reduce((s, i) => s + (activeSephiroth[i - 1]?.energy || 0), 0) / 3;
     const middlePillar = [1, 6, 9, 10].reduce((s, i) => s + (activeSephiroth[i - 1]?.energy || 0), 0) / 4;
 
     const diff = Math.abs(mercyPillar - severityPillar);
     let pillarInterpretation: string;
-    if (diff < 10) {
-      pillarInterpretation = '慈悲与严厉高度平衡，内在和谐，处事公正';
-    } else if (mercyPillar > severityPillar) {
-      pillarInterpretation = '慈悲柱较强，性格宽厚仁慈，需注意过度放纵';
-    } else {
-      pillarInterpretation = '严厉柱较强，性格刚毅果断，需注意过于苛刻';
-    }
+    if (diff < 10) pillarInterpretation = '慈悲与严厉高度平衡，内在和谐，处事公正';
+    else if (mercyPillar > severityPillar) pillarInterpretation = '慈悲柱较强，性格宽厚仁慈，需注意过度放纵';
+    else pillarInterpretation = '严厉柱较强，性格刚毅果断，需注意过于苛刻';
 
-    // Gematria
     const gematria = calculateGematria(input.year, input.month, input.day);
-
-    // Four Worlds
     const fourWorlds = calculateFourWorlds(activeSephiroth);
-
-    // Shadow
     const shadowSephirah = SHADOW_NAMES[soulIdx] || SHADOW_NAMES[10];
 
-    // Life vectors
+    // v3.0
+    const lightningFlash = analyzeLightningFlash(soulIdx);
+    const daatGateway = analyzeDaatGateway(activeSephiroth);
+    const activePaths = analyzeActivePaths(soulIdx, personalityIdx, activeSephiroth);
+
+    // Life vectors (v3.0 enhanced)
     const soulVec = SEPHIRAH_VECTORS[soulIdx] || {};
     const persVec = SEPHIRAH_VECTORS[personalityIdx] || {};
     const gematriaBonus = gematria.reducedValue === 6 || gematria.reducedValue === 9 ? 5 : 0;
+    const daatBonus = daatGateway.isActive ? 4 : 0;
+    const flamingSwordBonus = activePaths.filter(p => p.isOnFlamingSword).length;
     const base = 50;
     const aspects = ['career', 'wealth', 'love', 'health', 'wisdom', 'social', 'creativity', 'fortune', 'family', 'spirituality'];
     const lifeVectors: Record<string, number> = {};
     for (const a of aspects) {
-      lifeVectors[a] = clamp(base + (soulVec[a] || 0) * 0.6 + (persVec[a] || 0) * 0.4 + gematriaBonus);
+      lifeVectors[a] = clamp(base + (soulVec[a] || 0) * 0.6 + (persVec[a] || 0) * 0.4 + gematriaBonus + (a === 'wisdom' ? daatBonus : 0) + (a === 'spirituality' ? flamingSwordBonus : 0));
     }
 
     return {
       soulSephirah: activeSephiroth[soulIdx - 1],
       personalitySephirah: activeSephiroth[personalityIdx - 1],
-      lifePath,
-      activeSephiroth,
+      lifePath, activeSephiroth,
       treeBalance: {
         pillarOfMercy: Math.round(mercyPillar),
         pillarOfSeverity: Math.round(severityPillar),
         middlePillar: Math.round(middlePillar),
         interpretation: pillarInterpretation,
       },
-      gematria,
-      fourWorlds,
-      shadowSephirah,
+      gematria, fourWorlds, shadowSephirah,
+      lightningFlash, daatGateway, activePaths,
       lifeVectors,
     };
   },

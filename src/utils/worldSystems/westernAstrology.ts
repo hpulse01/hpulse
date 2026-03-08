@@ -450,6 +450,8 @@ export const WesternAstrologyEngine = {
       .sort((a, b) => b[1] - a[1])[0][0];
 
     const patterns = detectPatterns(planets, aspects);
+    const mutualReceptions = detectMutualReceptions(planets);
+    const singletons = detectSingletons(planets, elementBalance, modalityBalance);
 
     // Dignity score bonus
     const dignityScore = planets.reduce((s, p) => {
@@ -462,7 +464,8 @@ export const WesternAstrologyEngine = {
 
     const harmonySum = aspects.reduce((s, a) => s + a.harmony, 0);
     const patternBonus = patterns.reduce((s, p) => s + (p.strength > 60 ? 3 : -1), 0);
-    const baseScore = 50 + harmonySum * 5 + dignityScore + patternBonus;
+    const receptionBonus = mutualReceptions.length * 4;
+    const baseScore = 50 + harmonySum * 5 + dignityScore + patternBonus + receptionBonus;
 
     const lifeVectors: Record<string, number> = {
       career: clamp(baseScore + elementBalance.fire * 3 + elementBalance.earth * 2),
@@ -472,7 +475,7 @@ export const WesternAstrologyEngine = {
       wisdom: clamp(baseScore + elementBalance.air * 4 + elementBalance.water * 2),
       social: clamp(baseScore + elementBalance.air * 3 + elementBalance.fire * 2),
       creativity: clamp(baseScore + elementBalance.fire * 3 + elementBalance.water * 3),
-      fortune: clamp(baseScore + harmonySum * 3 + patternBonus),
+      fortune: clamp(baseScore + harmonySum * 3 + patternBonus + receptionBonus),
       family: clamp(baseScore + elementBalance.water * 3 + elementBalance.earth * 2),
       spirituality: clamp(baseScore + elementBalance.water * 4 + elementBalance.fire),
     };
@@ -480,7 +483,7 @@ export const WesternAstrologyEngine = {
     return {
       sunSign, moonSign, risingSign, planets, aspects,
       elementBalance, modalityBalance, dominantElement, dominantModality,
-      patterns, lifeVectors,
+      patterns, mutualReceptions, singletons, lifeVectors,
     };
   },
 
@@ -494,15 +497,16 @@ export const WesternAstrologyEngine = {
       'https://en.wikipedia.org/wiki/Astrological_aspect',
       'https://en.wikipedia.org/wiki/Domicile_(astrology)',
       'https://en.wikipedia.org/wiki/Essential_dignity',
+      'https://en.wikipedia.org/wiki/Yod_(astrology)',
     ],
     source_grade: 'A' as const,
     algorithm_version: '3.0.0',
-    rule_school: 'Tropical Zodiac, Whole Sign Houses, Essential Dignities',
+    rule_school: 'Tropical Zodiac, Whole Sign Houses, Essential Dignities, Mutual Reception',
     uncertainty_notes: [
       ...CELESTIAL_LAYER_METADATA.uncertainty_notes,
       'Retrograde detection simplified (velocity data not available)',
-      'Pattern detection covers major configurations only',
-      'Life vector scoring is heuristic with dignity/pattern modifiers',
+      'Pattern detection covers major configurations including Yod and Grand Cross',
+      'v3.0 adds mutual reception, singleton, and enhanced pattern detection',
     ],
   },
 };
