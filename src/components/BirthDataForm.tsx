@@ -18,6 +18,7 @@ import {
 import { ChevronDown, MapPin, Clock, Compass } from 'lucide-react';
 import { TiebanEngine, type TiebanInput } from '@/utils/tiebanAlgorithm';
 import { LocationSearch, type GeocodedLocation } from '@/components/LocationSearch';
+import { useI18n } from '@/hooks/useI18n';
 
 /** Extended birth data that includes P0.5 location metadata */
 export interface BirthDataWithGeo extends TiebanInput {
