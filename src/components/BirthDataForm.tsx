@@ -167,7 +167,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
       {/* Time */}
       <div className="space-y-2.5">
         <Label className="text-xs text-muted-foreground font-sans flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5" />出生时间
+          <Clock className="w-3.5 h-3.5" />{t('form.birth_time')}
         </Label>
         <div className="grid grid-cols-2 gap-2.5">
           <Select value={formData.hour.toString()} onValueChange={(v) => setFormData({ ...formData, hour: parseInt(v, 10) })}>
