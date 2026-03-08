@@ -888,7 +888,7 @@ function orchestrate(
   const legacyBaziProfile = tiebanResult?.baziProfile ?? baziResult?.deepAnalysis ? {
     dayMaster: baziResult!.deepAnalysis.dayMaster.stem,
     dayMasterElement: baziResult!.deepAnalysis.dayMaster.element,
-    pillars: baziResult!.deepAnalysis.fourPillars,
+    pillars: { ...baziResult!.deepAnalysis.fourPillars, time: baziResult!.deepAnalysis.fourPillars.hour ?? '甲子' },
     strength: baziResult!.deepAnalysis.dayMaster.strengthLevel,
     favorableElements: baziResult!.deepAnalysis.favorable.elements,
     unfavorableElements: baziResult!.deepAnalysis.unfavorable.elements,
