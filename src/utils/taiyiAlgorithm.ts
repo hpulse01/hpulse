@@ -305,10 +305,83 @@ function detectPatterns(chart: TaiyiChart): TaiyiPattern[] {
 }
 
 // ═══════════════════════════════════════════════
-// Evaluation & Scoring
+// v3.0: 三门四户
 // ═══════════════════════════════════════════════
 
-function assessTrend(chart: TaiyiChart, patterns: TaiyiPattern[]): {
+function calculateSanMenSiHu(juNumber: number, taiyiGong: number): SanMenSiHu {
+  const gongOrder = [1, 2, 3, 4, 6, 7, 8, 9];
+  const taiyiIdx = gongOrder.indexOf(taiyiGong);
+  // 天门：太乙顺行第三宫 / 地户：太乙逆行第三宫
+  // 人门：太乙顺行第五宫 / 鬼户：太乙逆行第五宫
+  const tianMen = gongOrder[((taiyiIdx >= 0 ? taiyiIdx : 0) + 2) % 8];
+  const diHu = gongOrder[((taiyiIdx >= 0 ? taiyiIdx : 0) - 2 + 8) % 8];
+  const renMen = gongOrder[((taiyiIdx >= 0 ? taiyiIdx : 0) + 4) % 8];
+  const guiHu = gongOrder[((taiyiIdx >= 0 ? taiyiIdx : 0) - 4 + 8) % 8];
+
+  const palaceNames = NINE_PALACES;
+  const interpretation = `天门在${palaceNames.find(p => p.number === tianMen)?.name || '?'}(宜祈福)，` +
+    `地户在${palaceNames.find(p => p.number === diHu)?.name || '?'}(宜出征)，` +
+    `人门在${palaceNames.find(p => p.number === renMen)?.name || '?'}(宜谋事)，` +
+    `鬼户在${palaceNames.find(p => p.number === guiHu)?.name || '?'}(宜避凶)。`;
+
+  return { tianMen, diHu, renMen, guiHu, interpretation };
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: 太乙十二运
+// ═══════════════════════════════════════════════
+
+function calculateTwelveStage(taiyiGong: number, juNumber: number): TaiyiTwelveStage {
+  const taiyiWx = NINE_PALACES.find(p => p.number === taiyiGong)!.wuxing;
+  // 根据局数和太乙宫五行判断十二运状态
+  const stageIdx = (juNumber + taiyiGong) % 12;
+  const stages = ['长生', '沐浴', '冠带', '临官', '帝旺', '衰', '病', '死', '墓', '绝', '胎', '养'];
+  const strengthMap: Record<string, '旺' | '相' | '休' | '囚' | '死'> = {
+    '长生': '相', '沐浴': '休', '冠带': '相', '临官': '旺', '帝旺': '旺',
+    '衰': '休', '病': '囚', '死': '死', '墓': '死', '绝': '死', '胎': '囚', '养': '休',
+  };
+  const stage = stages[stageIdx];
+  const strength = strengthMap[stage] || '休';
+
+  const interpretation = `太乙(${taiyiWx})处${stage}位，${strength === '旺' ? '气势强盛' : strength === '相' ? '生气渐起' : strength === '死' ? '气势衰竭' : '能量平稳'}。`;
+
+  return { stage, strength, interpretation };
+}
+
+// ═══════════════════════════════════════════════
+// v3.0: 文昌分析
+// ═══════════════════════════════════════════════
+
+function analyzeWenChang(chart: TaiyiChart): WenChangAnalysis {
+  // 文昌为十六神第二位
+  const wenChangParts: string[] = [];
+  let wenChangPalace = 0;
+  for (const p of chart.palaces) {
+    if (p.spirits.includes('文昌')) {
+      wenChangPalace = p.number;
+      break;
+    }
+  }
+
+  const isInAuspicious = [6, 9, 4].includes(wenChangPalace); // 乾离巽为文运吉位
+  const isWithTaiyi = wenChangPalace === chart.taiyiGong;
+
+  if (isWithTaiyi) wenChangParts.push('文昌与太乙同宫，文运大旺');
+  else if (isInAuspicious) wenChangParts.push('文昌居吉位，利于学业文运');
+  else wenChangParts.push('文昌位置平常');
+
+  return {
+    palace: wenChangPalace,
+    isActive: isInAuspicious || isWithTaiyi,
+    interpretation: wenChangParts.join('。'),
+  };
+}
+
+// ═══════════════════════════════════════════════
+// Evaluation & Scoring (v3.0 enhanced)
+// ═══════════════════════════════════════════════
+
+function assessTrend(chart: TaiyiChart, patterns: TaiyiPattern[], twelveStage: TaiyiTwelveStage): {
   trendLevel: TaiyiResult['trendLevel'];
   auspiciousness: TaiyiResult['auspiciousness'];
   score: number;
@@ -320,6 +393,10 @@ function assessTrend(chart: TaiyiChart, patterns: TaiyiPattern[]): {
 
   // 局数奇偶微调
   if (chart.juNumber % 2 === 1) score += 2;
+
+  // v3.0: 十二运修正
+  const stageScoreMap: Record<string, number> = { '旺': 8, '相': 4, '休': 0, '囚': -4, '死': -8 };
+  score += stageScoreMap[twelveStage.strength] || 0;
 
   score = Math.max(5, Math.min(95, score));
 
@@ -337,16 +414,16 @@ function assessTrend(chart: TaiyiChart, patterns: TaiyiPattern[]): {
   else if (score >= 25) auspiciousness = '凶';
   else auspiciousness = '大凶';
 
-  // v2.0: Trend analysis
   const trendParts: string[] = [];
   trendParts.push(`太乙积年${chart.jiNian}，第${chart.juNumber}局`);
   trendParts.push(`${chart.zhuKeRelation}`);
+  trendParts.push(`太乙${twelveStage.stage}(${twelveStage.strength})`);
   trendParts.push(`趋势等级：${trendLevel}，综合评分${score}分`);
 
   return { trendLevel, auspiciousness, score, trendAnalysis: trendParts.join('。') };
 }
 
-function buildYingQi(chart: TaiyiChart): string {
+function buildYingQi(chart: TaiyiChart, sanMenSiHu: SanMenSiHu): string {
   const taiyiWx = NINE_PALACES.find(p => p.number === chart.taiyiGong)!.wuxing;
   const wxTimeMap: Record<string, string> = {
     '木': '春季（寅卯辰月）', '火': '夏季（巳午未月）', '土': '季月（辰戌丑未月）',
@@ -355,7 +432,12 @@ function buildYingQi(chart: TaiyiChart): string {
   const wxDayMap: Record<string, string> = {
     '木': '甲乙日', '火': '丙丁日', '土': '戊己日', '金': '庚辛日', '水': '壬癸日',
   };
-  return `应期在${wxTimeMap[taiyiWx] || '不明'}，或${wxDayMap[taiyiWx] || '不明'}前后应验。局数${chart.juNumber}，太乙在第${chart.taiyiGong}宫。`;
+  const directionMap: Record<string, string> = {
+    '木': '东方', '火': '南方', '土': '中央', '金': '西方', '水': '北方',
+  };
+  return `应期在${wxTimeMap[taiyiWx] || '不明'}，或${wxDayMap[taiyiWx] || '不明'}前后应验。` +
+    `利方位：${directionMap[taiyiWx] || '不明'}。` +
+    `人门在第${sanMenSiHu.renMen}宫，宜向此方谋事。`;
 }
 
 // ═══════════════════════════════════════════════
