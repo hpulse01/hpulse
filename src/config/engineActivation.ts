@@ -24,6 +24,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     numerology: { active: true,  reason: '数字命理提供补充维度' },
     mayan:      { active: true,  reason: '玛雅历法提供时间周期视角' },
     kabbalah:   { active: true,  reason: '卡巴拉提供灵性维度补充' },
+    meihua:     { active: false, reason: '梅花易数为即时感应体系，不适用于本命分析' },
   },
   annualForecast: {
     tieban:     { active: true,  reason: '铁板流年条文为年度预测核心' },
@@ -35,6 +36,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     numerology: { active: true,  reason: '个人年数字对年度预测有参考' },
     mayan:      { active: true,  reason: '玛雅周期参考' },
     kabbalah:   { active: true,  reason: '卡巴拉灵性参考' },
+    meihua:     { active: false, reason: '梅花易数不适用于年度确定性预测' },
   },
   monthlyForecast: {
     tieban:     { active: true,  reason: '铁板流月条文可用但精度有限' },
@@ -46,6 +48,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     numerology: { active: true,  reason: '数字月度参考' },
     mayan:      { active: true,  reason: '玛雅Uinal周期' },
     kabbalah:   { active: true,  reason: '卡巴拉月度参考' },
+    meihua:     { active: true,  reason: '梅花易数可用于月度感应占断，低权重' },
   },
   dailyForecast: {
     tieban:     { active: false, reason: '铁板不具备日度精度' },
@@ -57,6 +60,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     numerology: { active: true,  reason: '数字日度参考' },
     mayan:      { active: true,  reason: '玛雅Kin日签高度相关' },
     kabbalah:   { active: false, reason: '卡巴拉日度参考有限' },
+    meihua:     { active: true,  reason: '梅花易数可用于日度感应占断' },
   },
   instantDecision: {
     tieban:     { active: false, reason: '铁板不适用即时决策' },
@@ -68,6 +72,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     numerology: { active: true,  reason: '数字即时参考' },
     mayan:      { active: true,  reason: '玛雅当日能量' },
     kabbalah:   { active: true,  reason: '卡巴拉即时参考' },
+    meihua:     { active: true,  reason: '梅花易数为即时感应占断核心体系' },
   },
 };
 

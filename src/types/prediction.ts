@@ -143,11 +143,13 @@ export interface PredictionConflict {
 
 export type EngineName =
   | 'tieban' | 'bazi' | 'ziwei' | 'liuyao'
-  | 'western' | 'vedic' | 'numerology' | 'mayan' | 'kabbalah';
+  | 'western' | 'vedic' | 'numerology' | 'mayan' | 'kabbalah'
+  | 'meihua';
 
 export const ALL_ENGINE_NAMES: EngineName[] = [
   'tieban', 'bazi', 'ziwei', 'liuyao',
   'western', 'vedic', 'numerology', 'mayan', 'kabbalah',
+  'meihua',
 ];
 
 export interface EngineActivationRule {

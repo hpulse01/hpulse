@@ -24,6 +24,7 @@ import { VedicAstrologyEngine, type VedicReport } from './worldSystems/vedicAstr
 import { NumerologyEngine, type NumerologyReport } from './worldSystems/numerology';
 import { MayanCalendarEngine, type MayanReport } from './worldSystems/mayanCalendar';
 import { KabbalahEngine, type KabbalahReport } from './worldSystems/kabbalah';
+import { runMeihua, type MeihuaResult } from './meihuaAlgorithm';
 
 import type {
   StandardizedInput,
@@ -605,6 +606,7 @@ interface OrchestrationResult {
     numerologyReport: NumerologyReport;
     mayanReport: MayanReport;
     kabbalahReport: KabbalahReport;
+    meihuaResult: MeihuaResult | null;
   };
   systems: SystemAnalysis[];
 }
@@ -672,6 +674,14 @@ function orchestrate(
   // ── Kabbalah ──
   const kabResult = runKabbalah(qi);
   if (isActive('kabbalah')) engineOutputs.push(kabResult.eo);
+
+  // ── Meihua (梅花易数) — only run if active ──
+  let meihuaResult: MeihuaResult | null = null;
+  if (isActive('meihua')) {
+    const mhResult = runMeihua(standardizedInput);
+    engineOutputs.push(mhResult.eo);
+    meihuaResult = mhResult.meihuaResult;
+  }
 
   // ── Dynamic weights (filtered to active engines only) ──
   const activeNames = engineOutputs.map(e => e.engineName);
@@ -743,6 +753,7 @@ function orchestrate(
     { id: 'numerology', name: 'Numerology', nameCN: '数字命理', origin: '西方', weight: 0.08, lifeVectors: numResult.numerologyReport.lifeVectors, meta: { '生命数': String(numResult.numerologyReport.lifePath), '含义': numResult.numerologyReport.lifePathMeaning.slice(0, 10) } },
     { id: 'mayan', name: 'Mayan Calendar', nameCN: '玛雅历法', origin: '中美洲', weight: 0.08, lifeVectors: mayanResult.mayanReport.lifeVectors, meta: { '日符': mayanResult.mayanReport.daySignCN, '银河音': String(mayanResult.mayanReport.galacticTone), 'Kin': String(mayanResult.mayanReport.kin) } },
     { id: 'kabbalah', name: 'Kabbalah', nameCN: '卡巴拉', origin: '希伯来', weight: 0.08, lifeVectors: kabResult.kabbalahReport.lifeVectors, meta: { '灵魂质点': kabResult.kabbalahReport.soulSephirah.nameCN, '人格质点': kabResult.kabbalahReport.personalitySephirah.nameCN } },
+    ...(meihuaResult ? [{ id: 'meihua', name: 'Meihua Yishu', nameCN: '梅花易数', origin: '中国', weight: 0.10, lifeVectors: {}, meta: { '本卦': meihuaResult.benGua.name, '变卦': meihuaResult.bianGua.name, '体用': meihuaResult.tiYong.relation } }] : []),
   ];
 
   return {
@@ -757,6 +768,7 @@ function orchestrate(
       numerologyReport: numResult.numerologyReport,
       mayanReport: mayanResult.mayanReport,
       kabbalahReport: kabResult.kabbalahReport,
+      meihuaResult,
     },
     systems,
   };
