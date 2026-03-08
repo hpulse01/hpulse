@@ -72,6 +72,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     numerology: { active: true,  reason: '数字即时参考' },
     mayan:      { active: true,  reason: '玛雅当日能量' },
     kabbalah:   { active: true,  reason: '卡巴拉即时参考' },
+    meihua:     { active: true,  reason: '梅花易数为即时感应占断核心体系' },
   },
 };
 

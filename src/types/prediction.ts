@@ -149,6 +149,7 @@ export type EngineName =
 export const ALL_ENGINE_NAMES: EngineName[] = [
   'tieban', 'bazi', 'ziwei', 'liuyao',
   'western', 'vedic', 'numerology', 'mayan', 'kabbalah',
+  'meihua',
 ];
 
 export interface EngineActivationRule {
