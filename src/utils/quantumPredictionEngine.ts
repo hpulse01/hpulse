@@ -31,7 +31,7 @@ import { buildTaiyiEngineOutput, type TaiyiResult } from './taiyiAlgorithm';
 import { performDeepBaZiAnalysis, type DeepBaZiAnalysis } from './baziDeepAnalysis';
 
 // Destiny Tree imports
-import { extractTiebanEvents, extractBaziEvents, extractZiweiEvents, extractGenericEvents, extractInstantEvents } from './eventSeedExtractors';
+import { extractTiebanEvents, extractBaziEvents, extractZiweiEvents, extractWesternEvents, extractVedicEvents, extractNumerologyEvents, extractMayanEvents, extractKabbalahEvents, extractInstantEvents } from './eventSeedExtractors';
 import { fuseEventSeeds } from './eventFusion';
 import { generateWorldTree, collapseWorldTree } from './worldTreeGenerator';
 import type { RecursiveWorldTree, CollapseResult, DestinyEventSeed } from '@/types/destinyTree';
@@ -1240,7 +1240,7 @@ export const QuantumPredictionEngine = {
     const { unifiedResult, rawData, systems } = orchestrate(si, systemOffset);
     const { baziProfile, fullReport, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport } = rawData;
 
-    // Legacy Phase 2-4
+    // Legacy Phase 2-4 (kept for backward-compatible UI fields)
     const { branches, totalGenerated, perSystem } = generateInfiniteWorlds(systems, input, vedicReport, numerologyReport, fullReport);
     const { timeline, states, entanglements, overallCoherence, deathAge: legacyDeathAge } = quantumCollapse(systems, branches, input, baziProfile, fullReport, vedicReport, numerologyReport);
     const { phases, lifeSummary: legacyLifeSummary } = revealDestiny(timeline, states, legacyDeathAge, input);
@@ -1261,12 +1261,24 @@ export const QuantumPredictionEngine = {
       if (rawData.ziweiReport) {
         allSeeds.push(...extractZiweiEvents(rawData.ziweiReport, input.year));
       }
-      // Generic events from western, vedic, numerology, mayan, kabbalah
+      // Specific extractors for world system engines
+      if (rawData.westernReport) {
+        allSeeds.push(...extractWesternEvents(rawData.westernReport, input.year));
+      }
+      if (rawData.vedicReport) {
+        allSeeds.push(...extractVedicEvents(rawData.vedicReport, input.year));
+      }
+      if (rawData.numerologyReport) {
+        allSeeds.push(...extractNumerologyEvents(rawData.numerologyReport, input.year));
+      }
+      if (rawData.mayanReport) {
+        allSeeds.push(...extractMayanEvents(rawData.mayanReport, input.year));
+      }
+      if (rawData.kabbalahReport) {
+        allSeeds.push(...extractKabbalahEvents(rawData.kabbalahReport, input.year));
+      }
+      // Instant engine events
       for (const eo of unifiedResult.engineOutputs) {
-        if (['western', 'vedic', 'numerology', 'mayan', 'kabbalah'].includes(eo.engineName)) {
-          allSeeds.push(...extractGenericEvents(eo, input.year));
-        }
-        // Instant engine events
         if (['liuyao', 'meihua', 'qimen', 'liuren', 'taiyi'].includes(eo.engineName)) {
           allSeeds.push(...extractInstantEvents(eo, si.queryTimeUtc, input.year));
         }
