@@ -126,7 +126,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
       {/* Date */}
       <div className="space-y-2.5">
         <Label className="text-xs text-muted-foreground font-sans flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5" />出生日期
+          <Clock className="w-3.5 h-3.5" />{t('form.birth_date')}
         </Label>
         <div className="grid grid-cols-3 gap-2.5">
           <Select value={formData.year.toString()} onValueChange={(v) => setFormData({ ...formData, year: parseInt(v, 10) })}>
