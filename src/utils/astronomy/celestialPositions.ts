@@ -79,6 +79,9 @@ function makeCelestialPosition(name: string, longitude: number): CelestialPositi
 }
 
 function getBodyLongitude(body: Body, time: AstroTime): number {
+  if (body === Body.Sun) {
+    return SunPosition(time).elon;
+  }
   return EclipticLongitude(body, time);
 }
 
