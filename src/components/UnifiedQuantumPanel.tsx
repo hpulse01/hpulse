@@ -190,11 +190,11 @@ export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelPr
         <TabsContent value="states" className="mt-5 space-y-5">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4 flex flex-col items-center">
-              <h3 className="text-sm font-serif text-violet-300 mb-3"><Sparkles className="w-4 h-4 inline mr-1" />十维量子态势场</h3>
+              <h3 className="text-sm font-serif text-violet-300 mb-3"><Sparkles className="w-4 h-4 inline mr-1" />{t('quantum.ten_dim_field')}</h3>
               <QuantumRadar states={result.states} size={300} />
             </div>
             <div className="bg-card/40 border border-violet-500/20 rounded-xl p-4">
-              <h3 className="text-sm font-serif text-violet-300 mb-3">十维量子态</h3>
+              <h3 className="text-sm font-serif text-violet-300 mb-3">{t('quantum.ten_dim_states')}</h3>
               <div className="space-y-2">
                 {sortedStates.map(state => {
                   const Icon = ASPECT_ICONS[state.aspect];
