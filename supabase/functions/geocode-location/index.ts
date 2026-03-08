@@ -184,7 +184,7 @@ Deno.serve(async (req: Request) => {
         normalizedLocationName: displayName,
         geoLatitude: lat,
         geoLongitude: lon,
-        timezoneIana: ianaTimezone,
+        timezoneIana: tzInfo.ianaTimezone,
         timezoneOffsetMinutesAtBirth: offsetMinutes,
         sourceProvider: 'nominatim+timeapi',
         confidence,
