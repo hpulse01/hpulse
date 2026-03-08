@@ -71,6 +71,36 @@ export interface YingQi {
   explanation: string;
 }
 
+/** v3.0: 错卦 (Inverse: all lines flipped) */
+export interface CuoGuaAnalysis {
+  gua: MeihuaGua;
+  relation: string;
+  interpretation: string;
+}
+
+/** v3.0: 综卦 (Reverse: lines reversed bottom-to-top) */
+export interface ZongGuaAnalysis {
+  gua: MeihuaGua;
+  relation: string;
+  interpretation: string;
+}
+
+/** v3.0: 多层体用分析 */
+export interface MultiLayerTiYong {
+  benTiYong: TiYongRelation;
+  huTiYong: TiYongRelation | null;
+  bianTiYong: TiYongRelation | null;
+  synthesis: string;
+}
+
+/** v3.0: 五行力量对比 */
+export interface WuXingForceBalance {
+  forces: Record<WuXing, number>;
+  dominant: WuXing;
+  weakest: WuXing;
+  interpretation: string;
+}
+
 /** 卦象深度分析 */
 export interface GuaAnalysis {
   /** 卦象意象 */
@@ -89,6 +119,14 @@ export interface GuaAnalysis {
   pattern: string;
   /** 综合评语 */
   summary: string;
+  /** v3.0: 错卦分析 */
+  cuoGua: CuoGuaAnalysis;
+  /** v3.0: 综卦分析 */
+  zongGua: ZongGuaAnalysis;
+  /** v3.0: 多层体用 */
+  multiLayerTiYong: MultiLayerTiYong;
+  /** v3.0: 五行力量对比 */
+  wuxingBalance: WuXingForceBalance;
 }
 
 export interface MeihuaResult {
