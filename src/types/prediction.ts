@@ -94,6 +94,24 @@ export const FATE_DIMENSION_LABELS: Record<FateDimension, string> = {
   spirit: '灵性',
 };
 
+export const FATE_DIMENSION_LABELS_EN: Record<FateDimension, string> = {
+  life: 'Life & Career',
+  wealth: 'Wealth',
+  relation: 'Relationships',
+  health: 'Health',
+  wisdom: 'Wisdom & Creativity',
+  spirit: 'Spirituality',
+};
+
+export const FATE_DIMENSION_LABELS_BI: Record<FateDimension, { zh: string; en: string }> = {
+  life: { zh: '命运·事业', en: 'Life & Career' },
+  wealth: { zh: '财富', en: 'Wealth' },
+  relation: { zh: '人际·情感', en: 'Relationships' },
+  health: { zh: '健康', en: 'Health' },
+  wisdom: { zh: '智慧·创造', en: 'Wisdom & Creativity' },
+  spirit: { zh: '灵性', en: 'Spirituality' },
+};
+
 // ═══════════════════════════════════════════════
 // 3. EngineOutput (with timingBasis)
 // ═══════════════════════════════════════════════
