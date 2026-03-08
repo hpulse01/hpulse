@@ -1,13 +1,13 @@
 /**
- * Kabbalah / Tree of Life Engine v2.0 (卡巴拉生命之树)
+ * Kabbalah / Tree of Life Engine v3.0 (卡巴拉生命之树)
  *
- * Upgrades:
- * - Gematria calculation (date-based)
- * - Four Worlds mapping (Atziluth, Briah, Yetzirah, Assiah)
- * - Hebrew letter associations
- * - Enhanced pillar balance with interpretation
- * - Klipah (shadow) analysis
- * - Da'at (hidden sephirah) consideration
+ * v3.0 Upgrades:
+ * - Lightning Flash (Seder Hishtalshelut) sequence analysis
+ * - Path of the Flaming Sword traversal
+ * - Enhanced Qliphoth (shadow) with remediation
+ * - Da'at (Knowledge) gateway activation
+ * - Pillar resonance with birth date cycles
+ * - Active path network analysis
  */
 
 export interface KabbalahInput {
