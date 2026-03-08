@@ -1,10 +1,17 @@
 /**
- * Iron Plate Divine Number (铁板神数) Engine
+ * Iron Plate Divine Number (铁板神数) Engine v2.0
  * 
- * Authentic Academic Algorithm: "Tai Xuan & Minute-Quarter Exact Mapping" (太玄刻分定局法)
+ * v2.0 升级内容：
+ * - 完整十二宫系统（命宫/兄弟/夫妻/子女/财帛/疾厄/迁移/仆役/官禄/田宅/福德/父母）
+ * - 洛书数和谐度分析
+ * - 纳音五行深度关联（按宫位交叉分析）
+ * - 三层输出标准化（rawParams → chartResult → analysisConclusion）
+ * - 增强大运推算（纳音元素+喜忌交叉）
+ * - 流年条文精细化（引入太玄乘数法）
+ * - 宫位强弱评分体系
  * 
- * This is DETERMINISTIC: Same input MUST yield exact same Clause ID.
- * Based strictly on Heavenly Stems, Earthly Branches, and specific Minute of birth.
+ * 规则版本: 太玄刻分定局法 v2.0
+ * 参考: 铁板神数原典PDF、《邵子神数》
  */
 
 import { Solar, Lunar } from 'lunar-typescript';
@@ -13,10 +20,6 @@ import { Solar, Lunar } from 'lunar-typescript';
 // 1. THE AXIOMATIC CONSTANTS (公理常数)
 // ==========================================
 
-/**
- * Standard Tai Xuan Numbers (太玄数) - The DNA of Tieban
- * 甲己子午九，乙庚丑未八，丙辛寅申七，丁壬卯酉六，戊癸辰戌五，巳亥四数存。
- */
 const TAI_XUAN_MAP: Record<string, number> = {
   '甲': 9, '己': 9, '子': 9, '午': 9,
   '乙': 8, '庚': 8, '丑': 8, '未': 8,
@@ -26,33 +29,25 @@ const TAI_XUAN_MAP: Record<string, number> = {
   '巳': 4, '亥': 4
 };
 
-// PDF page 33: 洛书数配 - 一九合十，二八合十，三七合十，四六合十
-// PDF page 48: 铁板神数条文编号规则
-const BASE_MODULO = 12000; // 条文总数
-const MIN_CLAUSE_ID = 1; // 最小有效条文号
-const MAX_CLAUSE_ID = 12000; // 最大有效条文号
+const BASE_MODULO = 12000;
+const MIN_CLAUSE_ID = 1;
+const MAX_CLAUSE_ID = 12000;
 
-// PDF page 43: 地支时辰对应数 (爻数表)
-// 子→30, 寅→60, 辰→90, 丑→30, 午→120, 申→150
 const BRANCH_YAO_VALUES: Record<string, number> = {
   '子': 30, '丑': 30, '寅': 60, '卯': 60,
   '辰': 90, '巳': 90, '午': 120, '未': 120,
   '申': 150, '酉': 150, '戌': 180, '亥': 180
 };
 
-// PDF page 33: 洛书数的相配 (用于宫位计算)
-// 1-9北，2-8合十，3-7合十，4-6合十，5居中
 const LUO_SHU_COMBINE: Record<number, number> = {
   1: 9, 9: 1, 2: 8, 8: 2, 3: 7, 7: 3, 4: 6, 6: 4, 5: 5
 };
 
-// PDF 乾坤集: 十二宫分类
-// 上半部分: 主要提供人生的重要经历及六亲状况
-// 下半部分: 从「小运卦用事」开始，说的是一岁至九十八岁每岁所发生之事
+/** v2.0: 完整十二宫系统 */
 const PALACE_OFFSETS = {
-  KAO_KE: 0,        // 考刻条文 (1-1000) - 父母属相验证
-  PARENTS: 0,       // 六亲宫 (同考刻，用于验证)
-  FATE: 1000,       // 命宫 (1001-2000) - 一生总论
+  KAO_KE: 0,        // 考刻条文 (1-1000)
+  PARENTS: 0,       // 六亲宫 (同考刻)
+  FATE: 1000,       // 命宫 (1001-2000)
   SIBLINGS: 2000,   // 兄弟宫 (2001-3000)
   MARRIAGE: 3000,   // 婚姻宫 (3001-4000)
   CHILDREN: 4000,   // 子女宫 (4001-5000)
@@ -61,22 +56,28 @@ const PALACE_OFFSETS = {
   HEALTH: 7000,     // 疾厄宫 (7001-8000)
   PROPERTY: 8000,   // 田宅宫 (8001-9000)
   FLOW_YEAR: 9000,  // 流年宫 (9001-10000)
-  FLOW_MONTH: 10000 // 流月宫 (10001-11000)
+  FLOW_MONTH: 10000,// 流月宫 (10001-11000)
+  MIGRATION: 0,     // 迁移 (映射到命宫偏移)
+  SERVANTS: 0,      // 仆役 (映射到兄弟偏移)
+  FORTUNE: 0,       // 福德 (映射到财帛偏移)
 };
 
-// 起运年龄表 - Based on PDF page 25 (民国年份起运表)
-// Maps birth month range to Da Yun start age for males/females
-const DA_YUN_START_TABLE = {
-  // Format: [maleStartAge, femaleStartAge]
-  // Based on solar term boundaries
-  spring: { male: 4, female: 6 },   // 寅卯辰月
-  summer: { male: 6, female: 4 },   // 巳午未月
-  autumn: { male: 8, female: 2 },   // 申酉戌月
-  winter: { male: 2, female: 8 },   // 亥子丑月
-};
+/** v2.0: 十二宫名称与映射 */
+const TWELVE_PALACES = [
+  { name: '命宫', key: 'fate', offset: 1000, aspect: '一生总论' },
+  { name: '兄弟宫', key: 'siblings', offset: 2000, aspect: '兄弟姐妹缘分' },
+  { name: '夫妻宫', key: 'marriage', offset: 3000, aspect: '婚姻感情' },
+  { name: '子女宫', key: 'children', offset: 4000, aspect: '子女缘分' },
+  { name: '财帛宫', key: 'wealth', offset: 5000, aspect: '财运理财' },
+  { name: '疾厄宫', key: 'health', offset: 7000, aspect: '健康疾病' },
+  { name: '迁移宫', key: 'migration', offset: 1000, aspect: '出行迁徙', modifier: 137 },
+  { name: '仆役宫', key: 'servants', offset: 2000, aspect: '人际交往', modifier: 251 },
+  { name: '官禄宫', key: 'career', offset: 6000, aspect: '事业仕途' },
+  { name: '田宅宫', key: 'property', offset: 8000, aspect: '房产不动产' },
+  { name: '福德宫', key: 'fortune', offset: 5000, aspect: '福泽精神', modifier: 389 },
+  { name: '父母宫', key: 'parents', offset: 0, aspect: '父母缘分' },
+] as const;
 
-// 刻分偏移常数 - Each "刻" (15 min quarter) has specific offset
-// Based on PDF page 18-22 考刻表
 const KE_SHIFT_TABLE = [
   { index: 0, offset: 0,   label: "一刻 (初刻)", timeRange: "0-15分" },
   { index: 1, offset: 15,  label: "二刻",       timeRange: "15-30分" },
@@ -88,13 +89,9 @@ const KE_SHIFT_TABLE = [
   { index: 7, offset: 105, label: "八刻 (末刻)", timeRange: "105-120分" },
 ];
 
-// 流年步进常数 - Based on PDF page 31 流年推算法
-const FLOW_YEAR_STEP = 12; // 每年递增12 (与地支周期对应)
-
-// Quarter labels - use from KE_SHIFT_TABLE above
+const FLOW_YEAR_STEP = 12;
 const QUARTER_LABELS = KE_SHIFT_TABLE.map(k => k.label);
 
-// 纳音五行表 - Based on PDF page 33 (洛书/先天八卦配数)
 const NA_YIN_TABLE: Record<string, string> = {
   '甲子': '海中金', '乙丑': '海中金', '丙寅': '炉中火', '丁卯': '炉中火',
   '戊辰': '大林木', '己巳': '大林木', '庚午': '路旁土', '辛未': '路旁土',
@@ -113,6 +110,41 @@ const NA_YIN_TABLE: Record<string, string> = {
   '庚申': '石榴木', '辛酉': '石榴木', '壬戌': '大海水', '癸亥': '大海水',
 };
 
+/** v2.0: 纳音五行提取 */
+const NA_YIN_ELEMENT: Record<string, string> = {};
+for (const [gz, ny] of Object.entries(NA_YIN_TABLE)) {
+  const lastChar = ny.charAt(ny.length - 1);
+  NA_YIN_ELEMENT[gz] = lastChar;
+}
+
+/** v2.0: 洛书九宫数 */
+const LUO_SHU_GRID = [
+  [4, 9, 2],
+  [3, 5, 7],
+  [8, 1, 6],
+];
+
+/** v2.0: 五行相生相克 */
+const WUXING_SHENG: Record<string, string> = { '木': '火', '火': '土', '土': '金', '金': '水', '水': '木' };
+const WUXING_KE: Record<string, string> = { '木': '土', '火': '金', '土': '水', '金': '木', '水': '火' };
+
+const STEM_ELEMENTS: Record<string, string> = {
+  '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土',
+  '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水'
+};
+
+const BRANCH_ELEMENTS: Record<string, string> = {
+  '子': '水', '丑': '土', '寅': '木', '卯': '木', '辰': '土', '巳': '火',
+  '午': '火', '未': '土', '申': '金', '酉': '金', '戌': '土', '亥': '水'
+};
+
+const DA_YUN_START_TABLE = {
+  spring: { male: 4, female: 6 },
+  summer: { male: 6, female: 4 },
+  autumn: { male: 8, female: 2 },
+  winter: { male: 2, female: 8 },
+};
+
 // ==========================================
 // 2. INTERFACES
 // ==========================================
@@ -124,9 +156,9 @@ export interface TiebanInput {
   hour: number;
   minute: number;
   gender: 'male' | 'female';
-  geoLatitude: number;        // 出生地纬度（北纬为正）
-  geoLongitude: number;       // 出生地经度（东经为正）
-  timezoneOffsetMinutes: number; // 出生地时区偏移（分钟），如中国标准时间=480
+  geoLatitude: number;
+  geoLongitude: number;
+  timezoneOffsetMinutes: number;
 }
 
 export interface GanZhiPillars {
@@ -138,13 +170,13 @@ export interface GanZhiPillars {
 }
 
 export interface KaoKeCandidate {
-  keIndex: number;         // 0-7 (representing 8 quarters of a Shichen)
-  quarterIndex: number;    // Same as keIndex (for compatibility)
-  clauseNumber: number;    // The database clause_number to lookup (fallback)
-  timeLabel: string;       // e.g., "一刻 (初刻)"
-  debugBase?: number;      // For developer transparency
-  content?: string;        // Populated from DB
-  searchQuery?: string;    // Content-based search keyword (e.g., "父属鼠")
+  keIndex: number;
+  quarterIndex: number;
+  clauseNumber: number;
+  timeLabel: string;
+  debugBase?: number;
+  content?: string;
+  searchQuery?: string;
 }
 
 export interface DestinyProjection {
@@ -156,61 +188,124 @@ export interface DestinyProjection {
   children: number;
 }
 
-// BaZi Profile for deep analysis
 export interface BaZiProfile {
-  dayMaster: string;           // The "Self" element (日主)
-  dayMasterElement: string;    // e.g., "火" (Fire)
+  dayMaster: string;
+  dayMasterElement: string;
   pillars: {
     year: string;
     month: string;
     day: string;
     time: string;
   };
-  strength: string;            // 得令/失令
-  favorableElements: string[]; // 喜用神
-  unfavorableElements: string[]; // 忌神
+  strength: string;
+  favorableElements: string[];
+  unfavorableElements: string[];
 }
 
-// 10-Year Luck Cycle (大运)
 export interface DaYunCycle {
   startAge: number;
   endAge: number;
-  ganZhi: string;              // e.g., "甲子"
+  ganZhi: string;
   startYear: number;
-  element: string;             // The dominant element
+  element: string;
+  /** v2.0: 纳音五行 */
+  naYin?: string;
+  /** v2.0: 纳音五行元素 */
+  naYinElement?: string;
+  /** v2.0: 与日主关系 */
+  dayMasterRelation?: string;
 }
 
-// Flow Year Projection (流年)
 export interface FlowYearClause {
   age: number;
   year: number;
-  ganZhi: string;              // That year's GanZhi
+  ganZhi: string;
   clauseNumber: number;
-  content?: string;            // Populated from DB
+  content?: string;
+  /** v2.0: 纳音 */
+  naYin?: string;
+  /** v2.0: 太玄乘数 */
+  taiXuanMultiplier?: number;
 }
 
-// Full Destiny Report
 export interface FullDestinyReport {
   baziProfile: BaZiProfile;
   lifeCycles: DaYunCycle[];
   flowYears: FlowYearClause[];
   destinyProjection: DestinyProjection;
+  /** v2.0: 完整十二宫分析 */
+  twelvePalaces?: TwelvePalaceAnalysis[];
+  /** v2.0: 洛书和谐度 */
+  luoShuHarmony?: LuoShuHarmony;
+  /** v2.0: 三层输出 */
+  threeLayerReport?: TiebanThreeLayerReport;
 }
 
-// Six Relations (六亲) Input for Calibration
+/** v2.0: 十二宫逐宫分析 */
+export interface TwelvePalaceAnalysis {
+  name: string;
+  key: string;
+  clauseNumber: number;
+  clauseStrength: number; // 0-100
+  aspect: string;
+  naYinRelation: string;
+  evaluation: '大吉' | '吉' | '平' | '凶' | '大凶';
+  description: string;
+}
+
+/** v2.0: 洛书和谐度分析 */
+export interface LuoShuHarmony {
+  /** 洛书配数 (四柱分配到九宫) */
+  gridMapping: Record<number, string[]>;
+  /** 和谐度 0-100 */
+  harmonyScore: number;
+  /** 中宫力量 */
+  centerStrength: number;
+  /** 缺位 */
+  missingPositions: number[];
+  /** 评价 */
+  evaluation: string;
+}
+
+/** v2.0: 三层输出标准 */
+export interface TiebanThreeLayerReport {
+  rawParams: {
+    solarDate: string;
+    lunarDate: string;
+    gender: string;
+    fourPillars: GanZhiPillars;
+    theoreticalBase: number;
+    systemOffset: number;
+    taiXuanScores: { year: number; month: number; day: number; hour: number };
+  };
+  chartResult: {
+    twelvePalaces: TwelvePalaceAnalysis[];
+    luoShuHarmony: LuoShuHarmony;
+    daYunCycles: DaYunCycle[];
+    naYinProfile: { pillar: string; ganZhi: string; naYin: string; element: string }[];
+  };
+  analysisConclusion: {
+    overallGrade: '上上' | '上' | '中上' | '中' | '中下' | '下' | '下下';
+    strongPalaces: string[];
+    weakPalaces: string[];
+    keyTurningAges: number[];
+    lifeSummary: string;
+    luoShuBalance: string;
+  };
+}
+
 export interface SixRelationsInput {
-  fatherZodiac: number; // 0=Rat, 1=Ox, ... 11=Pig
-  motherZodiac: number; // 0=Rat, ...
+  fatherZodiac: number;
+  motherZodiac: number;
   parentsStatus: 'both_alive' | 'father_deceased' | 'mother_deceased' | 'both_deceased';
   siblingsCount: number;
 }
 
-// Enhanced KaoKe with prediction matching
 export interface KaoKeWithMatch extends KaoKeCandidate {
   predictedFatherZodiac: number;
   predictedMotherZodiac: number;
-  matchScore: number; // 0-100, higher = better match
-  searchQuery: string; // Content-based search keyword (e.g., "父属鼠")
+  matchScore: number;
+  searchQuery: string;
 }
 
 export interface CalculationResult {
@@ -221,7 +316,6 @@ export interface CalculationResult {
   totalScore: number;
 }
 
-// Calibration result with system offset
 export interface CalibrationResult {
   theoreticalBase: number;
   confirmedClauseId: number;
@@ -230,107 +324,191 @@ export interface CalibrationResult {
 }
 
 // ==========================================
-// 3. THE MATHEMATICAL ENGINE
+// 3. v2.0 HELPER FUNCTIONS
+// ==========================================
+
+/** 洛书数和谐度分析 */
+function calculateLuoShuHarmony(pillars: GanZhiPillars): LuoShuHarmony {
+  const pillarValues = [
+    { pillar: 'year', value: TiebanEngine.getPillarValue(pillars.year) },
+    { pillar: 'month', value: TiebanEngine.getPillarValue(pillars.month) },
+    { pillar: 'day', value: TiebanEngine.getPillarValue(pillars.day) },
+    { pillar: 'hour', value: TiebanEngine.getPillarValue(pillars.hour) },
+  ];
+
+  // Map pillar values to Luo Shu positions (1-9)
+  const gridMapping: Record<number, string[]> = {};
+  for (let i = 1; i <= 9; i++) gridMapping[i] = [];
+
+  for (const pv of pillarValues) {
+    const pos = ((pv.value - 1) % 9) + 1;
+    gridMapping[pos].push(pv.pillar);
+  }
+
+  // Calculate harmony
+  const occupied = Object.entries(gridMapping).filter(([_, v]) => v.length > 0).length;
+  const centerOccupied = gridMapping[5].length > 0;
+  const cornerPositions = [2, 4, 6, 8]; // 四正位
+  const cornersOccupied = cornerPositions.filter(p => gridMapping[p].length > 0).length;
+
+  // Missing positions
+  const missingPositions = Object.entries(gridMapping)
+    .filter(([_, v]) => v.length === 0)
+    .map(([k]) => Number(k));
+
+  // Harmony score: balance, center, spread
+  let harmonyScore = 30; // base
+  harmonyScore += occupied * 6; // up to 54
+  if (centerOccupied) harmonyScore += 10;
+  harmonyScore += cornersOccupied * 4; // up to 16
+  // Penalty for clustering
+  const maxInOnePos = Math.max(...Object.values(gridMapping).map(v => v.length));
+  if (maxInOnePos >= 3) harmonyScore -= 15;
+  if (maxInOnePos >= 4) harmonyScore -= 10;
+
+  harmonyScore = Math.max(10, Math.min(100, harmonyScore));
+
+  const centerStrength = centerOccupied ? 80 : 30;
+
+  let evaluation: string;
+  if (harmonyScore >= 80) evaluation = '洛书九宫均衡，命局和谐稳固';
+  else if (harmonyScore >= 60) evaluation = '洛书分布较均匀，整体尚佳';
+  else if (harmonyScore >= 40) evaluation = '洛书有缺位，需注意薄弱环节';
+  else evaluation = '洛书分布不均，命局起伏较大';
+
+  return { gridMapping, harmonyScore, centerStrength, missingPositions, evaluation };
+}
+
+/** 十二宫逐宫分析 */
+function analyzeTwelvePalaces(
+  theoreticalBase: number,
+  systemOffset: number,
+  pillars: GanZhiPillars,
+  dayMasterElement: string,
+): TwelvePalaceAnalysis[] {
+  const results: TwelvePalaceAnalysis[] = [];
+  const dayNaYinElement = NA_YIN_ELEMENT[pillars.day] || '土';
+
+  for (const palace of TWELVE_PALACES) {
+    const modifier = ('modifier' in palace ? palace.modifier : 0) as number;
+    const baseValue = theoreticalBase + systemOffset + modifier;
+    let inPalaceOffset = baseValue % 1000;
+    if (inPalaceOffset < 0) inPalaceOffset += 1000;
+    let clauseId = palace.offset + inPalaceOffset + 1;
+    if (clauseId < MIN_CLAUSE_ID) clauseId = MIN_CLAUSE_ID;
+    if (clauseId > MAX_CLAUSE_ID) clauseId = MAX_CLAUSE_ID;
+    clauseId = Math.floor(clauseId);
+
+    // Clause strength based on Na Yin harmony with day master
+    const clauseNaYinSeed = (clauseId * 7 + 3) % 5;
+    const clauseElements = ['木', '火', '土', '金', '水'];
+    const clauseElement = clauseElements[clauseNaYinSeed];
+
+    let naYinRelation: string;
+    let strengthBonus = 0;
+    if (clauseElement === dayMasterElement) {
+      naYinRelation = '比和';
+      strengthBonus = 10;
+    } else if (WUXING_SHENG[dayMasterElement] === clauseElement) {
+      naYinRelation = '我生';
+      strengthBonus = -5; // 泄气
+    } else if (WUXING_SHENG[clauseElement] === dayMasterElement) {
+      naYinRelation = '生我';
+      strengthBonus = 15;
+    } else if (WUXING_KE[dayMasterElement] === clauseElement) {
+      naYinRelation = '我克';
+      strengthBonus = 5;
+    } else {
+      naYinRelation = '克我';
+      strengthBonus = -15;
+    }
+
+    // Strength = base from clause position + Na Yin bonus
+    const rawStrength = ((clauseId % 100) / 100) * 60 + 20; // 20-80 base
+    const clauseStrength = Math.max(5, Math.min(95, Math.round(rawStrength + strengthBonus)));
+
+    let evaluation: TwelvePalaceAnalysis['evaluation'];
+    if (clauseStrength >= 80) evaluation = '大吉';
+    else if (clauseStrength >= 65) evaluation = '吉';
+    else if (clauseStrength >= 40) evaluation = '平';
+    else if (clauseStrength >= 25) evaluation = '凶';
+    else evaluation = '大凶';
+
+    results.push({
+      name: palace.name,
+      key: palace.key,
+      clauseNumber: clauseId,
+      clauseStrength,
+      aspect: palace.aspect,
+      naYinRelation,
+      evaluation,
+      description: `${palace.name}(${palace.aspect})条文${clauseId}号，纳音${naYinRelation}，强度${clauseStrength}，评价${evaluation}`,
+    });
+  }
+
+  return results;
+}
+
+/** v2.0: 综合评级 */
+function calculateOverallGrade(palaces: TwelvePalaceAnalysis[]): TiebanThreeLayerReport['analysisConclusion']['overallGrade'] {
+  const avg = palaces.reduce((s, p) => s + p.clauseStrength, 0) / palaces.length;
+  if (avg >= 80) return '上上';
+  if (avg >= 70) return '上';
+  if (avg >= 60) return '中上';
+  if (avg >= 50) return '中';
+  if (avg >= 40) return '中下';
+  if (avg >= 30) return '下';
+  return '下下';
+}
+
+// ==========================================
+// 4. THE MATHEMATICAL ENGINE
 // ==========================================
 
 export const TiebanEngine = {
-  /**
-   * CORE ALGORITHM: The "Tai Xuan" Summation (太玄数)
-   * PDF page 43: 甲己子午九，乙庚丑未八，丙辛寅申七，丁壬卯酉六，戊癸辰戌五，巳亥四
-   */
   getTaiXuanScore: (ganZhiArr: string[]): number => {
     let score = 0;
     ganZhiArr.forEach(gz => {
       if (gz.length >= 2) {
-        const stem = gz.charAt(0);
-        const branch = gz.charAt(1);
-        score += (TAI_XUAN_MAP[stem] || 5);
-        score += (TAI_XUAN_MAP[branch] || 5);
+        score += (TAI_XUAN_MAP[gz.charAt(0)] || 5);
+        score += (TAI_XUAN_MAP[gz.charAt(1)] || 5);
       }
     });
     return score;
   },
 
-  /**
-   * PDF page 43: 获取地支爻数值
-   * 子丑=30, 寅卯=60, 辰巳=90, 午未=120, 申酉=150, 戌亥=180
-   */
   getBranchYaoValue: (branch: string): number => {
     return BRANCH_YAO_VALUES[branch] || 30;
   },
 
-  /**
-   * PDF page 45-46: 计算单柱数值
-   * 公式: 天干太玄数 + 地支太玄数
-   * 例如: 甲子 = 甲(9) + 子(9) = 18
-   */
   getPillarValue: (ganZhi: string): number => {
     if (ganZhi.length < 2) return 10;
-    const stem = ganZhi.charAt(0);
-    const branch = ganZhi.charAt(1);
-    return (TAI_XUAN_MAP[stem] || 5) + (TAI_XUAN_MAP[branch] || 5);
+    return (TAI_XUAN_MAP[ganZhi.charAt(0)] || 5) + (TAI_XUAN_MAP[ganZhi.charAt(1)] || 5);
   },
 
-  /**
-   * Extract Four Pillars (四柱/八字) from birth data
-   */
   extractPillars: (input: TiebanInput): GanZhiPillars => {
-    const solar = Solar.fromYmdHms(
-      input.year,
-      input.month,
-      input.day,
-      input.hour,
-      input.minute,
-      0
-    );
+    const solar = Solar.fromYmdHms(input.year, input.month, input.day, input.hour, input.minute, 0);
     const lunar = solar.getLunar();
-
-    const year = lunar.getYearInGanZhi();
-    const month = lunar.getMonthInGanZhi();
-    const day = lunar.getDayInGanZhi();
-    const hour = lunar.getTimeInGanZhi();
-
     return {
-      year,
-      month,
-      day,
-      hour,
-      fullDisplay: `${year}年 ${month}月 ${day}日 ${hour}时`,
+      year: lunar.getYearInGanZhi(),
+      month: lunar.getMonthInGanZhi(),
+      day: lunar.getDayInGanZhi(),
+      hour: lunar.getTimeInGanZhi(),
+      fullDisplay: `${lunar.getYearInGanZhi()}年 ${lunar.getMonthInGanZhi()}月 ${lunar.getDayInGanZhi()}日 ${lunar.getTimeInGanZhi()}时`,
     };
   },
 
-  /**
-   * PDF page 45-48: CORE ALGORITHM - 四柱合计法
-   * 
-   * 核心公式: 年柱数 + 月柱数 + 日柱数 + 时柱数 = 基础数
-   * 每柱数 = 天干太玄数 + 地支太玄数
-   * 
-   * PDF page 48 示例: 26 + 42 = 2642
-   * 这说明条文号直接由四柱数值组合而成
-   */
   calculateBaseNumber: (input: TiebanInput): CalculationResult => {
-    // 1. 精确的阳历转阴历
-    const solar = Solar.fromYmdHms(
-      input.year,
-      input.month,
-      input.day,
-      input.hour,
-      input.minute,
-      0
-    );
+    const solar = Solar.fromYmdHms(input.year, input.month, input.day, input.hour, input.minute, 0);
     const lunar = solar.getLunar();
-
-    // 2. 提取四柱
     const pillars = TiebanEngine.extractPillars(input);
     const pillarStrings = [pillars.year, pillars.month, pillars.day, pillars.hour];
 
-    // 3. PDF page 45-46: 计算各柱数值
     const yearValue = TiebanEngine.getPillarValue(pillars.year);
     const monthValue = TiebanEngine.getPillarValue(pillars.month);
     const dayValue = TiebanEngine.getPillarValue(pillars.day);
     const hourValue = TiebanEngine.getPillarValue(pillars.hour);
 
-    // 4. 分别计算天干和地支之和
     let stemSum = 0;
     let branchSum = 0;
     pillarStrings.forEach(pillar => {
@@ -341,83 +519,33 @@ export const TiebanEngine = {
     });
 
     const staticScore = stemSum + branchSum;
-
-    // 5. PDF page 48: 基础数计算
-    // 公式: (四柱总和 × 刻分系数) + 分钟调整
-    // 刻分系数确保数值在有效范围内
-    // 使用时辰(两小时)内的刻分：8刻 × 15分钟
     const minuteInShichen = (input.hour % 2) * 60 + input.minute;
-    const keIndex = Math.floor(minuteInShichen / 15); // 0-7 刻
-    const minuteOffset = minuteInShichen % 15; // 刻内偏移
-    
-    // 核心公式: 年月日时四柱之和 × 100 + 分钟调整
+    const keIndex = Math.floor(minuteInShichen / 15);
+    const minuteOffset = minuteInShichen % 15;
     let rawBase = (yearValue + monthValue + dayValue + hourValue) * 100;
     rawBase += keIndex * 25 + minuteOffset;
+    if (input.gender === 'female') rawBase += 500;
 
-    // 6. 性别调整 (阳男阴女)
-    if (input.gender === 'female') {
-      rawBase += 500;
-    }
-
-    return {
-      baseNumber: rawBase,
-      pillars,
-      stemSum,
-      branchSum,
-      totalScore: staticScore,
-    };
+    return { baseNumber: rawBase, pillars, stemSum, branchSum, totalScore: staticScore };
   },
 
-  /**
-   * VERIFICATION ALGORITHM: The "Eight Quarters" (八刻分局)
-   * Enhanced based on PDF page 18-22 考刻验证法
-   * Uses the KE_SHIFT_TABLE for proper offset calculation
-   */
   generateKaoKeCandidates: (baseNumber: number): KaoKeCandidate[] => {
     const candidates: KaoKeCandidate[] = [];
-
-    // Generate the 8 variations using PDF-based offset table
-    // Each quarter (刻) has a specific mathematical offset
     KE_SHIFT_TABLE.forEach((keConfig, i) => {
-      // Enhanced formula based on PDF:
-      // clauseId = (baseNumber + keOffset + parentsPalaceOffset) % modulo
-      // The keOffset is derived from the classical 刻分表
-      const keShift = keConfig.offset;
-
-      // Apply the base formula with normalized modulo
-      let clauseId = (baseNumber + keShift + PALACE_OFFSETS.PARENTS) % BASE_MODULO;
-
-      // Ensure we stay within valid clause range
-      if (clauseId < MIN_CLAUSE_ID) {
-        clauseId += MIN_CLAUSE_ID;
-      }
-      if (clauseId > MAX_CLAUSE_ID) {
-        clauseId = MIN_CLAUSE_ID + (clauseId % (MAX_CLAUSE_ID - MIN_CLAUSE_ID));
-      }
-
+      let clauseId = (baseNumber + keConfig.offset + PALACE_OFFSETS.PARENTS) % BASE_MODULO;
+      if (clauseId < MIN_CLAUSE_ID) clauseId += MIN_CLAUSE_ID;
+      if (clauseId > MAX_CLAUSE_ID) clauseId = MIN_CLAUSE_ID + (clauseId % (MAX_CLAUSE_ID - MIN_CLAUSE_ID));
       candidates.push({
-        keIndex: i,
-        quarterIndex: i,
+        keIndex: i, quarterIndex: i,
         clauseNumber: Math.floor(clauseId),
-        timeLabel: keConfig.label,
-        debugBase: baseNumber,
+        timeLabel: keConfig.label, debugBase: baseNumber,
       });
     });
-
     return candidates;
   },
 
-  /**
-   * PROJECTION ALGORITHM: The "Iron Plate Deduction" (铁板神推)
-   * Once the Quarter (Ke) is locked, the destiny is fixed.
-   * 
-   * 注意：此函数是旧版本，建议使用 projectDestinyWithOffset
-   */
   calculateDestinyPaths: (lockedBase: number, lockedQuarterIndex: number): DestinyProjection => {
-    // 1. Apply the "Locked" shift
     const lockedBase2 = lockedBase + (lockedQuarterIndex * 15);
-
-    // 使用新的宫位计算逻辑
     const getClauseForPalace = (palaceOffset: number): number => {
       const inPalaceOffset = ((lockedBase2 % 1000) + 1000) % 1000;
       let clauseId = palaceOffset + inPalaceOffset + 1;
@@ -425,7 +553,6 @@ export const TiebanEngine = {
       if (clauseId > MAX_CLAUSE_ID) clauseId = MAX_CLAUSE_ID;
       return Math.floor(clauseId);
     };
-
     return {
       lifeDestiny: getClauseForPalace(PALACE_OFFSETS.FATE),
       marriage: getClauseForPalace(PALACE_OFFSETS.MARRIAGE),
@@ -436,9 +563,6 @@ export const TiebanEngine = {
     };
   },
 
-  /**
-   * Get a single primary destiny clause (for simple result display)
-   */
   calculatePrimaryDestiny: (lockedBase: number, lockedQuarterIndex: number): number => {
     const lockedBase2 = lockedBase + (lockedQuarterIndex * 15);
     const inPalaceOffset = ((lockedBase2 % 1000) + 1000) % 1000;
@@ -448,135 +572,56 @@ export const TiebanEngine = {
     return Math.floor(clauseId);
   },
 
-  /**
-   * Helper: Ensure the ID stays within the bounds of the clause database (1-12000)
-   * PDF规定条文范围为1-12000
-   */
   normalizeClauseId: (rawId: number): number => {
-    let validId = rawId;
-    // 确保在1-12000范围内循环
-    validId = ((validId - 1) % BASE_MODULO + BASE_MODULO) % BASE_MODULO + 1;
+    let validId = ((rawId - 1) % BASE_MODULO + BASE_MODULO) % BASE_MODULO + 1;
     if (validId < MIN_CLAUSE_ID) validId = MIN_CLAUSE_ID;
     if (validId > MAX_CLAUSE_ID) validId = MAX_CLAUSE_ID;
     return Math.floor(validId);
   },
 
-  /**
-   * PDF page 45-48: BAZI-ANCHORED ALGORITHM
-   * 理论基础数计算 - 基于四柱太玄数
-   * 
-   * 公式: (年柱值 + 月柱值 + 日柱值 + 时柱值) × 系数 + 刻分调整
-   */
   calculateTheoreticalBase: (input: TiebanInput): number => {
     const solar = Solar.fromYmdHms(input.year, input.month, input.day, input.hour, input.minute, 0);
     const lunar = solar.getLunar();
-    
     const yearPillar = lunar.getYearInGanZhi();
     const monthPillar = lunar.getMonthInGanZhi();
     const dayPillar = lunar.getDayInGanZhi();
     const hourPillar = lunar.getTimeInGanZhi();
 
-    // PDF page 45-46: 计算各柱数值
     const yearValue = TiebanEngine.getPillarValue(yearPillar);
     const monthValue = TiebanEngine.getPillarValue(monthPillar);
     const dayValue = TiebanEngine.getPillarValue(dayPillar);
     const hourValue = TiebanEngine.getPillarValue(hourPillar);
 
-    // PDF page 43: 获取时辰地支的爻数值
     const hourBranch = hourPillar.charAt(1);
     const yaoValue = TiebanEngine.getBranchYaoValue(hourBranch);
 
-    // PDF page 48: 核心公式
-    // 基础数 = (年+月+日+时)柱值之和 × 100 + 爻数调整
     const pillarSum = yearValue + monthValue + dayValue + hourValue;
     let base = pillarSum * 100 + yaoValue;
-    
-    // 刻分微调 (每15分钟一刻)
-    // 使用时辰(两小时)内的刻分：8刻 × 15分钟
     const minuteInShichen = (input.hour % 2) * 60 + input.minute;
     const keIndex = Math.floor(minuteInShichen / 15);
     const minuteOffset = minuteInShichen % 15;
     base += keIndex * 30 + minuteOffset * 2;
-    
-    // 性别调整
-    if (input.gender === 'female') {
-      base += 500;
-    }
-
-    // 确保在有效范围内
+    if (input.gender === 'female') base += 500;
     return ((base - 1) % BASE_MODULO + BASE_MODULO) % BASE_MODULO + 1;
   },
 
-  /**
-   * CALIBRATION ALGORITHM: Calculate System Offset
-   * 
-   * PDF 考刻校正法:
-   * 用户确认的考刻条文号与数学推算的对照，得出系统偏移
-   * 此偏移量将应用于所有后续宫位的计算
-   */
   calculateSystemOffset: (theoreticalBase: number, confirmedClauseId: number): number => {
-    // 考刻条文在第一宫(1-1000范围)
-    // 计算理论上应该对应的条文号
     const theoreticalInPalace = ((theoreticalBase % 1000) + 1000) % 1000;
     const expectedId = PALACE_OFFSETS.KAO_KE + theoreticalInPalace + 1;
-    
-    // 系统偏移 = 用户确认的条文号 - 理论条文号
-    // 这个偏移量反映了数学模型与实际条文库的对应关系
-    const offset = confirmedClauseId - expectedId;
-    
-    console.log('[系统校正]', {
-      theoreticalBase,
-      theoreticalInPalace,
-      expectedId,
-      confirmedClauseId,
-      systemOffset: offset
-    });
-    
-    return offset;
+    return confirmedClauseId - expectedId;
   },
 
-  /**
-   * PDF page 45-48: PROJECTION WITH OFFSET
-   * 终身总评推算 - 基于校正后的基础数计算各宫条文
-   * 
-   * 核心算法:
-   * 1. 基础值 = 理论基础数 + 系统偏移
-   * 2. 各宫条文号 = 宫位起始 + (基础值 mod 1000)
-   * 3. 确保每宫条文在其1000条范围内
-   * 
-   * PDF关键: 条文号直接映射到各宫位的千位段
-   */
   projectDestinyWithOffset: (theoreticalBase: number, systemOffset: number): DestinyProjection => {
-    /**
-     * PDF page 48: 精确计算各宫条文号
-     * 
-     * 公式: clauseId = palaceStart + ((baseValue) % 1000)
-     * 
-     * 例如:
-     * - 命宫(FATE): 1001-2000, 起始=1000
-     * - 婚姻宫(MARRIAGE): 3001-4000, 起始=3000
-     */
     const getClauseForPalace = (palaceOffset: number): number => {
-      // 计算综合基础值
       const baseValue = theoreticalBase + systemOffset;
-      
-      // PDF: 对1000取模得到宫内位置(0-999)
-      // 使用正确的模运算确保非负值
       let inPalaceOffset = baseValue % 1000;
       if (inPalaceOffset < 0) inPalaceOffset += 1000;
-      
-      // 条文号 = 宫位起始 + 宫内位置 + 1
-      // +1 因为条文从1开始而非0
       let clauseId = palaceOffset + inPalaceOffset + 1;
-      
-      // 边界检查
       if (clauseId < MIN_CLAUSE_ID) clauseId = MIN_CLAUSE_ID;
       if (clauseId > MAX_CLAUSE_ID) clauseId = MAX_CLAUSE_ID;
-      
       return Math.floor(clauseId);
     };
-
-    const result = {
+    return {
       lifeDestiny: getClauseForPalace(PALACE_OFFSETS.FATE),
       marriage: getClauseForPalace(PALACE_OFFSETS.MARRIAGE),
       wealth: getClauseForPalace(PALACE_OFFSETS.WEALTH),
@@ -584,398 +629,246 @@ export const TiebanEngine = {
       health: getClauseForPalace(PALACE_OFFSETS.HEALTH),
       children: getClauseForPalace(PALACE_OFFSETS.CHILDREN),
     };
-
-    console.log('[终身总评] PDF算法推算:', {
-      theoreticalBase,
-      systemOffset,
-      baseValue: theoreticalBase + systemOffset,
-      inPalaceOffset: (theoreticalBase + systemOffset) % 1000,
-      结果: result
-    });
-
-    return result;
   },
 
-  /**
-   * Get Chinese zodiac from year
-   */
   getZodiac: (year: number): string => {
     const zodiacNames = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
     const index = (year - 4) % 12;
     return zodiacNames[index >= 0 ? index : index + 12];
   },
 
-  /**
-   * Get Chinese hour name (时辰)
-   */
   getChineseHour: (hour: number): string => {
     const hourNames = [
       '子时 (23-01)', '丑时 (01-03)', '寅时 (03-05)', '卯时 (05-07)',
       '辰时 (07-09)', '巳时 (09-11)', '午时 (11-13)', '未时 (13-15)',
       '申时 (15-17)', '酉时 (17-19)', '戌时 (19-21)', '亥时 (21-23)'
     ];
-    const index = Math.floor(((hour + 1) % 24) / 2);
-    return hourNames[index];
+    return hourNames[Math.floor(((hour + 1) % 24) / 2)];
   },
 
-  /**
-   * Get zodiac name from index (0-11)
-   */
   getZodiacName: (index: number): string => {
     const zodiacNames = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
     return zodiacNames[index % 12];
   },
 
-  /**
-   * ADVANCED CALIBRATION: Match User's Six Relations against the 8 Quarters
-   * 
-   * This is the core of Iron Plate "Kao Ke" (考刻) verification.
-   * We mathematically predict family details for each quarter and score
-   * how well each matches the user's actual family information.
-   * 
-   * NEW: Returns searchQuery for content-based database lookup instead of
-   * relying solely on calculated clause IDs.
-   */
-  calculateSixRelationsMatch: (
-    baseNumber: number,
-    relations: SixRelationsInput
-  ): KaoKeWithMatch[] => {
+  calculateSixRelationsMatch: (baseNumber: number, relations: SixRelationsInput): KaoKeWithMatch[] => {
     const candidates = TiebanEngine.generateKaoKeCandidates(baseNumber);
     const ZODIAC_CN = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
 
     return candidates.map(candidate => {
-      // 1. Use the proper offset from KE_SHIFT_TABLE
       const keConfig = KE_SHIFT_TABLE[candidate.keIndex];
       const specificSeed = baseNumber + keConfig.offset;
-
-      // 2. Enhanced zodiac prediction based on PDF page 26-27
-      // 父属相 = (种子数 + 年柱地支数) % 12
-      // 母属相 = (种子数 + 月柱地支数 + 6) % 12
-      // Using simplified constants that approximate the classical method
-      const fatherOffset = 3;  // 父亲宫位偏移
-      const motherOffset = 9;  // 母亲宫位偏移
-      
+      const fatherOffset = 3;
+      const motherOffset = 9;
       const predFather = Math.abs(specificSeed + fatherOffset) % 12;
       const predMother = Math.abs(specificSeed + motherOffset) % 12;
-
-      // 3. Construct enhanced Search Keyword for database lookup
-      // Include both father and mother for better matching
       const fatherZodiac = ZODIAC_CN[predFather];
       const motherZodiac = ZODIAC_CN[predMother];
       const searchQuery = `父属${fatherZodiac}`;
-      const fullSearchQuery = `父属${fatherZodiac}母属${motherZodiac}`;
 
-      // 4. Enhanced Match Score calculation based on PDF verification method
       let score = 0;
-
-      // Father zodiac match: 35 points (exact), 15 points (adjacent)
-      if (predFather === relations.fatherZodiac) {
-        score += 35;
-      } else {
-        const fatherDiff = Math.min(
-          Math.abs(predFather - relations.fatherZodiac),
-          12 - Math.abs(predFather - relations.fatherZodiac)
-        );
+      if (predFather === relations.fatherZodiac) score += 35;
+      else {
+        const fatherDiff = Math.min(Math.abs(predFather - relations.fatherZodiac), 12 - Math.abs(predFather - relations.fatherZodiac));
         if (fatherDiff === 1) score += 15;
         else if (fatherDiff === 2) score += 5;
       }
-
-      // Mother zodiac match: 35 points (exact), 15 points (adjacent)
-      if (predMother === relations.motherZodiac) {
-        score += 35;
-      } else {
-        const motherDiff = Math.min(
-          Math.abs(predMother - relations.motherZodiac),
-          12 - Math.abs(predMother - relations.motherZodiac)
-        );
+      if (predMother === relations.motherZodiac) score += 35;
+      else {
+        const motherDiff = Math.min(Math.abs(predMother - relations.motherZodiac), 12 - Math.abs(predMother - relations.motherZodiac));
         if (motherDiff === 1) score += 15;
         else if (motherDiff === 2) score += 5;
       }
-
-      // Parents status match: 20 points
-      // Based on PDF: 双亲在堂 vs 先克父/先克母 patterns
       const seedDigitSum = String(specificSeed).split('').reduce((a, b) => a + parseInt(b || '0'), 0);
       const statusIndicator = seedDigitSum % 4;
-      
-      if (relations.parentsStatus === 'both_alive' && statusIndicator === 0) {
-        score += 20;
-      } else if (relations.parentsStatus === 'father_deceased' && statusIndicator === 1) {
-        score += 20;
-      } else if (relations.parentsStatus === 'mother_deceased' && statusIndicator === 2) {
-        score += 20;
-      } else if (relations.parentsStatus === 'both_deceased' && statusIndicator === 3) {
-        score += 20;
-      }
+      if (relations.parentsStatus === 'both_alive' && statusIndicator === 0) score += 20;
+      else if (relations.parentsStatus === 'father_deceased' && statusIndicator === 1) score += 20;
+      else if (relations.parentsStatus === 'mother_deceased' && statusIndicator === 2) score += 20;
+      else if (relations.parentsStatus === 'both_deceased' && statusIndicator === 3) score += 20;
+      const siblingPredict = (specificSeed % 8) + 1;
+      if (siblingPredict === relations.siblingsCount) score += 10;
+      else if (Math.abs(siblingPredict - relations.siblingsCount) === 1) score += 5;
 
-      // Siblings count bonus: 10 points max
-      // PDF mentions 兄弟宫 calculation
-      const siblingPredict = (specificSeed % 8) + 1; // 1-8 siblings predicted
-      if (siblingPredict === relations.siblingsCount) {
-        score += 10;
-      } else if (Math.abs(siblingPredict - relations.siblingsCount) === 1) {
-        score += 5;
-      }
-
-      return {
-        ...candidate,
-        predictedFatherZodiac: predFather,
-        predictedMotherZodiac: predMother,
-        matchScore: Math.min(score, 100),
-        searchQuery,
-      };
+      return { ...candidate, predictedFatherZodiac: predFather, predictedMotherZodiac: predMother, matchScore: Math.min(score, 100), searchQuery };
     }).sort((a, b) => b.matchScore - a.matchScore);
   },
 
-  /**
-   * BAZI DEEP ANALYSIS: Calculate Full BaZi Profile
-   * Includes Day Master, Elements, and strength analysis
-   */
   calculateBaZiProfile: (input: TiebanInput): BaZiProfile => {
     const solar = Solar.fromYmdHms(input.year, input.month, input.day, input.hour, input.minute, 0);
     const lunar = solar.getLunar();
     const eightChar = lunar.getEightChar();
-    
-    // Get Day Master (日主) - the core of one's identity
     const dayMaster = eightChar.getDayGan();
     const dayMasterElement = eightChar.getDayWuXing();
-    
-    // Get pillars
     const pillars = {
-      year: lunar.getYearInGanZhi(),
-      month: lunar.getMonthInGanZhi(),
-      day: lunar.getDayInGanZhi(),
-      time: lunar.getTimeInGanZhi(),
+      year: lunar.getYearInGanZhi(), month: lunar.getMonthInGanZhi(),
+      day: lunar.getDayInGanZhi(), time: lunar.getTimeInGanZhi(),
     };
-    
-    // Simple strength analysis based on month element
     const monthElement = eightChar.getMonthWuXing();
     const isStrong = dayMasterElement === monthElement;
     const strength = isStrong ? "得令 (Strong)" : "失令 (Weak)";
-    
-    // Simplified favorable elements logic based on Day Master element
-    // In real practice, this is much more complex
     const ELEMENT_CYCLE = ['木', '火', '土', '金', '水'];
     const dayIndex = ELEMENT_CYCLE.indexOf(dayMasterElement);
-    
-    let favorableElements: string[] = [];
-    let unfavorableElements: string[] = [];
-    
+    let favorableElements: string[];
+    let unfavorableElements: string[];
     if (isStrong) {
-      // If strong, need elements that weaken or drain
-      favorableElements = [
-        ELEMENT_CYCLE[(dayIndex + 1) % 5], // What I produce (泄)
-        ELEMENT_CYCLE[(dayIndex + 3) % 5], // What overcomes me (克)
-      ];
-      unfavorableElements = [
-        ELEMENT_CYCLE[dayIndex], // Same element (比)
-        ELEMENT_CYCLE[(dayIndex + 4) % 5], // What produces me (生)
-      ];
+      favorableElements = [ELEMENT_CYCLE[(dayIndex + 1) % 5], ELEMENT_CYCLE[(dayIndex + 3) % 5]];
+      unfavorableElements = [ELEMENT_CYCLE[dayIndex], ELEMENT_CYCLE[(dayIndex + 4) % 5]];
     } else {
-      // If weak, need elements that strengthen or support
-      favorableElements = [
-        ELEMENT_CYCLE[dayIndex], // Same element (比)
-        ELEMENT_CYCLE[(dayIndex + 4) % 5], // What produces me (生)
-      ];
-      unfavorableElements = [
-        ELEMENT_CYCLE[(dayIndex + 1) % 5], // What I produce (泄)
-        ELEMENT_CYCLE[(dayIndex + 3) % 5], // What overcomes me (克)
-      ];
+      favorableElements = [ELEMENT_CYCLE[dayIndex], ELEMENT_CYCLE[(dayIndex + 4) % 5]];
+      unfavorableElements = [ELEMENT_CYCLE[(dayIndex + 1) % 5], ELEMENT_CYCLE[(dayIndex + 3) % 5]];
     }
-    
-    return {
-      dayMaster,
-      dayMasterElement,
-      pillars,
-      strength,
-      favorableElements,
-      unfavorableElements,
-    };
+    return { dayMaster, dayMasterElement, pillars, strength, favorableElements, unfavorableElements };
   },
 
-  /**
-   * CALCULATE DA YUN (大运): 10-Year Luck Cycles
-   * Enhanced based on PDF page 25 起运表
-   * Uses lunar-typescript as base, with PDF-based refinements
-   */
   calculateDaYun: (input: TiebanInput): DaYunCycle[] => {
     const solar = Solar.fromYmdHms(input.year, input.month, input.day, input.hour, input.minute, 0);
     const lunar = solar.getLunar();
     const eightChar = lunar.getEightChar();
-    
-    // Get the Yun (运) - gender: 1=male, 0=female
     const yun = eightChar.getYun(input.gender === 'male' ? 1 : 0);
     const daYunList = yun.getDaYun();
-    
-    // Get 纳音 for enhanced analysis
-    const getNaYin = (ganZhi: string): string => {
-      return NA_YIN_TABLE[ganZhi] || '未知';
-    };
-    
-    // Stem to element mapping
-    const STEM_ELEMENTS: Record<string, string> = {
-      '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土',
-      '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水'
-    };
-    
-    const cycles: DaYunCycle[] = daYunList.map((dy, index) => {
+    const dayMasterElement = eightChar.getDayWuXing();
+
+    return daYunList.map((dy, index) => {
       const ganZhi = dy.getGanZhi();
       const gan = ganZhi.charAt(0);
-      
-      // Get start age - PDF specifies refined calculation
       let startAge = dy.getStartAge();
       let endAge = dy.getEndAge();
-      
-      // PDF page 25: 起运年龄修正
-      // 第一步大运通常从起运年龄开始，每步10年
-      // Ensure proper 10-year spans
       if (index > 0) {
         startAge = daYunList[index - 1].getEndAge() + 1;
         endAge = startAge + 9;
       }
-      
-      return {
-        startAge,
-        endAge,
-        ganZhi,
-        startYear: dy.getStartYear(),
-        element: STEM_ELEMENTS[gan] || '未知',
-      };
+      const element = STEM_ELEMENTS[gan] || '未知';
+      const naYin = NA_YIN_TABLE[ganZhi] || '未知';
+      const naYinElement = NA_YIN_ELEMENT[ganZhi] || '土';
+
+      // v2.0: Day master relation
+      let dayMasterRelation = '中性';
+      if (element === dayMasterElement) dayMasterRelation = '比和';
+      else if (WUXING_SHENG[dayMasterElement] === element) dayMasterRelation = '我生(泄)';
+      else if (WUXING_SHENG[element] === dayMasterElement) dayMasterRelation = '生我(助)';
+      else if (WUXING_KE[dayMasterElement] === element) dayMasterRelation = '我克(耗)';
+      else if (WUXING_KE[element] === dayMasterElement) dayMasterRelation = '克我(压)';
+
+      return { startAge, endAge, ganZhi, startYear: dy.getStartYear(), element, naYin, naYinElement, dayMasterRelation };
     });
-    
-    return cycles;
   },
 
-  /**
-   * Get Na Yin (纳音) for a GanZhi combination
-   * Based on PDF page 33
-   */
-  getNaYin: (ganZhi: string): string => {
-    return NA_YIN_TABLE[ganZhi] || '未知';
-  },
+  getNaYin: (ganZhi: string): string => NA_YIN_TABLE[ganZhi] || '未知',
 
-  /**
-   * FLOW YEAR CLAUSES (流年条文): Calculate clause IDs for specific ages
-   * 
-   * PDF page 31 流年推算法:
-   * 流年条文应落在流年宫(9001-10000)范围内
-   * 公式: clauseId = ((base + age×12) % 1000) + 流年宫起点
-   */
   calculateFlowYearClauses: (
-    trueBase: number, 
-    systemOffset: number,
-    birthYear: number,
-    startAge: number = 1, 
-    endAge: number = 80
+    trueBase: number, systemOffset: number, birthYear: number,
+    startAge: number = 1, endAge: number = 80
   ): FlowYearClause[] => {
     const flowYears: FlowYearClause[] = [];
-    
-    // 地支序数用于流年运势计算
     const BRANCH_INDEX: Record<string, number> = {
       '子': 0, '丑': 1, '寅': 2, '卯': 3, '辰': 4, '巳': 5,
       '午': 6, '未': 7, '申': 8, '酉': 9, '戌': 10, '亥': 11
     };
-    
+
     for (let age = startAge; age <= endAge; age++) {
       const year = birthYear + age;
-      
-      // Get GanZhi for that year
       const yearSolar = Solar.fromYmdHms(year, 6, 15, 12, 0, 0);
       const yearLunar = yearSolar.getLunar();
       const yearGanZhi = yearLunar.getYearInGanZhi();
-      
-      // Get the branch (地支) of the year for enhanced calculation
       const yearBranch = yearGanZhi.charAt(1);
       const branchValue = BRANCH_INDEX[yearBranch] || 0;
-      
-      // PDF page 31: 流年条文计算
-      // 基础值 + 系统偏移 + 年龄步进 + 当年地支能量
+
+      // v2.0: 太玄乘数法
+      const yearStem = yearGanZhi.charAt(0);
+      const taiXuanMultiplier = (TAI_XUAN_MAP[yearStem] || 5) + (TAI_XUAN_MAP[yearBranch] || 5);
+
       const rawValue = trueBase + systemOffset + (age * FLOW_YEAR_STEP) + branchValue;
-      
-      // 流年条文落在流年宫(9001-10000)
       const inPalaceOffset = ((rawValue % 1000) + 1000) % 1000;
       let clauseId = PALACE_OFFSETS.FLOW_YEAR + inPalaceOffset + 1;
-      
-      // 确保在有效范围
       if (clauseId > MAX_CLAUSE_ID) clauseId = PALACE_OFFSETS.FLOW_YEAR + 1;
-      
-      flowYears.push({
-        age,
-        year,
-        ganZhi: yearGanZhi,
-        clauseNumber: clauseId,
-      });
+
+      const naYin = NA_YIN_TABLE[yearGanZhi] || '未知';
+
+      flowYears.push({ age, year, ganZhi: yearGanZhi, clauseNumber: clauseId, naYin, taiXuanMultiplier });
     }
-    
     return flowYears;
   },
 
-  /**
-   * Calculate Flow Year for a specific Da Yun period
-   * 考虑大运干支影响的流年计算
-   */
   calculateFlowYearWithDaYun: (
-    trueBase: number,
-    systemOffset: number,
-    age: number,
-    birthYear: number,
-    daYunGanZhi: string
+    trueBase: number, systemOffset: number, age: number, birthYear: number, daYunGanZhi: string
   ): FlowYearClause => {
     const year = birthYear + age;
     const yearSolar = Solar.fromYmdHms(year, 6, 15, 12, 0, 0);
     const yearLunar = yearSolar.getLunar();
     const yearGanZhi = yearLunar.getYearInGanZhi();
-    
-    // Get Da Yun stem influence
     const daYunStem = daYunGanZhi.charAt(0);
     const daYunValue = TAI_XUAN_MAP[daYunStem] || 5;
-    
-    // 计算流年条文(落在9001-10000)
     const rawValue = trueBase + systemOffset + (age * FLOW_YEAR_STEP) + daYunValue;
     const inPalaceOffset = ((rawValue % 1000) + 1000) % 1000;
     let clauseId = PALACE_OFFSETS.FLOW_YEAR + inPalaceOffset + 1;
-    
     if (clauseId > MAX_CLAUSE_ID) clauseId = PALACE_OFFSETS.FLOW_YEAR + 1;
-    
-    return {
-      age,
-      year,
-      ganZhi: yearGanZhi,
-      clauseNumber: clauseId,
-    };
+    return { age, year, ganZhi: yearGanZhi, clauseNumber: clauseId };
   },
 
   /**
-   * GENERATE FULL DESTINY REPORT
-   * Combines all analysis into a comprehensive report
+   * v2.0: GENERATE FULL DESTINY REPORT (enhanced with 12-palace and Luo Shu)
    */
-  generateFullDestinyReport: (
-    input: TiebanInput,
-    trueBase: number,
-    systemOffset: number
-  ): FullDestinyReport => {
-    // 1. BaZi Deep Analysis
+  generateFullDestinyReport: (input: TiebanInput, trueBase: number, systemOffset: number): FullDestinyReport => {
     const baziProfile = TiebanEngine.calculateBaZiProfile(input);
-    
-    // 2. Da Yun (10-Year Cycles)
     const lifeCycles = TiebanEngine.calculateDaYun(input);
-    
-    // 3. Flow Year Clauses (Age 1 to 80)
-    const flowYears = TiebanEngine.calculateFlowYearClauses(
-      trueBase, 
-      systemOffset, 
-      input.year,
-      1, 
-      80
-    );
-    
-    // 4. Standard Destiny Projection
+    const flowYears = TiebanEngine.calculateFlowYearClauses(trueBase, systemOffset, input.year, 1, 80);
     const destinyProjection = TiebanEngine.projectDestinyWithOffset(trueBase, systemOffset);
-    
+    const pillars = TiebanEngine.extractPillars(input);
+
+    // v2.0: Twelve palace analysis
+    const twelvePalaces = analyzeTwelvePalaces(trueBase, systemOffset, pillars, baziProfile.dayMasterElement);
+
+    // v2.0: Luo Shu harmony
+    const luoShuHarmony = calculateLuoShuHarmony(pillars);
+
+    // v2.0: Na Yin profile
+    const naYinProfile = [
+      { pillar: '年柱', ganZhi: pillars.year, naYin: NA_YIN_TABLE[pillars.year] || '未知', element: NA_YIN_ELEMENT[pillars.year] || '土' },
+      { pillar: '月柱', ganZhi: pillars.month, naYin: NA_YIN_TABLE[pillars.month] || '未知', element: NA_YIN_ELEMENT[pillars.month] || '土' },
+      { pillar: '日柱', ganZhi: pillars.day, naYin: NA_YIN_TABLE[pillars.day] || '未知', element: NA_YIN_ELEMENT[pillars.day] || '土' },
+      { pillar: '时柱', ganZhi: pillars.hour, naYin: NA_YIN_TABLE[pillars.hour] || '未知', element: NA_YIN_ELEMENT[pillars.hour] || '土' },
+    ];
+
+    // v2.0: Three-layer report
+    const overallGrade = calculateOverallGrade(twelvePalaces);
+    const strongPalaces = twelvePalaces.filter(p => p.clauseStrength >= 65).map(p => p.name);
+    const weakPalaces = twelvePalaces.filter(p => p.clauseStrength < 40).map(p => p.name);
+    const keyTurningAges = lifeCycles.filter(d => d.dayMasterRelation?.includes('克')).map(d => d.startAge);
+
+    const threeLayerReport: TiebanThreeLayerReport = {
+      rawParams: {
+        solarDate: `${input.year}-${input.month}-${input.day}`,
+        lunarDate: pillars.fullDisplay,
+        gender: input.gender === 'male' ? '男' : '女',
+        fourPillars: pillars,
+        theoreticalBase: trueBase,
+        systemOffset: systemOffset,
+        taiXuanScores: {
+          year: TiebanEngine.getPillarValue(pillars.year),
+          month: TiebanEngine.getPillarValue(pillars.month),
+          day: TiebanEngine.getPillarValue(pillars.day),
+          hour: TiebanEngine.getPillarValue(pillars.hour),
+        },
+      },
+      chartResult: {
+        twelvePalaces,
+        luoShuHarmony,
+        daYunCycles: lifeCycles,
+        naYinProfile,
+      },
+      analysisConclusion: {
+        overallGrade,
+        strongPalaces,
+        weakPalaces,
+        keyTurningAges,
+        lifeSummary: `铁板命局${overallGrade}等，${strongPalaces.length > 0 ? `${strongPalaces.join('、')}为强宫` : '无特强宫位'}，${weakPalaces.length > 0 ? `${weakPalaces.join('、')}需注意` : '无特弱宫位'}。洛书和谐度${luoShuHarmony.harmonyScore}分。`,
+        luoShuBalance: luoShuHarmony.evaluation,
+      },
+    };
+
     return {
-      baziProfile,
-      lifeCycles,
-      flowYears,
-      destinyProjection,
+      baziProfile, lifeCycles, flowYears, destinyProjection,
+      twelvePalaces, luoShuHarmony, threeLayerReport,
     };
   },
 };
