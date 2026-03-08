@@ -278,7 +278,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
           </label>
           <label htmlFor="female" className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border border-border/30 bg-card/30 hover:border-primary/30 cursor-pointer transition-all has-[data-state=checked]:border-primary/50 has-[data-state=checked]:bg-primary/5">
             <RadioGroupItem value="female" id="female" className="border-primary/40 text-primary" />
-            <span className="text-sm font-sans">坤命 (女)</span>
+            <span className="text-sm font-sans">{t('form.female')}</span>
           </label>
         </RadioGroup>
       </div>
