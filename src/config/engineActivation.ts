@@ -60,6 +60,7 @@ const ACTIVATION_TABLE: Record<QueryType, Record<EngineName, { active: boolean; 
     numerology: { active: true,  reason: '数字日度参考' },
     mayan:      { active: true,  reason: '玛雅Kin日签高度相关' },
     kabbalah:   { active: false, reason: '卡巴拉日度参考有限' },
+    meihua:     { active: true,  reason: '梅花易数可用于日度感应占断' },
   },
   instantDecision: {
     tieban:     { active: false, reason: '铁板不适用即时决策' },
