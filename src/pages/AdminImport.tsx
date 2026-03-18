@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { useSuperAdmin } from '@/hooks/useSuperAdmin';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { importClausesFromJson, getClauseCount } from '@/services/SupabaseService';
 import clausesData from '@/data/tieban-clauses.json';
 
@@ -12,8 +12,9 @@ import clausesData from '@/data/tieban-clauses.json';
  * Access this at /admin-import — restricted to super admins
  */
 export default function AdminImport() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { isSuperAdmin, isChecking } = useSuperAdmin();
+  const { isAuthenticated } = useAuth();
+  const { isSuperAdmin, isLoading: isChecking } = useAdminAccess();
+  const authLoading = isChecking;
   const [isImporting, setIsImporting] = useState(false);
   const [result, setResult] = useState<{
     success?: boolean;

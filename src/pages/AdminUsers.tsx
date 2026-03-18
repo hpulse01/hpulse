@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth, UserLevel } from '@/hooks/useAuth';
+import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -70,9 +71,7 @@ export default function AdminUsers() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserData[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { isAdmin, isSuperAdmin, isLoading } = useRoleAccess();
   const [updatingUser, setUpdatingUser] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
@@ -107,37 +106,6 @@ export default function AdminUsers() {
   // Check if all selectable users are selected
   const allSelected = selectableUsers.length > 0 && 
     selectableUsers.every(u => selectedUsers.has(u.user_id));
-
-  // Check if current user is admin
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user?.id) {
-        setIsAdmin(false);
-        setIsSuperAdmin(false);
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const [adminResult, superAdminResult] = await Promise.all([
-          (supabase as any).rpc('is_admin', { _user_id: user.id }),
-          (supabase as any).rpc('has_role', { _user_id: user.id, _role: 'super_admin' }),
-        ]);
-
-        setIsAdmin(adminResult.data === true);
-        setIsSuperAdmin(superAdminResult.data === true);
-      } catch (err) {
-        console.error('Error checking admin status:', err);
-        setIsAdmin(false);
-        setIsSuperAdmin(false);
-      }
-      setIsLoading(false);
-    };
-
-    if (!authLoading) {
-      checkAdminStatus();
-    }
-  }, [user?.id, authLoading]);
 
   // Fetch users if admin
   const fetchUsers = async () => {

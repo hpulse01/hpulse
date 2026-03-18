@@ -257,7 +257,7 @@ function calculateBranchFactor(
 // ═══════════════════════════════════════════════
 
 /** Probability threshold pruning: discard branches with P < threshold */
-const PROBABILITY_THRESHOLD = 0.005; // 0.5%
+export const PROBABILITY_THRESHOLD = 0.005; // 0.5%
 
 /** Causal consistency check: event prerequisites must be satisfied */
 function checkCausalConsistency(

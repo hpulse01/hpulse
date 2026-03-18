@@ -8,7 +8,10 @@ import { I18nProvider } from "@/hooks/useI18n";
 import Index from "./pages/Index";
 import AdminImport from "./pages/AdminImport";
 import AdminUsers from "./pages/AdminUsers";
+import QuantumPrediction from "./pages/QuantumPrediction";
 import NotFound from "./pages/NotFound";
+import { AdminRoute } from "@/components/auth/AdminRoute";
+import { SuperAdminRoute } from "@/components/auth/SuperAdminRoute";
 
 const queryClient = new QueryClient();
 
@@ -22,8 +25,9 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/admin-import" element={<AdminImport />} />
-              <Route path="/admin-users" element={<AdminUsers />} />
+              <Route path="/admin-import" element={<SuperAdminRoute><AdminImport /></SuperAdminRoute>} />
+              <Route path="/admin-users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+              <Route path="/quantum-prediction" element={<QuantumPrediction />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

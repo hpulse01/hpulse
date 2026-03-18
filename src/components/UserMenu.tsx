@@ -3,7 +3,7 @@
  * Shows user status, login button, or user dropdown
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,35 +15,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuth, UserLevel } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
+import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { AuthModal, UserLevelBadge } from '@/components/AuthModal';
-import { supabase } from '@/integrations/supabase/client';
 import { 
-  User, LogOut, Sparkles, Crown, Star, ChevronDown, Shield, Settings
+  User, LogOut, Sparkles, Crown, ChevronDown, Shield, Settings
 } from 'lucide-react';
 
 export function UserMenu() {
   const { user, profile, isAuthenticated, isLoading, signOut, canUseAI } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin } = useRoleAccess();
   const navigate = useNavigate();
-
-  // Check admin status
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (!user?.id) {
-        setIsAdmin(false);
-        return;
-      }
-      try {
-        const { data } = await (supabase as any).rpc('is_admin', { _user_id: user.id });
-        setIsAdmin(data === true);
-      } catch {
-        setIsAdmin(false);
-      }
-    };
-    checkAdmin();
-  }, [user?.id]);
 
   if (isLoading) {
     return (
