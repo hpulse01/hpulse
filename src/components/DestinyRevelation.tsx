@@ -93,7 +93,7 @@ function useTypewriter(text: string, speed: number = 30, startDelay: number = 0)
     if (!text) return;
 
     let currentIndex = 0;
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     const startTyping = () => {
       const typeNextChar = () => {
