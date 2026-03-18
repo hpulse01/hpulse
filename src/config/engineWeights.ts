@@ -356,5 +356,224 @@ export function getDimensionAwareWeight(
   return result.weights.find(w => w.engineName === engineName)?.weight ?? 0;
 }
 
+// ═══════════════════════════════════════════════
+// 8. Weight Sensitivity Analysis (v5.1 新增)
+//
+// 衡量最终融合结果对单个引擎权重变化的敏感度。
+// 高敏感度意味着某引擎对结果影响过大——需要关注。
+// ═══════════════════════════════════════════════
+
+export interface SensitivityResult {
+  engineName: string;
+  /** How much the fused result changes per unit weight change (∂result/∂w) */
+  sensitivity: number;
+  /** Classification */
+  impact: 'dominant' | 'significant' | 'moderate' | 'negligible';
+  /** What would happen if this engine were removed */
+  removalImpact: number;
+}
+
+export interface FullSensitivityReport {
+  perEngine: SensitivityResult[];
+  /** Herfindahl-Hirschman Index: measure of weight concentration (0-1) */
+  hhi: number;
+  /** Is the fusion over-concentrated (HHI > 0.25)? */
+  overConcentrated: boolean;
+  /** The single most influential engine */
+  dominantEngine: string;
+  /** Recommendation for weight rebalancing */
+  recommendation: string;
+}
+
+/**
+ * Compute weight sensitivity analysis.
+ *
+ * For each engine i, perturb its weight by ±δ and measure the change
+ * in fused FateVector. This gives ∂result/∂w_i ≈ Δresult / Δw.
+ *
+ * Also computes the Herfindahl-Hirschman Index (HHI) to detect
+ * over-concentration (one engine dominates too much).
+ */
+export function analyzeWeightSensitivity(
+  ctx: DynamicWeightContext,
+  fateVectors: Record<string, Record<FateDimension, number>>,
+  perturbationDelta: number = 0.05,
+): FullSensitivityReport {
+  const baseWeights = calculateDynamicWeights(ctx).weights;
+  const dimensions: FateDimension[] = ['life', 'wealth', 'relation', 'health', 'wisdom', 'spirit'];
+
+  // Compute base fused vector
+  function computeFused(weights: WeightConfig[]): Record<FateDimension, number> {
+    const result: Record<string, number> = {};
+    for (const dim of dimensions) {
+      let sum = 0, totalW = 0;
+      for (const w of weights) {
+        const fv = fateVectors[w.engineName];
+        if (fv) {
+          sum += (fv[dim] ?? 50) * w.weight;
+          totalW += w.weight;
+        }
+      }
+      result[dim] = totalW > 0 ? sum / totalW : 50;
+    }
+    return result as Record<FateDimension, number>;
+  }
+
+  const baseFused = computeFused(baseWeights);
+
+  // L2 distance between two FateVectors
+  function l2Distance(a: Record<FateDimension, number>, b: Record<FateDimension, number>): number {
+    let sum = 0;
+    for (const dim of dimensions) sum += (a[dim] - b[dim]) ** 2;
+    return Math.sqrt(sum);
+  }
+
+  const perEngine: SensitivityResult[] = [];
+
+  for (const bw of baseWeights) {
+    // Perturb this engine's weight up
+    const perturbedUp = baseWeights.map(w => ({
+      ...w,
+      weight: w.engineName === bw.engineName ? w.weight + perturbationDelta : w.weight,
+    }));
+    // Normalize
+    const totalUp = perturbedUp.reduce((s, w) => s + w.weight, 0);
+    for (const w of perturbedUp) w.weight /= totalUp;
+    const fusedUp = computeFused(perturbedUp);
+
+    // Perturb down
+    const perturbedDown = baseWeights.map(w => ({
+      ...w,
+      weight: w.engineName === bw.engineName ? Math.max(0.001, w.weight - perturbationDelta) : w.weight,
+    }));
+    const totalDown = perturbedDown.reduce((s, w) => s + w.weight, 0);
+    for (const w of perturbedDown) w.weight /= totalDown;
+    const fusedDown = computeFused(perturbedDown);
+
+    const sensitivity = (l2Distance(fusedUp, baseFused) + l2Distance(fusedDown, baseFused)) / (2 * perturbationDelta);
+
+    // Removal impact: what if this engine is completely removed
+    const removed = baseWeights.filter(w => w.engineName !== bw.engineName);
+    const totalRemoved = removed.reduce((s, w) => s + w.weight, 0);
+    for (const w of removed) w.weight /= totalRemoved;
+    const fusedRemoved = computeFused(removed);
+    const removalImpact = l2Distance(fusedRemoved, baseFused);
+
+    let impact: 'dominant' | 'significant' | 'moderate' | 'negligible';
+    if (sensitivity > 50) impact = 'dominant';
+    else if (sensitivity > 25) impact = 'significant';
+    else if (sensitivity > 10) impact = 'moderate';
+    else impact = 'negligible';
+
+    perEngine.push({ engineName: bw.engineName, sensitivity, impact, removalImpact });
+  }
+
+  perEngine.sort((a, b) => b.sensitivity - a.sensitivity);
+
+  // HHI: sum of squared weights (market concentration measure)
+  const hhi = baseWeights.reduce((s, w) => s + w.weight * w.weight, 0);
+  const overConcentrated = hhi > 0.25;
+  const dominantEngine = perEngine[0]?.engineName ?? 'none';
+
+  let recommendation = '';
+  if (overConcentrated) {
+    recommendation = `权重过度集中(HHI=${hhi.toFixed(3)})。建议增加次要引擎的权重或降低${dominantEngine}的主导性。`;
+  } else if (perEngine[0]?.sensitivity > 50) {
+    recommendation = `${dominantEngine}引擎敏感度过高(${perEngine[0].sensitivity.toFixed(1)})。融合结果对该引擎输出高度依赖。`;
+  } else {
+    recommendation = `权重分布合理(HHI=${hhi.toFixed(3)})，引擎间均衡贡献。`;
+  }
+
+  return { perEngine, hhi, overConcentrated, dominantEngine, recommendation };
+}
+
+// ═══════════════════════════════════════════════
+// 9. Temporal Weight Smoothing (v5.1 新增)
+//
+// 在相邻人生阶段之间进行权重平滑过渡，
+// 避免跨阶段边界时权重突变。
+// ═══════════════════════════════════════════════
+
+/**
+ * Calculate smoothly interpolated weights across life stage boundaries.
+ *
+ * At age 22 (青年→壮年 boundary), instead of a hard cutover,
+ * we interpolate between the two stages' modifiers using a sigmoid transition.
+ *
+ * σ(x) = 1 / (1 + e^{-k·(age - midpoint)})
+ * Transition width: ±2 years around boundary
+ */
+export function calculateSmoothedWeights(ctx: DynamicWeightContext): DynamicWeightResult {
+  const { age = 35 } = ctx;
+
+  // Find neighboring stages for smooth transition
+  let currentStageIdx = 0;
+  for (let i = 0; i < LIFE_STAGES.length; i++) {
+    if (age >= LIFE_STAGES[i].minAge && age <= LIFE_STAGES[i].maxAge) {
+      currentStageIdx = i;
+      break;
+    }
+  }
+
+  const currentStage = LIFE_STAGES[currentStageIdx];
+  const TRANSITION_WIDTH = 2; // ±2 years transition zone
+
+  // Check if we're near a boundary
+  const nearLowerBoundary = currentStageIdx > 0 && age - currentStage.minAge <= TRANSITION_WIDTH;
+  const nearUpperBoundary = currentStageIdx < LIFE_STAGES.length - 1 && currentStage.maxAge - age <= TRANSITION_WIDTH;
+
+  if (!nearLowerBoundary && !nearUpperBoundary) {
+    // Not near boundary → use standard weights
+    return calculateDynamicWeights(ctx);
+  }
+
+  // Near boundary → interpolate
+  let neighborStageIdx: number;
+  let boundary: number;
+
+  if (nearLowerBoundary) {
+    neighborStageIdx = currentStageIdx - 1;
+    boundary = currentStage.minAge;
+  } else {
+    neighborStageIdx = currentStageIdx + 1;
+    boundary = currentStage.maxAge;
+  }
+
+  // Sigmoid transition: blend factor for neighbor stage
+  const k = 2.0; // steepness
+  const x = nearLowerBoundary ? boundary - age : age - boundary;
+  const blendNeighbor = 1 / (1 + Math.exp(-k * x));
+
+  // Calculate weights at both stages
+  const weightsA = calculateDynamicWeights({ ...ctx, age: currentStage.minAge + Math.floor((currentStage.maxAge - currentStage.minAge) / 2) });
+  const neighborMid = LIFE_STAGES[neighborStageIdx].minAge + Math.floor((LIFE_STAGES[neighborStageIdx].maxAge - LIFE_STAGES[neighborStageIdx].minAge) / 2);
+  const weightsB = calculateDynamicWeights({ ...ctx, age: neighborMid });
+
+  // Blend
+  const blendedWeights: WeightConfig[] = weightsA.weights.map(wA => {
+    const wB = weightsB.weights.find(w => w.engineName === wA.engineName);
+    const blendedWeight = wA.weight * (1 - blendNeighbor) + (wB?.weight ?? wA.weight) * blendNeighbor;
+    return {
+      engineName: wA.engineName,
+      weight: blendedWeight,
+      reason: `${wA.reason}（跨阶段平滑过渡，混合比${((1 - blendNeighbor) * 100).toFixed(0)}%/${(blendNeighbor * 100).toFixed(0)}%）`,
+    };
+  });
+
+  // Re-normalize
+  const total = blendedWeights.reduce((s, w) => s + w.weight, 0);
+  if (total > 0) {
+    for (const w of blendedWeights) w.weight /= total;
+  }
+
+  return {
+    weights: blendedWeights,
+    context: {
+      ...weightsA.context,
+      lifeStage: `${currentStage.name}→${LIFE_STAGES[neighborStageIdx].name}过渡期`,
+    },
+  };
+}
+
 // Export for testing
 export { LIFE_STAGES, DIMENSION_EXPERTISE, LIFE_STAGE_MODIFIERS, getLifeStage, EVENT_TYPE_MODIFIERS };

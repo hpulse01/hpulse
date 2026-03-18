@@ -1,7 +1,14 @@
 /**
- * H-Pulse Recursive World Tree Generator v5.0
+ * H-Pulse Recursive World Tree Generator v6.0
  *
- * v5.0: Notion 全面改革
+ * v6.0 升级:
+ *   - Age-dependent fate vector natural drift (年龄命运向量自然漂移)
+ *   - Decoherence-aware branch pruning (退相干感知剪枝)
+ *   - Enhanced collapse with annealing + Monte Carlo validation
+ *   - Life phase transition detection (人生阶段转换检测)
+ *   - Cumulative karma accounting (累计因果积分)
+ *
+ * v5.0 原有功能:
  *   - Dynamic Branch Factor B(t) based on event significance
  *   - Three-tier pruning: probability threshold, causal consistency, temporal consistency
  *   - Quantum amplitude-based Born rule collapse
@@ -19,6 +26,7 @@ import { ALL_FATE_DIMENSIONS } from '@/types/prediction';
 import {
   generateCollapseSeed, quantumCollapsePipeline,
   calculateFatePotential, calculateCollapseConfidence,
+  calculateDecoherence, annealedCollapse, monteCarloPathIntegral,
   type WorldLineInput, type EngineSupport,
 } from '@/utils/quantumMath';
 
@@ -31,6 +39,153 @@ function applyImpact(base: FateVector, impact: Partial<Record<FateDimension, num
     }
   }
   return result;
+}
+
+// ═══════════════════════════════════════════════
+// Age-Dependent Fate Vector Natural Drift (v6.0 新增)
+//
+// 命运向量随年龄自然变化，即使没有重大事件也会漂移。
+// 模拟自然规律：健康随年龄下降、智慧随经验增长等。
+//
+// 漂移公式: Δd(age) = drift_rate_d × Δt × modifier(age)
+// ═══════════════════════════════════════════════
+
+/**
+ * Natural drift rates per year for each fate dimension.
+ * Positive = natural growth, negative = natural decline.
+ */
+const NATURAL_DRIFT_RATES: Record<FateDimension, number> = {
+  life: 0,       // Career: neutral drift (event-driven)
+  wealth: 0.3,   // Wealth: slight natural accumulation
+  relation: 0,   // Relationships: event-driven
+  health: -0.5,  // Health: gradual natural decline
+  wisdom: 0.4,   // Wisdom: natural growth with age
+  spirit: 0.2,   // Spirituality: gradual deepening
+};
+
+/**
+ * Age-dependent drift modifiers.
+ * Health declines faster after 50, wisdom grows faster in middle age, etc.
+ */
+function getAgeDriftModifier(dim: FateDimension, age: number): number {
+  switch (dim) {
+    case 'health':
+      if (age < 25) return 0.2;      // Youth: minimal decline
+      if (age < 40) return 0.5;      // Prime: slow decline
+      if (age < 55) return 1.0;      // Middle: standard decline
+      if (age < 70) return 1.8;      // Late middle: accelerated
+      return 2.5;                     // Elderly: rapid decline
+    case 'wisdom':
+      if (age < 15) return 2.0;      // Childhood: rapid learning
+      if (age < 30) return 1.5;      // Young adult: strong growth
+      if (age < 50) return 1.0;      // Middle: steady growth
+      if (age < 70) return 0.7;      // Late: slowing
+      return 0.3;                     // Elderly: plateau
+    case 'wealth':
+      if (age < 20) return 0;        // Youth: no wealth drift
+      if (age < 35) return 1.5;      // Career building: fast
+      if (age < 55) return 1.0;      // Peak: steady
+      if (age < 70) return 0.5;      // Pre-retirement
+      return -0.5;                    // Retirement: spending down
+    case 'spirit':
+      if (age < 30) return 0.3;      // Youth: slowly awakening
+      if (age < 50) return 0.8;      // Middle: deepening
+      return 1.5;                     // Late: spiritual maturation
+    default:
+      return 1.0;
+  }
+}
+
+/**
+ * Apply natural age-dependent drift to a fate vector.
+ * Models the passage of time between events.
+ */
+function applyNaturalDrift(base: FateVector, fromAge: number, toAge: number): FateVector {
+  if (toAge <= fromAge) return { ...base };
+
+  const result = { ...base };
+  const yearsDelta = toAge - fromAge;
+
+  for (const dim of ALL_FATE_DIMENSIONS) {
+    const baseRate = NATURAL_DRIFT_RATES[dim];
+    // Use midpoint age for modifier
+    const midAge = (fromAge + toAge) / 2;
+    const modifier = getAgeDriftModifier(dim, midAge);
+    const totalDrift = baseRate * yearsDelta * modifier;
+
+    result[dim] = Math.max(5, Math.min(95, Math.round(result[dim] + totalDrift)));
+  }
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════
+// Life Phase Transition Detection (v6.0 新增)
+//
+// 检测重大人生阶段转换，在转换期自动增加分支因子。
+// ═══════════════════════════════════════════════
+
+const LIFE_PHASE_BOUNDARIES = [
+  { age: 6, name: '入学', branchBoost: 1.5 },
+  { age: 12, name: '青春期', branchBoost: 1.3 },
+  { age: 18, name: '成年', branchBoost: 2.0 },
+  { age: 22, name: '步入社会', branchBoost: 1.8 },
+  { age: 30, name: '而立之年', branchBoost: 1.5 },
+  { age: 40, name: '不惑之年', branchBoost: 1.3 },
+  { age: 50, name: '知天命', branchBoost: 1.4 },
+  { age: 60, name: '耳顺之年', branchBoost: 1.6 },
+  { age: 70, name: '古稀之年', branchBoost: 1.2 },
+];
+
+function getPhaseTransitionBoost(age: number): number {
+  for (const phase of LIFE_PHASE_BOUNDARIES) {
+    if (Math.abs(age - phase.age) <= 1) return phase.branchBoost;
+  }
+  return 1.0;
+}
+
+// ═══════════════════════════════════════════════
+// Cumulative Karma Accounting (v6.0 新增)
+//
+// 追踪正面/负面事件的累积效应——
+// 连续负面事件降低后续正面事件概率(厄运积累)，反之亦然。
+// ═══════════════════════════════════════════════
+
+interface KarmaAccumulator {
+  positiveKarma: number;
+  negativeKarma: number;
+  netKarma: number;
+}
+
+function calculateKarma(causalChain: string[], fateVector: FateVector): KarmaAccumulator {
+  const avgFate = (fateVector.life + fateVector.wealth + fateVector.relation + fateVector.health + fateVector.wisdom + fateVector.spirit) / 6;
+  const positive = Math.max(0, avgFate - 50) / 50;
+  const negative = Math.max(0, 50 - avgFate) / 50;
+  return {
+    positiveKarma: positive,
+    negativeKarma: negative,
+    netKarma: positive - negative,
+  };
+}
+
+/**
+ * Apply karma-based probability adjustment.
+ * Positive net karma → slight boost to positive events.
+ * Negative net karma → slight boost to negative events (momentum).
+ * This creates realistic "streaks" in the destiny path.
+ */
+function applyKarmaAdjustment(event: UnifiedEventCandidate, karma: KarmaAccumulator): number {
+  const fateImpactSum = Object.values(event.fateImpact).reduce((s, v) => s + (v || 0), 0);
+  const isPositiveEvent = fateImpactSum > 0;
+  const KARMA_INFLUENCE = 0.1; // Max 10% probability adjustment
+
+  if (isPositiveEvent) {
+    // Positive event: boosted by positive karma, reduced by negative
+    return event.fusedProbability * (1 + karma.netKarma * KARMA_INFLUENCE);
+  } else {
+    // Negative event: boosted by negative karma, reduced by positive
+    return event.fusedProbability * (1 - karma.netKarma * KARMA_INFLUENCE);
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -320,8 +475,10 @@ function expandNode(
       return bEnhanced - aEnhanced;
     });
 
-    // Dynamic branch factor B(t)
-    const branchFactor = calculateBranchFactor(sorted, parent.localFateVector, nextAge);
+    // Dynamic branch factor B(t) with phase transition boost
+    let branchFactor = calculateBranchFactor(sorted, parent.localFateVector, nextAge);
+    const phaseBoost = getPhaseTransitionBoost(nextAge);
+    branchFactor = Math.min(sorted.length, Math.round(branchFactor * phaseBoost));
     const branchEvents = sorted.slice(0, branchFactor);
 
     for (let bi = 0; bi < branchEvents.length; bi++) {
@@ -336,13 +493,21 @@ function expandNode(
       ctx.nodeIdCounter++;
 
       const enhBonus = calculateEnhancement(event, usedEventIds);
-      const branchFate = applyImpact(parent.localFateVector, event.fateImpact as Partial<Record<FateDimension, number>>);
+      // v6.0: Apply natural drift before event impact
+      const driftedFate = applyNaturalDrift(parent.localFateVector, parent.age, nextAge);
+      const branchFate = applyImpact(driftedFate, event.fateImpact as Partial<Record<FateDimension, number>>);
       const deathCheck = checkDeathAtAge(branchFate, nextAge, ctx.deathFusion);
 
+      // v6.0: Karma-adjusted transition probability
+      const karma = calculateKarma(parent.causalChain, parent.localFateVector);
+
       // Transition probability: main branch gets full, alternatives get discounted
+      // v6.0: Karma and decoherence modulate probability
+      const karmaAdjustedProb = applyKarmaAdjustment(event, karma);
+      const decoherenceFactor = calculateDecoherence(nextAge);
       const transProb = isMain
-        ? Math.min(0.95, event.fusedProbability + enhBonus)
-        : Math.min(0.95, event.fusedProbability * (0.8 - bi * 0.1) + enhBonus);
+        ? Math.min(0.95, karmaAdjustedProb * decoherenceFactor + enhBonus)
+        : Math.min(0.95, karmaAdjustedProb * decoherenceFactor * (0.8 - bi * 0.1) + enhBonus);
 
       const depsMet = event.prerequisiteEventIds.filter(id => usedEventIds.has(id));
       const exclusionsApplied = event.conflictingEventIds.filter(id => usedEventIds.has(id));
@@ -522,9 +687,20 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
     0, 0,
   );
 
+  // v6.0: Use annealed collapse for robust path selection
+  const annealResult = annealedCollapse(worldLineInputs, collapseSeed);
   const collapseDistribution = quantumCollapsePipeline(worldLineInputs, collapseSeed);
-  
-  const winnerIdx = collapseDistribution.collapsedIndex;
+
+  // v6.0: Monte Carlo validation for confidence estimation
+  const mcResult = monteCarloPathIntegral(worldLineInputs, collapseSeed, undefined, {
+    numSamples: Math.min(50, Math.max(20, pathDataList.length * 3)),
+    perturbationScale: 0.05,
+  });
+
+  // Prefer annealed winner if stable, otherwise fall back to single-shot
+  const winnerIdx = annealResult.stability > 0.5
+    ? annealResult.winnerIndex
+    : collapseDistribution.collapsedIndex;
   const winner = pathDataList[winnerIdx >= 0 ? winnerIdx : 0];
   const rejected = pathDataList.filter((_, i) => i !== winnerIdx).slice(0, 5);
 
@@ -582,12 +758,16 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
     `强度${tree.deathFusion.primaryDeath.strength})`;
 
   const collapseReasoning =
-    `量子坍缩v5.0：从${pathDataList.length}条世界线中，通过波函数振幅计算(Ψ=Ae^{-E/kT})，` +
-    `动态分支因子B(t)生成分支，三级剪枝(概率阈值/因果一致性/时序一致性)优化，` +
-    `配分函数归一化(Z=${collapseDistribution.partitionFunction.toFixed(3)})，` +
-    `确定性种子PRNG(seed=${collapseSeed.toString(16).slice(0,8)}...)坍缩出唯一命运路径。` +
+    `量子坍缩v6.0：从${pathDataList.length}条世界线中，` +
+    `通过模拟退火(稳定性${Math.round(annealResult.stability * 100)}%)×蒙特卡洛验证(MC置信度${Math.round(mcResult.mcConfidence * 100)}%)` +
+    `双重验证后波函数振幅计算(Ψ=Ae^{-E/kT})坍缩。` +
+    `动态分支因子B(t)生成分支，年龄漂移模型+因果积分调节，三级剪枝+退相干感知优化。` +
+    `配分函数Z=${collapseDistribution.partitionFunction.toFixed(3)}，` +
+    `确定性种子PRNG(seed=${collapseSeed.toString(16).slice(0,8)}...)。` +
     `有效温度T=${collapseDistribution.effectiveTemperature.toFixed(2)}，` +
-    `坍缩置信度${Math.round(collapseDistribution.collapseConfidence * 100)}%。` +
+    `坍缩置信度${Math.round(collapseDistribution.collapseConfidence * 100)}%` +
+    `(MC${mcResult.isStable ? '稳定' : '不稳定'}，` +
+    `退火${annealResult.stability > 0.7 ? '高度稳定' : annealResult.stability > 0.5 ? '较稳定' : '敏感'})。` +
     `终止于${deathNode.age}岁(${deathNode.deathCause || '自然'})。`;
 
   const majorEvents = winner.path.filter(n => n.dominantEvent.intensity === 'critical' || n.dominantEvent.intensity === 'life_defining');
@@ -605,7 +785,7 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
     deathDescription: deathNode.branchReason,
     rejectedBranches,
     collapseReasoning,
-    collapseConfidence: Math.min(0.95, collapseDistribution.collapseConfidence),
+    collapseConfidence: Math.min(0.95, collapseDistribution.collapseConfidence * 0.4 + annealResult.confidence * 0.3 + mcResult.mcConfidence * 0.3),
     finalLifeSummary,
     totalPathsConsidered: pathDataList.length,
     selectedReason,

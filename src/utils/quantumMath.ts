@@ -1,7 +1,14 @@
 /**
- * H-Pulse Quantum Mathematics Framework v1.0
+ * H-Pulse Quantum Mathematics Framework v2.0
  *
- * Implements the quantum mechanical formalism from the Notion specification:
+ * v2.0 升级:
+ *   - Quantum decoherence time-decay model (量子退相干时间衰减)
+ *   - Adaptive simulated annealing for temperature scheduling (自适应模拟退火)
+ *   - Monte Carlo path integral for confidence interval estimation (蒙特卡洛路径积分)
+ *   - Cross-engine entanglement detection (跨引擎纠缠检测)
+ *   - Rényi entropy for multi-scale uncertainty measurement
+ *
+ * v1.0 原有功能:
  *   1. Wave function amplitude: Ψ(ω,t) = A·e^(-E(t)/kT)
  *   2. Partition function Z for normalization
  *   3. Fate potential: E_i(t) = -Σ W_s(t)·log P_s(ω_i|t)
@@ -389,5 +396,467 @@ export function calculateFateVectorCoherence(
     wisdom: coherences.wisdom,
     spirit: coherences.spirit,
     overall: totalCoherence / ALL_FATE_DIMENSIONS.length,
+  };
+}
+
+// ═══════════════════════════════════════════════
+// 8. Quantum Decoherence Time-Decay (量子退相干模型)
+//
+// 随着预测时间跨度增大，引擎预测的确定性指数衰减。
+// Γ(t) = Γ_0 · e^{-t/τ_d}
+//   Γ_0 = 初始相干度
+//   τ_d = 退相干时间常数 (年)
+//   t = 预测跨度 (从出生/查询到目标时间)
+// ═══════════════════════════════════════════════
+
+export interface DecoherenceConfig {
+  /** Initial coherence Γ₀ (0-1). Default: 0.95 */
+  initialCoherence: number;
+  /** Decoherence time constant τ_d (years). Default: 30 */
+  timeConstant: number;
+  /** Minimum coherence floor (never fully decohere). Default: 0.15 */
+  floor: number;
+}
+
+const DEFAULT_DECOHERENCE: DecoherenceConfig = {
+  initialCoherence: 0.95,
+  timeConstant: 30,
+  floor: 0.15,
+};
+
+/**
+ * Calculate decoherence factor at a given time span.
+ * Γ(t) = max(floor, Γ₀ · e^{-t/τ_d})
+ *
+ * Physically: near-term predictions are coherent (high certainty),
+ * far-future predictions decohere (uncertainty increases).
+ */
+export function calculateDecoherence(
+  yearsAhead: number,
+  config: DecoherenceConfig = DEFAULT_DECOHERENCE,
+): number {
+  const { initialCoherence, timeConstant, floor } = config;
+  const decayed = initialCoherence * Math.exp(-yearsAhead / timeConstant);
+  return Math.max(floor, decayed);
+}
+
+/**
+ * Apply decoherence to a fate potential.
+ * Decoherent potentials spread out (increase uncertainty → increase effective energy).
+ * E_decoherent(t) = E(t) / Γ(t)
+ */
+export function applyDecoherence(
+  fatePotential: number,
+  yearsAhead: number,
+  config?: DecoherenceConfig,
+): number {
+  const gamma = calculateDecoherence(yearsAhead, config);
+  return fatePotential / Math.max(0.01, gamma);
+}
+
+/**
+ * Calculate decoherence-adjusted probability distribution.
+ * Far-future predictions → flatter distribution (more uniform).
+ */
+export function decoherentProbabilities(
+  potentials: number[],
+  kT: number,
+  yearsAhead: number,
+  config?: DecoherenceConfig,
+): number[] {
+  const gamma = calculateDecoherence(yearsAhead, config);
+  // Effective temperature increases with decoherence
+  const effectiveKT = kT / Math.max(0.01, gamma);
+  return calculateProbabilityDistribution(potentials, effectiveKT);
+}
+
+// ═══════════════════════════════════════════════
+// 9. Adaptive Simulated Annealing (自适应模拟退火)
+//
+// 不使用固定温度 T，而是通过退火调度逐步降温：
+//   T(k) = T_initial · α^k
+// 允许在高温阶段探索更多路径，低温阶段锁定最优路径。
+// ═══════════════════════════════════════════════
+
+export interface AnnealingSchedule {
+  /** Initial temperature. Default: 2.0 */
+  initialTemp: number;
+  /** Cooling rate α ∈ (0,1). Default: 0.85 */
+  coolingRate: number;
+  /** Final (frozen) temperature. Default: 0.1 */
+  finalTemp: number;
+  /** Number of annealing steps. Default: 10 */
+  steps: number;
+}
+
+const DEFAULT_ANNEALING: AnnealingSchedule = {
+  initialTemp: 2.0,
+  coolingRate: 0.85,
+  finalTemp: 0.1,
+  steps: 10,
+};
+
+/**
+ * Generate temperature schedule for annealing.
+ * Returns array of temperatures from hot → cold.
+ */
+export function generateAnnealingSchedule(config: AnnealingSchedule = DEFAULT_ANNEALING): number[] {
+  const temps: number[] = [];
+  let T = config.initialTemp;
+  for (let k = 0; k < config.steps; k++) {
+    temps.push(Math.max(config.finalTemp, T));
+    T *= config.coolingRate;
+  }
+  return temps;
+}
+
+/**
+ * Annealed quantum collapse: run collapse at each temperature step,
+ * track which world line is selected most frequently, and return
+ * the consensus winner along with stability metrics.
+ *
+ * This reveals whether the collapse is robust (same winner at all temps)
+ * or sensitive (winner changes with temperature).
+ */
+export function annealedCollapse(
+  worldLines: WorldLineInput[],
+  collapseSeed: bigint,
+  schedule?: AnnealingSchedule,
+): {
+  winnerIndex: number;
+  stability: number; // 0-1, fraction of steps that agree with winner
+  temperatureProfile: number[];
+  selectionsPerStep: number[];
+  confidence: number;
+} {
+  if (worldLines.length === 0) {
+    return { winnerIndex: -1, stability: 0, temperatureProfile: [], selectionsPerStep: [], confidence: 0 };
+  }
+
+  const temps = generateAnnealingSchedule(schedule);
+  const selections: number[] = [];
+  const rng = new DeterministicRNG(collapseSeed);
+
+  for (const T of temps) {
+    const result = quantumCollapsePipeline(worldLines, collapseSeed + BigInt(Math.round(T * 1000)), T);
+    selections.push(result.collapsedIndex);
+  }
+
+  // Count votes for each world line
+  const votes = new Map<number, number>();
+  for (const sel of selections) {
+    votes.set(sel, (votes.get(sel) || 0) + 1);
+  }
+
+  // Winner = most selected world line across all temperatures
+  let winnerIndex = 0;
+  let maxVotes = 0;
+  for (const [idx, count] of votes) {
+    if (count > maxVotes) {
+      maxVotes = count;
+      winnerIndex = idx;
+    }
+  }
+
+  const stability = maxVotes / temps.length;
+
+  // Final confidence: product of stability and last-step confidence
+  const finalResult = quantumCollapsePipeline(worldLines, collapseSeed, temps[temps.length - 1]);
+  const confidence = stability * finalResult.collapseConfidence;
+
+  return {
+    winnerIndex,
+    stability,
+    temperatureProfile: temps,
+    selectionsPerStep: selections,
+    confidence: Math.min(0.99, confidence),
+  };
+}
+
+// ═══════════════════════════════════════════════
+// 10. Monte Carlo Path Integral (蒙特卡洛路径积分)
+//
+// 通过多次随机扰动后重新坍缩，估算坍缩结果的置信区间。
+// 这回答了关键问题："如果引擎输出有微小波动，结果会变吗？"
+// ═══════════════════════════════════════════════
+
+export interface MonteCarloConfig {
+  /** Number of Monte Carlo samples. Default: 100 */
+  numSamples: number;
+  /** Perturbation magnitude (fraction of original). Default: 0.05 */
+  perturbationScale: number;
+}
+
+export interface MonteCarloResult {
+  /** Point estimate (mode of MC distribution) */
+  modeIndex: number;
+  /** Probability of the mode path being selected */
+  modeProbability: number;
+  /** Selection frequency for each world line across MC trials */
+  selectionFrequency: Map<number, number>;
+  /** Top 3 most frequently selected paths */
+  topPaths: Array<{ index: number; frequency: number }>;
+  /** Effective confidence: fraction of MC trials that agree */
+  mcConfidence: number;
+  /** Is the collapse stable (> 60% agreement)? */
+  isStable: boolean;
+}
+
+/**
+ * Monte Carlo path integral: perturb engine supports slightly and re-collapse
+ * many times to estimate the robustness of the collapse.
+ *
+ * If most trials converge to the same world line → high confidence.
+ * If trials scatter across many world lines → the collapse is sensitive.
+ */
+export function monteCarloPathIntegral(
+  worldLines: WorldLineInput[],
+  collapseSeed: bigint,
+  temperature?: number,
+  config: MonteCarloConfig = { numSamples: 100, perturbationScale: 0.05 },
+): MonteCarloResult {
+  if (worldLines.length === 0) {
+    return {
+      modeIndex: -1, modeProbability: 0,
+      selectionFrequency: new Map(), topPaths: [],
+      mcConfidence: 0, isStable: false,
+    };
+  }
+
+  const rng = new DeterministicRNG(collapseSeed + 0xDEADBEEFn);
+  const selectionFrequency = new Map<number, number>();
+
+  for (let trial = 0; trial < config.numSamples; trial++) {
+    // Perturb each world line's engine supports
+    const perturbedLines: WorldLineInput[] = worldLines.map(wl => ({
+      ...wl,
+      engineSupports: wl.engineSupports.map(es => ({
+        ...es,
+        probability: Math.max(0.01, Math.min(0.99,
+          es.probability + (rng.next() - 0.5) * 2 * config.perturbationScale
+        )),
+        weight: Math.max(0.01, es.weight + (rng.next() - 0.5) * 2 * config.perturbationScale * 0.5),
+      })),
+      collapseWeight: Math.max(0.01,
+        wl.collapseWeight * (1 + (rng.next() - 0.5) * 2 * config.perturbationScale)
+      ),
+    }));
+
+    // Use a different seed for each trial (but deterministic from base seed)
+    const trialSeed = collapseSeed + BigInt(trial * 7919);
+    const result = quantumCollapsePipeline(perturbedLines, trialSeed, temperature);
+    const selected = result.collapsedIndex;
+    selectionFrequency.set(selected, (selectionFrequency.get(selected) || 0) + 1);
+  }
+
+  // Find mode
+  let modeIndex = 0;
+  let maxCount = 0;
+  for (const [idx, count] of selectionFrequency) {
+    if (count > maxCount) {
+      maxCount = count;
+      modeIndex = idx;
+    }
+  }
+
+  const modeProbability = maxCount / config.numSamples;
+
+  // Top 3 paths
+  const sortedEntries = [...selectionFrequency.entries()].sort((a, b) => b[1] - a[1]);
+  const topPaths = sortedEntries.slice(0, 3).map(([index, count]) => ({
+    index,
+    frequency: count / config.numSamples,
+  }));
+
+  return {
+    modeIndex,
+    modeProbability,
+    selectionFrequency,
+    topPaths,
+    mcConfidence: modeProbability,
+    isStable: modeProbability > 0.6,
+  };
+}
+
+// ═══════════════════════════════════════════════
+// 11. Cross-Engine Entanglement Detection (跨引擎纠缠检测)
+//
+// 检测哪些引擎在预测输出上存在统计纠缠（高度相关）。
+// 纠缠引擎不应获得独立的双倍权重——需要降低冗余权重。
+// ═══════════════════════════════════════════════
+
+export interface EngineEntanglement {
+  engineA: string;
+  engineB: string;
+  correlation: number;  // Pearson r across all dimensions
+  entangled: boolean;   // |r| > threshold
+  strength: 'strong' | 'moderate' | 'weak';
+}
+
+/**
+ * Detect entangled (highly correlated) engine pairs.
+ *
+ * When two engines produce nearly identical FateVectors, they are "entangled"
+ * and should not be double-counted in the fusion process.
+ *
+ * Uses Pearson correlation across all 6 fate dimensions.
+ * |r| > 0.85 → strong entanglement → significant weight penalty
+ * |r| > 0.65 → moderate entanglement → mild weight penalty
+ */
+export function detectEngineEntanglement(
+  engineFateVectors: Array<{ engineName: string; fateVector: FateVector }>,
+  threshold: number = 0.65,
+): EngineEntanglement[] {
+  const entanglements: EngineEntanglement[] = [];
+
+  for (let i = 0; i < engineFateVectors.length; i++) {
+    for (let j = i + 1; j < engineFateVectors.length; j++) {
+      const a = engineFateVectors[i];
+      const b = engineFateVectors[j];
+
+      // Pearson correlation across 6 dimensions
+      const valsA = ALL_FATE_DIMENSIONS.map(d => a.fateVector[d]);
+      const valsB = ALL_FATE_DIMENSIONS.map(d => b.fateVector[d]);
+      const n = valsA.length;
+
+      const meanA = valsA.reduce((s, v) => s + v, 0) / n;
+      const meanB = valsB.reduce((s, v) => s + v, 0) / n;
+
+      let cov = 0, varA = 0, varB = 0;
+      for (let k = 0; k < n; k++) {
+        const dA = valsA[k] - meanA;
+        const dB = valsB[k] - meanB;
+        cov += dA * dB;
+        varA += dA * dA;
+        varB += dB * dB;
+      }
+
+      const denom = Math.sqrt(varA * varB);
+      const r = denom > 1e-10 ? cov / denom : 0;
+      const absR = Math.abs(r);
+
+      entanglements.push({
+        engineA: a.engineName,
+        engineB: b.engineName,
+        correlation: r,
+        entangled: absR > threshold,
+        strength: absR > 0.85 ? 'strong' : absR > 0.65 ? 'moderate' : 'weak',
+      });
+    }
+  }
+
+  return entanglements;
+}
+
+/**
+ * Calculate entanglement-adjusted weights.
+ *
+ * For entangled engine pairs, the lower-weighted engine receives a penalty
+ * to prevent double-counting correlated information.
+ *
+ * Penalty formula: w_adjusted = w_original × (1 - |r| × penalty_factor)
+ *   strong entanglement: penalty_factor = 0.4
+ *   moderate entanglement: penalty_factor = 0.2
+ */
+export function adjustWeightsForEntanglement(
+  weights: Array<{ engineName: string; weight: number }>,
+  entanglements: EngineEntanglement[],
+): Array<{ engineName: string; weight: number; adjustmentReason: string }> {
+  const adjustedMap = new Map<string, { weight: number; reasons: string[] }>();
+  for (const w of weights) {
+    adjustedMap.set(w.engineName, { weight: w.weight, reasons: [] });
+  }
+
+  for (const ent of entanglements) {
+    if (!ent.entangled) continue;
+
+    const wA = adjustedMap.get(ent.engineA);
+    const wB = adjustedMap.get(ent.engineB);
+    if (!wA || !wB) continue;
+
+    const penaltyFactor = ent.strength === 'strong' ? 0.4 : 0.2;
+    // Penalize the lower-weight engine (it's the "redundant" one)
+    if (wA.weight <= wB.weight) {
+      wA.weight *= (1 - Math.abs(ent.correlation) * penaltyFactor);
+      wA.reasons.push(`纠缠惩罚(${ent.engineB},r=${ent.correlation.toFixed(2)},×${(1 - Math.abs(ent.correlation) * penaltyFactor).toFixed(2)})`);
+    } else {
+      wB.weight *= (1 - Math.abs(ent.correlation) * penaltyFactor);
+      wB.reasons.push(`纠缠惩罚(${ent.engineA},r=${ent.correlation.toFixed(2)},×${(1 - Math.abs(ent.correlation) * penaltyFactor).toFixed(2)})`);
+    }
+  }
+
+  // Re-normalize
+  const total = [...adjustedMap.values()].reduce((s, v) => s + v.weight, 0);
+  const result: Array<{ engineName: string; weight: number; adjustmentReason: string }> = [];
+  for (const [name, { weight, reasons }] of adjustedMap) {
+    result.push({
+      engineName: name,
+      weight: total > 0 ? weight / total : weight,
+      adjustmentReason: reasons.length > 0 ? reasons.join('；') : '无纠缠调整',
+    });
+  }
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════
+// 12. Rényi Entropy (Rényi 熵)
+//
+// 推广 Shannon 熵到 order-α 的 Rényi 熵：
+//   H_α = 1/(1-α) · log₂(Σ p_i^α)
+//
+// α=1 → Shannon entropy (取极限)
+// α=2 → Collision entropy (最常用)
+// α→∞ → Min-entropy (最坏情况)
+// ═══════════════════════════════════════════════
+
+/**
+ * Calculate Rényi entropy of order α.
+ *
+ * Special cases:
+ * - α → 1: Shannon entropy (continuous limit)
+ * - α = 2: Collision entropy, -log₂(Σ p_i²)
+ * - α → ∞: Min-entropy, -log₂(max p_i)
+ *
+ * Higher-order Rényi emphasizes dominant probabilities more strongly.
+ */
+export function calculateRenyiEntropy(probabilities: number[], alpha: number = 2): number {
+  if (probabilities.length === 0) return 0;
+
+  // Special case: α = 1 → Shannon entropy
+  if (Math.abs(alpha - 1) < 1e-10) {
+    return calculateEntropy(probabilities);
+  }
+
+  // Special case: α → ∞ → Min-entropy
+  if (alpha > 50) {
+    const maxP = Math.max(...probabilities.filter(p => p > 0));
+    return maxP > 0 ? -Math.log2(maxP) : 0;
+  }
+
+  let sumPowerAlpha = 0;
+  for (const p of probabilities) {
+    if (p > 1e-15) {
+      sumPowerAlpha += Math.pow(p, alpha);
+    }
+  }
+
+  if (sumPowerAlpha <= 0) return 0;
+  return (1 / (1 - alpha)) * Math.log2(sumPowerAlpha);
+}
+
+/**
+ * Multi-scale entropy profile: compute Rényi entropy at different orders.
+ * Provides a richer view of the distribution than a single entropy value.
+ *
+ * Returns: { α: H_α } for α ∈ [0.5, 1, 2, 5, ∞]
+ */
+export function entropyProfile(probabilities: number[]): Record<string, number> {
+  return {
+    'H_0.5': calculateRenyiEntropy(probabilities, 0.5),
+    'H_1_shannon': calculateEntropy(probabilities),
+    'H_2_collision': calculateRenyiEntropy(probabilities, 2),
+    'H_5': calculateRenyiEntropy(probabilities, 5),
+    'H_inf_min': calculateRenyiEntropy(probabilities, 100),
   };
 }
