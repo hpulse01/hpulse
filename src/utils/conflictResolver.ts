@@ -1,12 +1,18 @@
 /**
- * H-Pulse Conflict Detection & Resolution v2.0
+ * H-Pulse Conflict Detection & Resolution v3.0
  *
- * Upgraded per Notion specification:
+ * v3.0 升级:
+ *   - Bayesian posterior update: 引擎预测作为似然函数更新先验概率
+ *   - Uncertainty quantification: 每个维度输出置信区间 [μ-σ, μ+σ]
+ *   - Adaptive conflict strategy: 根据引擎历史一致性动态选择策略
+ *   - Enhanced majority voting with outlier detection
+ *   - Cross-dimension correlation awareness (跨维度关联感知)
+ *
+ * 原有功能保留:
  *   - Dynamic per-dimension domain expertise (integrated with W(t,e,d))
  *   - Majority voting strategy (多数表决)
  *   - Enhanced conflict transparency with detailed reporting
  *   - Coherence-weighted fusion
- *   - Uncertainty quantification per dimension
  */
 
 import type {
@@ -274,6 +280,238 @@ function confidenceWeightedAverage(
     totalWeight += adjustedW;
   }
   return totalWeight > 0 ? Math.round(sum / totalWeight) : 50;
+}
+
+// ═══════════════════════════════════════════════
+// Bayesian Posterior Fusion (v3.0 新增)
+// 引擎预测 → 似然函数 → 后验概率 → 精确融合
+// ═══════════════════════════════════════════════
+
+/**
+ * Bayesian posterior update for fate dimension fusion.
+ *
+ * Model: For dimension d, the "true" value θ ∈ [0,100].
+ *   - Prior: θ ~ N(μ_prior, σ_prior²), where μ_prior=50, σ_prior=25
+ *   - Each engine observation: x_i ~ N(θ, σ_i²), σ_i = (1 - confidence_i) × 40
+ *   - Posterior: θ | x_1...x_n ~ N(μ_post, σ_post²)
+ *     μ_post = σ_post² × (μ_prior/σ_prior² + Σ w_i·x_i/σ_i²)
+ *     1/σ_post² = 1/σ_prior² + Σ w_i/σ_i²
+ *
+ * This naturally handles uncertainty: low-confidence engines have wide σ_i
+ * and contribute less to the posterior.
+ */
+export function bayesianPosteriorFusion(
+  outputs: EngineOutput[],
+  weights: WeightEntry[],
+  dim: FateDimension,
+): { mean: number; stdDev: number; ci95: [number, number] } {
+  // Uninformative prior
+  const priorMean = 50;
+  const priorSigma = 25;
+  let precisionSum = 1 / (priorSigma * priorSigma);
+  let weightedPrecisionSum = priorMean / (priorSigma * priorSigma);
+
+  for (const e of outputs) {
+    const w = weights.find(wt => wt.engineName === e.engineName)?.weight ?? 0;
+    if (w <= 0) continue;
+
+    const observation = e.fateVector[dim];
+    // Engine uncertainty: low confidence → wide sigma → less influence
+    const sigma_i = Math.max(5, (1 - e.confidence) * 40 + 5);
+    const precision_i = w / (sigma_i * sigma_i);
+
+    precisionSum += precision_i;
+    weightedPrecisionSum += precision_i * observation;
+  }
+
+  const posteriorVariance = 1 / precisionSum;
+  const posteriorMean = weightedPrecisionSum * posteriorVariance;
+  const posteriorStdDev = Math.sqrt(posteriorVariance);
+
+  // 95% credible interval
+  const ci95Lower = Math.max(0, Math.round(posteriorMean - 1.96 * posteriorStdDev));
+  const ci95Upper = Math.min(100, Math.round(posteriorMean + 1.96 * posteriorStdDev));
+
+  return {
+    mean: Math.max(0, Math.min(100, Math.round(posteriorMean))),
+    stdDev: posteriorStdDev,
+    ci95: [ci95Lower, ci95Upper],
+  };
+}
+
+// ═══════════════════════════════════════════════
+// Outlier Detection (v3.0 新增: 离群值检测)
+// 使用 Modified Z-Score 检测异常引擎输出
+// ═══════════════════════════════════════════════
+
+/**
+ * Detect engine outputs that are statistical outliers for a given dimension.
+ * Uses Median Absolute Deviation (MAD) based z-score (robust to outliers).
+ *
+ * Modified Z-Score = 0.6745 × (x_i - median) / MAD
+ * Threshold: |z| > 3.0 is considered an outlier.
+ */
+export function detectOutliers(
+  outputs: EngineOutput[],
+  dim: FateDimension,
+  threshold: number = 3.0,
+): { outliers: string[]; cleanOutputs: EngineOutput[]; outlierDetails: Array<{ engine: string; value: number; zScore: number }> } {
+  if (outputs.length < 4) {
+    return { outliers: [], cleanOutputs: outputs, outlierDetails: [] };
+  }
+
+  const values = outputs.map(e => e.fateVector[dim]);
+  const sorted = [...values].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  const deviations = values.map(v => Math.abs(v - median));
+  const sortedDevs = [...deviations].sort((a, b) => a - b);
+  const mad = sortedDevs[Math.floor(sortedDevs.length / 2)];
+
+  if (mad < 1e-6) {
+    // All values essentially equal
+    return { outliers: [], cleanOutputs: outputs, outlierDetails: [] };
+  }
+
+  const outlierDetails: Array<{ engine: string; value: number; zScore: number }> = [];
+  const outliers: string[] = [];
+  const cleanOutputs: EngineOutput[] = [];
+
+  for (let i = 0; i < outputs.length; i++) {
+    const zScore = 0.6745 * (values[i] - median) / mad;
+    if (Math.abs(zScore) > threshold) {
+      outliers.push(outputs[i].engineName);
+      outlierDetails.push({ engine: outputs[i].engineName, value: values[i], zScore });
+    } else {
+      cleanOutputs.push(outputs[i]);
+    }
+  }
+
+  return { outliers, cleanOutputs, outlierDetails };
+}
+
+// ═══════════════════════════════════════════════
+// Cross-Dimension Correlation (v3.0 新增)
+// 检测维度间的统计关联，用于提升融合精度
+// ═══════════════════════════════════════════════
+
+/**
+ * Calculate Pearson correlation between two fate dimensions across all engines.
+ * High correlation means dimensions are statistically linked (e.g., career ↔ wealth).
+ */
+export function calculateDimensionCorrelation(
+  outputs: EngineOutput[],
+  dimA: FateDimension,
+  dimB: FateDimension,
+): number {
+  if (outputs.length < 3) return 0;
+
+  const valuesA = outputs.map(e => e.fateVector[dimA]);
+  const valuesB = outputs.map(e => e.fateVector[dimB]);
+  const n = valuesA.length;
+
+  const meanA = valuesA.reduce((s, v) => s + v, 0) / n;
+  const meanB = valuesB.reduce((s, v) => s + v, 0) / n;
+
+  let covariance = 0, varA = 0, varB = 0;
+  for (let i = 0; i < n; i++) {
+    const dA = valuesA[i] - meanA;
+    const dB = valuesB[i] - meanB;
+    covariance += dA * dB;
+    varA += dA * dA;
+    varB += dB * dB;
+  }
+
+  const denominator = Math.sqrt(varA * varB);
+  return denominator > 1e-10 ? covariance / denominator : 0;
+}
+
+/**
+ * Build full cross-dimension correlation matrix.
+ * Returns 6×6 matrix of Pearson correlations.
+ */
+export function buildCorrelationMatrix(
+  outputs: EngineOutput[],
+): Record<FateDimension, Record<FateDimension, number>> {
+  const matrix: Record<string, Record<string, number>> = {};
+  for (const a of ALL_FATE_DIMENSIONS) {
+    matrix[a] = {};
+    for (const b of ALL_FATE_DIMENSIONS) {
+      matrix[a][b] = a === b ? 1.0 : calculateDimensionCorrelation(outputs, a, b);
+    }
+  }
+  return matrix as Record<FateDimension, Record<FateDimension, number>>;
+}
+
+// ═══════════════════════════════════════════════
+// Uncertainty-Aware Fusion (v3.0 新增)
+// 结合贝叶斯后验+离群值检测+跨维度关联的增强融合
+// ═══════════════════════════════════════════════
+
+export interface UncertaintyAwareFusionResult {
+  fateVector: FateVector;
+  uncertainties: Record<FateDimension, { stdDev: number; ci95: [number, number] }>;
+  outlierReport: Record<FateDimension, string[]>;
+  correlationMatrix: Record<FateDimension, Record<FateDimension, number>>;
+  fusionMethod: 'bayesian_posterior';
+}
+
+/**
+ * Enhanced fusion that produces both point estimates and uncertainty bounds.
+ * Pipeline:
+ *   1. Detect and flag outliers per dimension
+ *   2. Run Bayesian posterior update on cleaned data
+ *   3. Compute cross-dimension correlations
+ *   4. Apply correlation-based adjustment (correlated dimensions pull each other)
+ */
+export function uncertaintyAwareFusion(
+  engineOutputs: EngineOutput[],
+  weights: WeightEntry[],
+): UncertaintyAwareFusionResult {
+  const fused: FateVector = { life: 0, wealth: 0, relation: 0, health: 0, wisdom: 0, spirit: 0 };
+  const uncertainties: Record<string, { stdDev: number; ci95: [number, number] }> = {};
+  const outlierReport: Record<string, string[]> = {};
+
+  // Phase 1: per-dimension Bayesian fusion with outlier removal
+  for (const dim of ALL_FATE_DIMENSIONS) {
+    const { outliers, cleanOutputs } = detectOutliers(engineOutputs, dim);
+    outlierReport[dim] = outliers;
+
+    const usable = cleanOutputs.length >= 2 ? cleanOutputs : engineOutputs;
+    const posterior = bayesianPosteriorFusion(usable, weights, dim);
+    fused[dim] = posterior.mean;
+    uncertainties[dim] = { stdDev: posterior.stdDev, ci95: posterior.ci95 };
+  }
+
+  // Phase 2: correlation-based cross-dimensional adjustment
+  const correlationMatrix = buildCorrelationMatrix(engineOutputs);
+  const CORRELATION_PULL_STRENGTH = 0.1;
+
+  for (const dimA of ALL_FATE_DIMENSIONS) {
+    let correctionSum = 0;
+    let corrWeight = 0;
+    for (const dimB of ALL_FATE_DIMENSIONS) {
+      if (dimA === dimB) continue;
+      const r = correlationMatrix[dimA][dimB];
+      if (Math.abs(r) > 0.5) {
+        // Strong correlation: pull dimA towards dimB's relative position
+        const deviation = fused[dimB] - 50;
+        correctionSum += r * deviation * CORRELATION_PULL_STRENGTH;
+        corrWeight += Math.abs(r);
+      }
+    }
+    if (corrWeight > 0) {
+      const adjustment = correctionSum / corrWeight;
+      fused[dimA] = Math.max(0, Math.min(100, Math.round(fused[dimA] + adjustment)));
+    }
+  }
+
+  return {
+    fateVector: fused,
+    uncertainties: uncertainties as Record<FateDimension, { stdDev: number; ci95: [number, number] }>,
+    outlierReport: outlierReport as Record<FateDimension, string[]>,
+    correlationMatrix,
+    fusionMethod: 'bayesian_posterior',
+  };
 }
 
 // ═══════════════════════════════════════════════
