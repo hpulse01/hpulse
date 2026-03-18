@@ -4,8 +4,6 @@ import { BirthDataForm, type BirthDataWithGeo } from '@/components/BirthDataForm
 import { SixRelationsVerification } from '@/components/SixRelationsVerification';
 import { DestinyDashboard } from '@/components/DestinyDashboard';
 import { UnifiedQuantumPanel } from '@/components/UnifiedQuantumPanel';
-import { UnifiedResultsPanel } from '@/components/UnifiedResultsPanel';
-import { DestinyTreePanel } from '@/components/DestinyTreePanel';
 import { PredictionOverview } from '@/components/results/PredictionOverview';
 import { EngineContributionPanel } from '@/components/results/EngineContributionPanel';
 import { DestinyTreeLayer } from '@/components/results/DestinyTreeLayer';
@@ -13,18 +11,19 @@ import { UniquePathLayer } from '@/components/results/UniquePathLayer';
 import { Footer } from '@/components/Footer';
 import { UserMenu } from '@/components/UserMenu';
 import { LanguageToggle } from '@/components/LanguageToggle';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useSuperAdmin } from '@/hooks/useSuperAdmin';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
+import { useAuth } from '@/hooks/useAuth';
 import { useI18n } from '@/hooks/useI18n';
 
 import { getClauseCount } from '@/services/SupabaseService';
+import { PredictionOrchestrator } from '@/utils/predictionOrchestrator';
+import { AdminOrchestrationConsole } from '@/components/AdminOrchestrationConsole';
 import {
   TiebanEngine,
   type TiebanInput,
   type KaoKeWithMatch,
-  type DestinyProjection,
   type CalibrationResult,
   type FullDestinyReport,
 } from '@/utils/tiebanAlgorithm';
@@ -34,7 +33,7 @@ import {
 } from '@/utils/quantumPredictionEngine';
 import { QuantumField } from '@/components/quantum/QuantumField';
 import { useToast } from '@/hooks/use-toast';
-import { Atom, RotateCcw, Sparkles, Scroll, Zap, TreePine, Target, Layers, Shield, Activity, AlertTriangle } from 'lucide-react';
+import { Atom, RotateCcw, Sparkles, Scroll, TreePine, Target, Layers, Shield, AlertTriangle } from 'lucide-react';
 
 type AppStep = 'input' | 'calculating' | 'verification' | 'projecting' | 'result';
 
@@ -50,8 +49,10 @@ const Index = () => {
   const [quantumResult, setQuantumResult] = useState<QuantumPredictionResult | null>(null);
   const [clauseCount, setClauseCount] = useState<number | null>(null);
   const [activeResultTab, setActiveResultTab] = useState('overview');
+  const [unifiedReport, setUnifiedReport] = useState<ReturnType<typeof PredictionOrchestrator.execute> | null>(null);
 
-  const { isSuperAdmin } = useSuperAdmin();
+  const { isSuperAdmin } = useAdminAccess();
+  const { profile } = useAuth();
   const { toast } = useToast();
   const { t, engineLabel, lang } = useI18n();
 
@@ -105,6 +106,9 @@ const Index = () => {
       setFullReport(report);
       const qResult = QuantumPredictionEngine.predict(birthInput!, systemOffset);
       setQuantumResult(qResult);
+      if (qResult.unifiedResult) {
+        setUnifiedReport(PredictionOrchestrator.execute(qResult.unifiedResult.input));
+      }
       setStep('result');
       toast({ title: t('ui.prediction_complete'), description: t('ui.prediction_complete_desc') });
     } catch (error) {
@@ -123,6 +127,7 @@ const Index = () => {
     setFullReport(null);
     setCalibrationResult(null);
     setQuantumResult(null);
+    setUnifiedReport(null);
     setActiveResultTab('overview');
   }, []);
 
@@ -302,6 +307,7 @@ const Index = () => {
                       <span>{t('ui.coherence')} <strong className="text-primary">{Math.round(quantumResult.overallCoherence * 100)}%</strong></span>
                       <span>{t('ui.worlds')} <strong className="text-primary">{quantumResult.totalWorldsGenerated.toLocaleString()}</strong></span>
                       <span>{t('ui.engines')} <strong className="text-primary">13</strong></span>
+                      <span>统一入口 <strong className="text-primary">H-Pulse</strong></span>
                       <span>{t('ui.element')} <strong className="text-primary">{quantumResult.dominantElement}</strong></span>
                       {quantumResult.collapseResult && (
                         <span>{t('ui.lifespan')} <strong className="text-accent">{quantumResult.collapseResult.deathAge}{t('ui.years_old')}</strong></span>
@@ -338,13 +344,13 @@ const Index = () => {
 
                 <TabsContent value="overview" className="mt-6">
                   {quantumResult.unifiedResult && (
-                    <PredictionOverview result={quantumResult.unifiedResult} />
+                    <PredictionOverview result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
                   )}
                 </TabsContent>
 
                 <TabsContent value="engines" className="mt-6">
                   {quantumResult.unifiedResult && (
-                    <EngineContributionPanel result={quantumResult.unifiedResult} />
+                    <EngineContributionPanel result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
                   )}
                 </TabsContent>
 
@@ -389,17 +395,15 @@ const Index = () => {
                   <UnifiedQuantumPanel result={quantumResult} birthYear={birthInput.year} />
                 </TabsContent>
 
-                {isSuperAdmin && (
+                {isSuperAdmin && unifiedReport && (
                   <TabsContent value="orchestration" className="mt-6">
-                    {quantumResult.unifiedResult && (
-                      <div className="space-y-4">
-                        <div className="p-3 rounded-xl bg-accent/10 border border-accent/20 flex items-center gap-2">
-                          <Shield className="w-4 h-4 text-accent" />
-                          <span className="text-xs text-accent/90 font-sans">{t('admin.super_admin')}</span>
-                        </div>
-                        <UnifiedResultsPanel result={quantumResult.unifiedResult} />
+                    <div className="space-y-4">
+                      <div className="p-3 rounded-xl bg-accent/10 border border-accent/20 flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-accent" />
+                        <span className="text-xs text-accent/90 font-sans">{t('admin.super_admin')}</span>
                       </div>
-                    )}
+                      <AdminOrchestrationConsole profile={profile} snapshot={unifiedReport.adminSnapshot} />
+                    </div>
                   </TabsContent>
                 )}
               </Tabs>
