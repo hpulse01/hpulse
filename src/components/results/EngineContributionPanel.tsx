@@ -100,6 +100,56 @@ export function EngineContributionPanel({ result }: Props) {
                     </div>
                   </div>
 
+                  <div className="space-y-1.5">
+                    <div className="text-[10px] text-muted-foreground/50 font-sans">{t('engine_panel.completeness') || '完整度'}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-border/15 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${eo.completenessScore >= 80 ? 'bg-emerald-500' : eo.completenessScore >= 60 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${eo.completenessScore}%` }} />
+                      </div>
+                      <span className={`text-[10px] font-mono ${sc(eo.completenessScore)}`}>{eo.completenessScore}%</span>
+                    </div>
+                  </div>
+
+                  {eo.explanationTrace.length > 0 && (
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] text-muted-foreground/50 font-sans">{t('engine_panel.trace') || '计算追踪'}</div>
+                      <div className="space-y-1 pl-2 border-l border-primary/10">
+                        {eo.explanationTrace.map((step, i) => (
+                          <div key={i} className="text-[9px] text-foreground/60 font-sans flex items-start gap-1.5">
+                            <span className="text-primary/40 font-mono shrink-0">{i + 1}.</span>
+                            <span>{step}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <div className="text-[10px] text-muted-foreground/50 font-sans">{t('engine_panel.validation') || '验证状态'}</div>
+                    <div className="flex flex-wrap gap-1">
+                      {eo.validationFlags.passed.map(p => (
+                        <span key={p} className="text-[8px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400/80 border border-emerald-500/20 font-sans">{p}</span>
+                      ))}
+                      {eo.validationFlags.failed.map(f => (
+                        <span key={f} className="text-[8px] px-1.5 py-0.5 rounded-full bg-rose-500/10 text-rose-400/80 border border-rose-500/20 font-sans">{f}</span>
+                      ))}
+                      {eo.validationFlags.warnings.map(w => (
+                        <span key={w} className="text-[8px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400/80 border border-amber-500/20 font-sans">{w}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {eo.eventCandidates.length > 0 && (
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] text-muted-foreground/50 font-sans">{t('engine_panel.events') || '事件候选'}</div>
+                      <div className="flex flex-wrap gap-1">
+                        {eo.eventCandidates.map((ev, i) => (
+                          <span key={i} className="text-[9px] px-2 py-0.5 rounded-full border border-border/20 text-foreground/60 bg-card/30 font-sans">{ev}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {eo.uncertaintyNotes.length > 0 && (
                     <div className="text-[9px] text-muted-foreground/40 font-sans space-y-0.5">
                       {eo.uncertaintyNotes.map((n, i) => <div key={i}>· {n}</div>)}

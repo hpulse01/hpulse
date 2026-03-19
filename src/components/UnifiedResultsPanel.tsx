@@ -2,7 +2,7 @@
  * Unified Prediction Results Panel v2.0
  *
  * Displays UnifiedPredictionResult with:
- * - Fused 6-dimensional FateVector
+ * - Fused 10-dimensional FateVector
  * - Engine activation: active / executed / skipped / failed
  * - Timing basis categorization (natal vs instant)
  * - Execution trace timeline
@@ -16,9 +16,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { UnifiedPredictionResult, FateDimension, PredictionConflict, ExecutionTraceEntry } from '@/types/prediction';
 import { ALL_FATE_DIMENSIONS, FATE_DIMENSION_LABELS } from '@/types/prediction';
 import {
-  BarChart3, AlertTriangle, Sparkles, Shield, Info, ChevronRight,
+  BarChart3, AlertTriangle, Sparkles, Shield, Info, ChevronRight, ChevronDown,
   TrendingUp, Activity, Brain, Heart, Coins, Sun, CheckCircle, XCircle,
-  Clock, Zap, Timer, Layers,
+  Clock, Zap, Timer, Layers, Crown, Palette, Clover, Home,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -27,16 +27,19 @@ import { useState } from 'react';
 const DIM_ICONS: Record<FateDimension, typeof Sun> = {
   life: Sun, wealth: Coins, relation: Heart,
   health: Activity, wisdom: Brain, spirit: Sparkles,
+  socialStatus: Crown, creativity: Palette, luck: Clover, homeStability: Home,
 };
 
 const DIM_COLORS: Record<FateDimension, string> = {
   life: 'text-amber-400', wealth: 'text-emerald-400', relation: 'text-rose-400',
   health: 'text-purple-400', wisdom: 'text-blue-400', spirit: 'text-indigo-400',
+  socialStatus: 'text-yellow-400', creativity: 'text-pink-400', luck: 'text-lime-400', homeStability: 'text-teal-400',
 };
 
 const DIM_BAR_COLORS: Record<FateDimension, string> = {
   life: 'bg-amber-500', wealth: 'bg-emerald-500', relation: 'bg-rose-500',
   health: 'bg-purple-500', wisdom: 'bg-blue-500', spirit: 'bg-indigo-500',
+  socialStatus: 'bg-yellow-500', creativity: 'bg-pink-500', luck: 'bg-lime-500', homeStability: 'bg-teal-500',
 };
 
 function scoreColor(v: number): string {
@@ -241,6 +244,12 @@ function ExecutionTraceDisplay({ trace }: { trace: ExecutionTraceEntry[] }) {
 // ── Engine Confidence List ──
 
 function EngineConfidenceList({ result }: { result: UnifiedPredictionResult }) {
+  const [expandedTraces, setExpandedTraces] = useState<Record<string, boolean>>({});
+
+  const toggleTrace = (engineName: string) => {
+    setExpandedTraces(prev => ({ ...prev, [engineName]: !prev[engineName] }));
+  };
+
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-serif text-primary flex items-center gap-1.5">
@@ -251,6 +260,8 @@ function EngineConfidenceList({ result }: { result: UnifiedPredictionResult }) {
         const weightPct = Math.round((w?.weight ?? 0) * 100);
         const basisLabel = eo.timingBasis === 'birth' ? '本命' : eo.timingBasis === 'query' ? '即时' : '混合';
         const basisColor = eo.timingBasis === 'birth' ? 'border-amber-500/30 text-amber-400' : eo.timingBasis === 'query' ? 'border-blue-500/30 text-blue-400' : 'border-purple-500/30 text-purple-400';
+        const vf = eo.validationFlags;
+        const isTraceExpanded = expandedTraces[eo.engineName] ?? false;
         return (
           <div key={eo.engineName} className="p-2.5 rounded-lg bg-card/30 border border-border/20">
             <div className="flex items-center justify-between mb-1">
@@ -275,6 +286,63 @@ function EngineConfidenceList({ result }: { result: UnifiedPredictionResult }) {
               <span className="text-[9px] text-muted-foreground">{eo.ruleSchool}</span>
               <span className="text-[9px] text-muted-foreground">{eo.computationTimeMs}ms</span>
             </div>
+
+            {/* Completeness Score */}
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-[9px] text-muted-foreground">完整度</span>
+              <div className="flex-1 h-1.5 bg-secondary/20 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    eo.completenessScore >= 70 ? 'bg-emerald-500' : eo.completenessScore >= 45 ? 'bg-amber-500' : 'bg-rose-500'
+                  }`}
+                  style={{ width: `${eo.completenessScore}%` }}
+                />
+              </div>
+              <Badge variant="outline" className={`text-[8px] px-1.5 py-0 ${scoreColor(eo.completenessScore)}`}>
+                {eo.completenessScore}%
+              </Badge>
+            </div>
+
+            {/* Validation Flags */}
+            {vf && (
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="text-[9px] text-muted-foreground">校验</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-0.5 text-[9px] text-emerald-400">
+                    <CheckCircle className="w-3 h-3" />{vf.passed.length}
+                  </span>
+                  <span className="flex items-center gap-0.5 text-[9px] text-rose-400">
+                    <XCircle className="w-3 h-3" />{vf.failed.length}
+                  </span>
+                  <span className="flex items-center gap-0.5 text-[9px] text-amber-400">
+                    <AlertTriangle className="w-3 h-3" />{vf.warnings.length}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Explanation Trace (collapsible) */}
+            {eo.explanationTrace && eo.explanationTrace.length > 0 && (
+              <div className="mt-2">
+                <button
+                  onClick={() => toggleTrace(eo.engineName)}
+                  className="flex items-center gap-1 text-[9px] text-primary/70 hover:text-primary transition-colors"
+                >
+                  {isTraceExpanded
+                    ? <ChevronDown className="w-3 h-3" />
+                    : <ChevronRight className="w-3 h-3" />
+                  }
+                  推理轨迹 ({eo.explanationTrace.length} 步)
+                </button>
+                {isTraceExpanded && (
+                  <ol className="mt-1 space-y-0.5 pl-4 list-decimal">
+                    {eo.explanationTrace.map((step, idx) => (
+                      <li key={idx} className="text-[9px] text-muted-foreground/80 leading-relaxed">{step}</li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            )}
           </div>
         );
       })}

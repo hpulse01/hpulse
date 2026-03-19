@@ -10,6 +10,9 @@ import { PredictionOverview } from '@/components/results/PredictionOverview';
 import { EngineContributionPanel } from '@/components/results/EngineContributionPanel';
 import { DestinyTreeLayer } from '@/components/results/DestinyTreeLayer';
 import { UniquePathLayer } from '@/components/results/UniquePathLayer';
+import { FateVectorRadar } from '@/components/results/FateVectorRadar';
+import { EngineConsensusPanel } from '@/components/results/EngineConsensusPanel';
+import { LifeTrajectoryTimeline } from '@/components/results/LifeTrajectoryTimeline';
 import { Footer } from '@/components/Footer';
 import { UserMenu } from '@/components/UserMenu';
 import { LanguageToggle } from '@/components/LanguageToggle';
@@ -34,7 +37,7 @@ import {
 } from '@/utils/quantumPredictionEngine';
 import { QuantumField } from '@/components/quantum/QuantumField';
 import { useToast } from '@/hooks/use-toast';
-import { Atom, RotateCcw, Sparkles, Scroll, Zap, TreePine, Target, Layers, Shield, Activity, AlertTriangle } from 'lucide-react';
+import { Atom, RotateCcw, Sparkles, Scroll, Zap, TreePine, Target, Layers, Shield, Activity, AlertTriangle, BarChart3 } from 'lucide-react';
 
 type AppStep = 'input' | 'calculating' | 'verification' | 'projecting' | 'result';
 
@@ -133,13 +136,16 @@ const Index = () => {
       { id: 'tree', label: t('tab.tree'), icon: TreePine },
       { id: 'path', label: t('tab.path'), icon: Target },
       { id: 'destiny', label: t('tab.destiny'), icon: Scroll },
+      { id: 'radar', label: lang === 'zh' ? '命运雷达' : 'Fate Radar', icon: Activity },
+      { id: 'consensus', label: lang === 'zh' ? '引擎共识' : 'Consensus', icon: BarChart3 },
+      { id: 'timeline', label: lang === 'zh' ? '人生轨迹' : 'Timeline', icon: Zap },
       { id: 'quantum', label: t('tab.quantum'), icon: Atom },
     ];
     if (isSuperAdmin) {
       tabs.push({ id: 'orchestration', label: t('tab.orchestration'), icon: Shield });
     }
     return tabs;
-  }, [isSuperAdmin, t]);
+  }, [isSuperAdmin, t, lang]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background bg-scroll-texture">
@@ -321,7 +327,7 @@ const Index = () => {
 
               {/* Result Tabs */}
               <Tabs value={activeResultTab} onValueChange={setActiveResultTab}>
-                <TabsList className={`grid w-full bg-card/60 border border-border/30 h-auto p-1 rounded-xl ${isSuperAdmin ? 'grid-cols-7' : 'grid-cols-6'}`}>
+                <TabsList className="flex w-full bg-card/60 border border-border/30 h-auto p-1 rounded-xl overflow-x-auto gap-0.5">
                   {resultTabs.map(tab => {
                     const Icon = tab.icon;
                     return (
@@ -383,6 +389,30 @@ const Index = () => {
                     }}
                     onReset={handleReset}
                   />
+                </TabsContent>
+
+                <TabsContent value="radar" className="mt-6">
+                  {quantumResult.unifiedResult && (
+                    <div className="glass-elevated rounded-2xl p-6">
+                      <FateVectorRadar fateVector={quantumResult.unifiedResult.fusedFateVector} />
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="consensus" className="mt-6">
+                  {quantumResult.unifiedResult && (
+                    <EngineConsensusPanel result={quantumResult.unifiedResult} />
+                  )}
+                </TabsContent>
+
+                <TabsContent value="timeline" className="mt-6">
+                  {quantumResult.collapseResult ? (
+                    <LifeTrajectoryTimeline collapse={quantumResult.collapseResult} birthYear={birthInput.year} />
+                  ) : (
+                    <div className="p-12 text-center text-muted-foreground text-xs glass rounded-2xl">
+                      {lang === 'zh' ? '轨迹数据加载中...' : 'Loading trajectory...'}
+                    </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="quantum" className="mt-6">
