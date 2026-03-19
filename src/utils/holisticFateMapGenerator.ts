@@ -20,8 +20,8 @@ import { ALL_FATE_DIMENSIONS, FATE_DIMENSION_LABELS } from '@/types/prediction';
 // ═══════════════════════════════════════════════
 
 function averageFateVector(vectors: FateVector[]): FateVector {
-  if (vectors.length === 0) return { life: 50, wealth: 50, relation: 50, health: 50, wisdom: 50, spirit: 50 };
-  const result: FateVector = { life: 0, wealth: 0, relation: 0, health: 0, wisdom: 0, spirit: 0 };
+  if (vectors.length === 0) return { life: 50, wealth: 50, relation: 50, health: 50, wisdom: 50, spirit: 50, socialStatus: 50, creativity: 50, luck: 50, homeStability: 50 };
+  const result: FateVector = { life: 0, wealth: 0, relation: 0, health: 0, wisdom: 0, spirit: 0, socialStatus: 0, creativity: 0, luck: 0, homeStability: 0 };
   for (const fv of vectors) {
     for (const dim of ALL_FATE_DIMENSIONS) result[dim] += fv[dim];
   }
@@ -30,7 +30,7 @@ function averageFateVector(vectors: FateVector[]): FateVector {
 }
 
 function overallScore(fv: FateVector): number {
-  return Math.round((fv.life + fv.wealth + fv.relation + fv.health + fv.wisdom + fv.spirit) / 6);
+  return Math.round((fv.life + fv.wealth + fv.relation + fv.health + fv.wisdom + fv.spirit + fv.socialStatus + fv.creativity + fv.luck + fv.homeStability) / 10);
 }
 
 function findStrongest(fv: FateVector): FateDimension {
@@ -242,7 +242,7 @@ function generateMicroLayer(collapse: CollapseResult, currentAge: number): Micro
   }, path[0]);
 
   const nextNode = path.find(n => n.age > currentAge);
-  const fv = currentNode?.fateVector ?? { life: 50, wealth: 50, relation: 50, health: 50, wisdom: 50, spirit: 50 };
+  const fv = currentNode?.fateVector ?? { life: 50, wealth: 50, relation: 50, health: 50, wisdom: 50, spirit: 50, socialStatus: 50, creativity: 50, luck: 50, homeStability: 50 };
 
   const focusDim = findWeakest(fv);
   const prevNode = path.filter(n => n.age < currentAge).pop();

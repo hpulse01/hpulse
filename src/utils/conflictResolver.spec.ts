@@ -7,9 +7,15 @@ function makeEngine(name: string, fv: Record<string, number>, confidence = 0.7):
     engineName: name, engineNameCN: name, engineVersion: '1.0', sourceUrls: [],
     sourceGrade: 'B', ruleSchool: '', confidence,
     computationTimeMs: 1, rawInputSnapshot: {},
-    fateVector: { life: fv.life ?? 50, wealth: fv.wealth ?? 50, relation: fv.relation ?? 50, health: fv.health ?? 50, wisdom: fv.wisdom ?? 50, spirit: fv.spirit ?? 50 },
+    fateVector: { life: fv.life ?? 50, wealth: fv.wealth ?? 50, relation: fv.relation ?? 50, health: fv.health ?? 50, wisdom: fv.wisdom ?? 50, spirit: fv.spirit ?? 50, socialStatus: fv.socialStatus ?? 50, creativity: fv.creativity ?? 50, luck: fv.luck ?? 50, homeStability: fv.homeStability ?? 50 },
     normalizedOutput: {}, warnings: [], uncertaintyNotes: [],
     timingBasis: 'birth' as const,
+    explanationTrace: ['test-trace'],
+    completenessScore: 80,
+    validationFlags: { passed: ['test'], failed: [], warnings: [] },
+    timeWindows: [],
+    aspectScores: {},
+    eventCandidates: [],
   };
 }
 

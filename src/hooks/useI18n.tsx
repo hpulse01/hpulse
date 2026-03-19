@@ -36,13 +36,17 @@ const translations: Record<string, { zh: string; en: string }> = {
   'stage.mature':      { zh: '壮暮期', en: 'Mature' },
   'stage.elderly':     { zh: '晚年期', en: 'Elderly' },
 
-  // ── Fate Dimensions (6D) ──
+  // ── Fate Dimensions (10D) ──
   'dim.life':          { zh: '命运·事业', en: 'Life & Career' },
   'dim.wealth':        { zh: '财富', en: 'Wealth' },
   'dim.relation':      { zh: '人际·情感', en: 'Relationships' },
   'dim.health':        { zh: '健康', en: 'Health' },
   'dim.wisdom':        { zh: '智慧·创造', en: 'Wisdom & Creativity' },
   'dim.spirit':        { zh: '灵性', en: 'Spirituality' },
+  'dim.socialStatus':  { zh: '社会地位', en: 'Social Status' },
+  'dim.creativity':    { zh: '创造力', en: 'Creativity' },
+  'dim.luck':          { zh: '运势', en: 'Fortune & Luck' },
+  'dim.homeStability': { zh: '家庭和谐', en: 'Home Stability' },
 
   // ── Event Types ──
   'event.romance':     { zh: '感情婚姻', en: 'Romance & Marriage' },
@@ -328,6 +332,10 @@ export const DIMENSION_LABELS: Record<string, { zh: string; en: string }> = {
   health: { zh: '健康', en: 'Health' },
   wisdom: { zh: '智慧·创造', en: 'Wisdom' },
   spirit: { zh: '灵性', en: 'Spirituality' },
+  socialStatus: { zh: '社会地位', en: 'Social Status' },
+  creativity: { zh: '创造力', en: 'Creativity' },
+  luck: { zh: '运势', en: 'Fortune & Luck' },
+  homeStability: { zh: '家庭和谐', en: 'Home Stability' },
 };
 
 export const EVENT_TYPE_LABELS: Record<string, { zh: string; en: string }> = {

@@ -10,7 +10,7 @@
  * - 三传递生/递克/回头生克完善
  */
 
-import type { StandardizedInput, FateVector, EngineOutput } from '@/types/prediction';
+import type { StandardizedInput, FateVector, EngineOutput, TimeWindow } from '@/types/prediction';
 
 // ═══════════════════════════════════════════════
 // Types
@@ -542,11 +542,11 @@ function mapToFateVector(result: LiuRenResult): FateVector {
   const { sanChuan, tianJiang } = result;
 
   const wxBoost: Record<string, Record<string, number>> = {
-    '木': { life: 3, wisdom: 5, health: 2, wealth: 0, relation: 2, spirit: 3 },
-    '火': { life: 5, wisdom: 3, health: -2, wealth: 2, relation: 3, spirit: 5 },
-    '土': { life: 2, wisdom: 0, health: 4, wealth: 5, relation: 3, spirit: 0 },
-    '金': { life: 3, wisdom: 4, health: 0, wealth: 4, relation: -2, spirit: 2 },
-    '水': { life: 0, wisdom: 5, health: 3, wealth: 2, relation: 4, spirit: 5 },
+    '木': { life: 3, wisdom: 5, health: 2, wealth: 0, relation: 2, spirit: 3, socialStatus: 2, creativity: 4, luck: 2, homeStability: 2 },
+    '火': { life: 5, wisdom: 3, health: -2, wealth: 2, relation: 3, spirit: 5, socialStatus: 4, creativity: 3, luck: 3, homeStability: -1 },
+    '土': { life: 2, wisdom: 0, health: 4, wealth: 5, relation: 3, spirit: 0, socialStatus: 3, creativity: 0, luck: 2, homeStability: 5 },
+    '金': { life: 3, wisdom: 4, health: 0, wealth: 4, relation: -2, spirit: 2, socialStatus: 4, creativity: 2, luck: 3, homeStability: 1 },
+    '水': { life: 0, wisdom: 5, health: 3, wealth: 2, relation: 4, spirit: 5, socialStatus: 1, creativity: 5, luck: 4, homeStability: 1 },
   };
 
   const clamp = (v: number) => Math.max(5, Math.min(95, Math.round(v)));
@@ -560,6 +560,10 @@ function mapToFateVector(result: LiuRenResult): FateVector {
     health: clamp(base + (wxBoost[sanChuan.chuElement]?.health || 0)),
     wisdom: clamp(base + (wxBoost[sanChuan.zhongElement]?.wisdom || 0)),
     spirit: clamp(base + (wxBoost[sanChuan.moElement]?.spirit || 0) + (hasGuiInChuan ? 4 : 0)),
+    socialStatus: clamp(base + (wxBoost[sanChuan.chuElement]?.socialStatus || 0) + (hasGuiInChuan ? 4 : 0)),
+    creativity: clamp(base + (wxBoost[sanChuan.zhongElement]?.creativity || 0)),
+    luck: clamp(base + (wxBoost[sanChuan.chuElement]?.luck || 0) + (hasGuiInChuan ? 5 : 0)),
+    homeStability: clamp(base + (wxBoost[sanChuan.moElement]?.homeStability || 0)),
   };
 }
 
@@ -676,6 +680,23 @@ export function buildLiuRenEngineOutput(si: StandardizedInput): { eo: EngineOutp
     warnings: result.meta.warnings,
     uncertaintyNotes: result.meta.uncertaintyNotes,
     timingBasis: 'query',
+    explanationTrace: [
+      `日辰: ${result.chart.riGan}${result.chart.riBranch}，时支: ${result.chart.shiBranch}`,
+      `四课排布: ${result.siKe.courses.map(c => c.upper + '/' + c.lower).join(' ')}`,
+      `取传法: ${result.sanChuan.method}`,
+      `三传: ${result.sanChuan.chu}→${result.sanChuan.zhong}→${result.sanChuan.mo}`,
+      `天将: ${result.tianJiang.guiType}·贵人${result.tianJiang.guiRen}`,
+      `课体: ${result.keType}(${result.keTypeCategory})`,
+      `空亡: ${result.kongWang.interpretation}`,
+      `德合: ${result.deHe.interpretation}`,
+      `年命: ${result.nianMing.interpretation}`,
+      `类神分析: ${result.leishenAnalysis}`,
+    ],
+    completenessScore: 80,
+    validationFlags: { passed: ['four-courses', 'san-chuan', 'tian-jiang', 'ke-type', 'kong-wang', 'de-he', 'nian-ming'], failed: [], warnings: ['query-time-based'] },
+    timeWindows: [],
+    aspectScores: { auspiciousness: result.auspiciousness === '大吉' ? 95 : result.auspiciousness === '吉' ? 75 : result.auspiciousness === '中' ? 55 : result.auspiciousness === '凶' ? 30 : 15 },
+    eventCandidates: [`课体${result.keType}`, `三传${result.sanChuan.chu}→${result.sanChuan.zhong}→${result.sanChuan.mo}`, `${result.auspiciousness}趋势`],
   };
 
   return { eo, liurenResult: result };

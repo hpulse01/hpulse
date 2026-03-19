@@ -190,7 +190,7 @@ export function fuseFateVectors(
   weights: WeightEntry[],
   conflicts: PredictionConflict[],
 ): FateVector {
-  const fused: FateVector = { life: 0, wealth: 0, relation: 0, health: 0, wisdom: 0, spirit: 0 };
+  const fused: FateVector = { life: 0, wealth: 0, relation: 0, health: 0, wisdom: 0, spirit: 0, socialStatus: 0, creativity: 0, luck: 0, homeStability: 0 };
 
   for (const dim of ALL_FATE_DIMENSIONS) {
     const dimConflicts = conflicts.filter(c => c.dimension === dim);
@@ -427,7 +427,7 @@ export function calculateDimensionCorrelation(
 
 /**
  * Build full cross-dimension correlation matrix.
- * Returns 6×6 matrix of Pearson correlations.
+ * Returns 10×10 matrix of Pearson correlations.
  */
 export function buildCorrelationMatrix(
   outputs: EngineOutput[],
@@ -467,7 +467,7 @@ export function uncertaintyAwareFusion(
   engineOutputs: EngineOutput[],
   weights: WeightEntry[],
 ): UncertaintyAwareFusionResult {
-  const fused: FateVector = { life: 0, wealth: 0, relation: 0, health: 0, wisdom: 0, spirit: 0 };
+  const fused: FateVector = { life: 0, wealth: 0, relation: 0, health: 0, wisdom: 0, spirit: 0, socialStatus: 0, creativity: 0, luck: 0, homeStability: 0 };
   const uncertainties: Record<string, { stdDev: number; ci95: [number, number] }> = {};
   const outlierReport: Record<string, string[]> = {};
 
@@ -539,6 +539,7 @@ export function generateConflictReport(
 
   const dimConflictCounts: Record<FateDimension, number> = {
     life: 0, wealth: 0, relation: 0, health: 0, wisdom: 0, spirit: 0,
+    socialStatus: 0, creativity: 0, luck: 0, homeStability: 0,
   };
   for (const c of conflicts) dimConflictCounts[c.dimension]++;
   
@@ -559,7 +560,7 @@ export function generateConflictReport(
   const overallAgreement = Object.values(dimensionCoherences).reduce((s, v) => s + v, 0) / ALL_FATE_DIMENSIONS.length;
 
   const transparencyNote = conflicts.length === 0
-    ? '所有引擎在6个维度上高度一致，无显著分歧。'
+    ? '所有引擎在10个维度上高度一致，无显著分歧。'
     : `检测到${conflicts.length}个引擎分歧（严重${severityBreakdown.domain_expert + severityBreakdown.conservative}个，` +
       `中等${severityBreakdown.confidence_priority}个，轻微${severityBreakdown.weighted_average}个）。` +
       `「${FATE_DIMENSION_LABELS[mostContested]}」维度争议最大。整体一致性${Math.round(overallAgreement * 100)}%。`;

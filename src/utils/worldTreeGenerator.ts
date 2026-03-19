@@ -61,6 +61,10 @@ const NATURAL_DRIFT_RATES: Record<FateDimension, number> = {
   health: -0.5,  // Health: gradual natural decline
   wisdom: 0.4,   // Wisdom: natural growth with age
   spirit: 0.2,   // Spirituality: gradual deepening
+  socialStatus: 0.2,   // Social status: gradual growth with career
+  creativity: 0.1,     // Creativity: slight natural growth
+  luck: 0,             // Luck: neutral drift (event-driven)
+  homeStability: 0.1,  // Home stability: slight natural settling
 };
 
 /**
@@ -91,6 +95,24 @@ function getAgeDriftModifier(dim: FateDimension, age: number): number {
       if (age < 30) return 0.3;      // Youth: slowly awakening
       if (age < 50) return 0.8;      // Middle: deepening
       return 1.5;                     // Late: spiritual maturation
+    case 'socialStatus':
+      if (age < 20) return 0;        // Youth: no social status drift
+      if (age < 35) return 1.2;      // Career building: fast rise
+      if (age < 55) return 1.0;      // Peak: steady
+      if (age < 70) return 0.5;      // Pre-retirement: slowing
+      return 0;                       // Elderly: plateau
+    case 'creativity':
+      if (age < 20) return 1.5;      // Youth: high creative growth
+      if (age < 40) return 1.0;      // Prime: steady
+      if (age < 60) return 0.7;      // Middle: slowing
+      return 0.4;                     // Late: gentle
+    case 'luck':
+      return 1.0;                     // Luck: constant (event-driven)
+    case 'homeStability':
+      if (age < 25) return 0;        // Youth: not yet settled
+      if (age < 40) return 1.5;      // Building home: fast growth
+      if (age < 60) return 1.0;      // Settled: steady
+      return 0.5;                     // Late: stable
     default:
       return 1.0;
   }
@@ -158,7 +180,7 @@ interface KarmaAccumulator {
 }
 
 function calculateKarma(causalChain: string[], fateVector: FateVector): KarmaAccumulator {
-  const avgFate = (fateVector.life + fateVector.wealth + fateVector.relation + fateVector.health + fateVector.wisdom + fateVector.spirit) / 6;
+  const avgFate = (fateVector.life + fateVector.wealth + fateVector.relation + fateVector.health + fateVector.wisdom + fateVector.spirit + fateVector.socialStatus + fateVector.creativity + fateVector.luck + fateVector.homeStability) / 10;
   const positive = Math.max(0, avgFate - 50) / 50;
   const negative = Math.max(0, 50 - avgFate) / 50;
   return {

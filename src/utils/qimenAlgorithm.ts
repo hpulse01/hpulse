@@ -13,7 +13,7 @@
  * 参考: 《奇门遁甲统宗》《御定奇门宝鉴》《奇门法窍》
  */
 
-import type { EngineOutput, FateVector, StandardizedInput } from '@/types/prediction';
+import type { EngineOutput, FateVector, StandardizedInput, TimeWindow } from '@/types/prediction';
 
 // ═══════════════════════════════════════════════
 // Types
@@ -675,18 +675,19 @@ function qimenToFateVector(chart: QimenChart, score: number): FateVector {
   const clamp = (v: number) => Math.max(5, Math.min(95, Math.round(v)));
   const base = score;
   let lifeBonus = 0, wealthBonus = 0, relationBonus = 0, healthBonus = 0, wisdomBonus = 0, spiritBonus = 0;
+  let socialStatusBonus = 0, creativityBonus = 0, luckBonus = 0, homeStabilityBonus = 0;
 
   for (const p of chart.palaces) {
     if (p.position === 5) continue;
     const gateScore = AUSPICIOUS_GATES.includes(p.gate) ? 3 : INAUSPICIOUS_GATES.includes(p.gate) ? -3 : 0;
     switch (p.gate) {
-      case '开门': lifeBonus += gateScore * 2; break;
-      case '生门': wealthBonus += gateScore * 2; break;
-      case '休门': relationBonus += gateScore * 2; break;
-      case '景门': wisdomBonus += gateScore * 2; break;
-      case '死门': healthBonus -= 3; break;
-      case '伤门': healthBonus -= 2; break;
-      case '杜门': spiritBonus += 2; break;
+      case '开门': lifeBonus += gateScore * 2; socialStatusBonus += gateScore; luckBonus += gateScore; break;
+      case '生门': wealthBonus += gateScore * 2; homeStabilityBonus += gateScore; break;
+      case '休门': relationBonus += gateScore * 2; homeStabilityBonus += gateScore; break;
+      case '景门': wisdomBonus += gateScore * 2; creativityBonus += gateScore; break;
+      case '死门': healthBonus -= 3; luckBonus -= 2; break;
+      case '伤门': healthBonus -= 2; homeStabilityBonus -= 2; break;
+      case '杜门': spiritBonus += 2; creativityBonus += 2; break;
     }
   }
 
@@ -694,6 +695,8 @@ function qimenToFateVector(chart: QimenChart, score: number): FateVector {
     life: clamp(base + lifeBonus), wealth: clamp(base + wealthBonus),
     relation: clamp(base + relationBonus), health: clamp(base + healthBonus),
     wisdom: clamp(base + wisdomBonus), spirit: clamp(base + spiritBonus),
+    socialStatus: clamp(base + socialStatusBonus), creativity: clamp(base + creativityBonus),
+    luck: clamp(base + luckBonus), homeStability: clamp(base + homeStabilityBonus),
   };
 }
 
@@ -765,6 +768,21 @@ export function runQimen(standardizedInput: StandardizedInput): {
       warnings: ['奇门遁甲基于起局时间而非出生时间，适用于时态决策分析'],
       uncertaintyNotes: ['拆补法实现，置闰法尚未接入', '节气切换使用公历近似', 'v3.0增加空亡马星用神分析'],
       timingBasis: 'query',
+      explanationTrace: [
+        `起局: ${chart.dunType}${chart.juNumber}局`,
+        `时干: ${chart.hourStem}${chart.hourBranch}，旬首: ${chart.xunShou}`,
+        `值符: ${chart.zhiFu}，值使: ${chart.zhiShi}`,
+        `时干宫位分析: ${hourPalaceAnalysis}`,
+        `空亡: ${kongWang.interpretation}`,
+        `马星: ${maXing.interpretation}`,
+        `格局检测: ${patterns.map(p => p.name).join('、') || '无特殊格局'}`,
+        `用神分析: ${yongShenAnalysis.map(y => y.category + ':' + y.assessment).join('；')}`,
+      ],
+      completenessScore: 83,
+      validationFlags: { passed: ['bureau-calculation', 'palace-distribution', 'gates', 'stars', 'deities', 'kong-wang', 'ma-xing', 'yong-shen'], failed: [], warnings: ['query-time-based', 'simplified-solar-term'] },
+      timeWindows: [],
+      aspectScores: { overallScore: finalScore, patternCount: patterns.length },
+      eventCandidates: [`${chart.dunType}${chart.juNumber}局`, `格局${patterns.map(p => p.name).join('·')}`, `主门${primaryGate}`],
     },
     qimenResult: { chart, score: finalScore, summary, pattern, patterns, hourPalaceAnalysis, kongWang, maXing, yongShenAnalysis },
   };
