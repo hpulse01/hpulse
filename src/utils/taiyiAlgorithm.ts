@@ -571,7 +571,7 @@ export function buildTaiyiEngineOutput(si: StandardizedInput): { eo: EngineOutpu
     completenessScore: 78,
     validationFlags: { passed: ['ji-nian', 'ju-number', 'taiyi-palace', 'zhu-ke', 'sixteen-spirits', 'twelve-stage', 'san-men-si-hu', 'wen-chang'], failed: [], warnings: ['query-time-based'] },
     timeWindows: [],
-    aspectScores: { overallAuspiciousness: result.auspiciousness === '大吉' ? 95 : result.auspiciousness === '吉' ? 75 : result.auspiciousness === '中' ? 55 : result.auspiciousness === '凶' ? 30 : 15, patternCount: result.patterns.length },
+    aspectScores: { overallAuspiciousness: result.auspiciousness === '大吉' ? 95 : result.auspiciousness === '吉' ? 75 : result.auspiciousness === '中平' ? 55 : result.auspiciousness === '凶' ? 30 : 15, patternCount: result.patterns.length },
     eventCandidates: [`第${result.chart.juNumber}局`, `${result.chart.zhuKeRelation}`, `${result.auspiciousness}`],
   };
 

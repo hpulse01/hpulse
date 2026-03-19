@@ -695,7 +695,7 @@ export function buildLiuRenEngineOutput(si: StandardizedInput): { eo: EngineOutp
     completenessScore: 80,
     validationFlags: { passed: ['four-courses', 'san-chuan', 'tian-jiang', 'ke-type', 'kong-wang', 'de-he', 'nian-ming'], failed: [], warnings: ['query-time-based'] },
     timeWindows: [],
-    aspectScores: { auspiciousness: result.auspiciousness === '大吉' ? 95 : result.auspiciousness === '吉' ? 75 : result.auspiciousness === '中' ? 55 : result.auspiciousness === '凶' ? 30 : 15 },
+    aspectScores: { auspiciousness: result.auspiciousness === '大吉' ? 95 : result.auspiciousness === '吉' ? 75 : result.auspiciousness === '中平' ? 55 : result.auspiciousness === '凶' ? 30 : 15 },
     eventCandidates: [`课体${result.keType}`, `三传${result.sanChuan.chu}→${result.sanChuan.zhong}→${result.sanChuan.mo}`, `${result.auspiciousness}趋势`],
   };
 

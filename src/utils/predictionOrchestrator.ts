@@ -140,7 +140,7 @@ function buildAdminSnapshot(report: Omit<FullPredictionReport, 'adminSnapshot'>,
   const weights = Object.fromEntries((result.unifiedResult?.weightsUsed ?? []).map((item) => [item.engineName, item.weight]));
   const coverageMatrix = report.engineResults.map((engineResult) => ({
     engineId: engineResult.engineId,
-    status: engineResult.completenessScore >= 0.9 ? '完整接入' : engineResult.completenessScore >= 0.6 ? '部分接入' : '未接入',
+    status: (engineResult.completenessScore >= 0.9 ? '完整接入' : engineResult.completenessScore >= 0.6 ? '部分接入' : '未接入') as '完整接入' | '部分接入' | '未接入',
     realExecution: Boolean(result.unifiedResult?.executedEngines.includes(engineResult.engineId)),
     orchestrated: true,
     structuredEvents: engineResult.eventCandidates.length > 0,

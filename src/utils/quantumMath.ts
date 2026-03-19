@@ -388,15 +388,11 @@ export function calculateFateVectorCoherence(
     totalCoherence += coherences[dim];
   }
   
-  return {
-    life: coherences.life,
-    wealth: coherences.wealth,
-    relation: coherences.relation,
-    health: coherences.health,
-    wisdom: coherences.wisdom,
-    spirit: coherences.spirit,
-    overall: totalCoherence / ALL_FATE_DIMENSIONS.length,
-  };
+  const result: Record<string, number> = { overall: totalCoherence / ALL_FATE_DIMENSIONS.length };
+  for (const dim of ALL_FATE_DIMENSIONS) {
+    result[dim] = coherences[dim];
+  }
+  return result as Record<FateDimension, number> & { overall: number };
 }
 
 // ═══════════════════════════════════════════════
