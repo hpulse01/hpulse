@@ -133,19 +133,19 @@ function getLifeStageModifier(engineName: string, age: number): number {
  * >1.0 表示该引擎在此维度特别擅长，<1.0 表示弱。
  */
 const DIMENSION_EXPERTISE: Record<string, Record<FateDimension, number>> = {
-  tieban:     { life: 1.4, wealth: 1.1, relation: 1.2, health: 1.0, wisdom: 0.9, spirit: 0.8 },
-  bazi:       { life: 1.3, wealth: 1.3, relation: 1.0, health: 1.2, wisdom: 1.0, spirit: 0.7 },
-  ziwei:      { life: 1.2, wealth: 1.2, relation: 1.3, health: 0.9, wisdom: 1.1, spirit: 0.9 },
-  western:    { life: 0.9, wealth: 0.8, relation: 1.4, health: 0.8, wisdom: 1.2, spirit: 1.1 },
-  vedic:      { life: 1.0, wealth: 0.9, relation: 1.1, health: 1.3, wisdom: 1.1, spirit: 1.4 },
-  numerology: { life: 1.0, wealth: 0.9, relation: 0.8, health: 0.7, wisdom: 1.2, spirit: 1.1 },
-  mayan:      { life: 1.0, wealth: 0.7, relation: 0.8, health: 0.7, wisdom: 1.0, spirit: 1.3 },
-  kabbalah:   { life: 0.8, wealth: 0.7, relation: 0.9, health: 0.6, wisdom: 1.3, spirit: 1.5 },
-  liuyao:     { life: 1.1, wealth: 1.2, relation: 1.1, health: 1.1, wisdom: 1.0, spirit: 0.9 },
-  meihua:     { life: 1.0, wealth: 1.0, relation: 1.0, health: 0.9, wisdom: 1.1, spirit: 1.0 },
-  qimen:      { life: 1.0, wealth: 1.3, relation: 0.8, health: 0.8, wisdom: 1.0, spirit: 1.0 },
-  liuren:     { life: 1.0, wealth: 1.1, relation: 1.0, health: 1.0, wisdom: 1.0, spirit: 0.9 },
-  taiyi:      { life: 1.1, wealth: 0.9, relation: 0.8, health: 0.9, wisdom: 1.1, spirit: 1.2 },
+  tieban:     { life: 1.4, wealth: 1.1, relation: 1.2, health: 1.0, wisdom: 0.9, spirit: 0.8, socialStatus: 1.3, creativity: 0.7, luck: 1.0, homeStability: 1.1 },
+  bazi:       { life: 1.3, wealth: 1.3, relation: 1.0, health: 1.2, wisdom: 1.0, spirit: 0.7, socialStatus: 1.2, creativity: 0.8, luck: 1.1, homeStability: 0.9 },
+  ziwei:      { life: 1.2, wealth: 1.2, relation: 1.3, health: 0.9, wisdom: 1.1, spirit: 0.9, socialStatus: 1.3, creativity: 1.0, luck: 1.0, homeStability: 1.2 },
+  western:    { life: 0.9, wealth: 0.8, relation: 1.4, health: 0.8, wisdom: 1.2, spirit: 1.1, socialStatus: 1.0, creativity: 1.3, luck: 1.0, homeStability: 1.1 },
+  vedic:      { life: 1.0, wealth: 0.9, relation: 1.1, health: 1.3, wisdom: 1.1, spirit: 1.4, socialStatus: 1.0, creativity: 0.9, luck: 1.2, homeStability: 1.0 },
+  numerology: { life: 1.0, wealth: 0.9, relation: 0.8, health: 0.7, wisdom: 1.2, spirit: 1.1, socialStatus: 0.8, creativity: 1.2, luck: 1.1, homeStability: 0.7 },
+  mayan:      { life: 1.0, wealth: 0.7, relation: 0.8, health: 0.7, wisdom: 1.0, spirit: 1.3, socialStatus: 0.7, creativity: 1.1, luck: 1.2, homeStability: 0.6 },
+  kabbalah:   { life: 0.8, wealth: 0.7, relation: 0.9, health: 0.6, wisdom: 1.3, spirit: 1.5, socialStatus: 0.7, creativity: 1.2, luck: 0.8, homeStability: 0.8 },
+  liuyao:     { life: 1.1, wealth: 1.2, relation: 1.1, health: 1.1, wisdom: 1.0, spirit: 0.9, socialStatus: 1.0, creativity: 0.8, luck: 1.2, homeStability: 1.0 },
+  meihua:     { life: 1.0, wealth: 1.0, relation: 1.0, health: 0.9, wisdom: 1.1, spirit: 1.0, socialStatus: 0.9, creativity: 1.1, luck: 1.1, homeStability: 0.9 },
+  qimen:      { life: 1.0, wealth: 1.3, relation: 0.8, health: 0.8, wisdom: 1.0, spirit: 1.0, socialStatus: 1.1, creativity: 0.9, luck: 1.3, homeStability: 0.7 },
+  liuren:     { life: 1.0, wealth: 1.1, relation: 1.0, health: 1.0, wisdom: 1.0, spirit: 0.9, socialStatus: 1.0, creativity: 0.8, luck: 1.1, homeStability: 0.9 },
+  taiyi:      { life: 1.1, wealth: 0.9, relation: 0.8, health: 0.9, wisdom: 1.1, spirit: 1.2, socialStatus: 1.0, creativity: 0.9, luck: 1.2, homeStability: 0.8 },
 };
 
 function getDimensionModifier(engineName: string, dimension: FateDimension): number {
@@ -324,7 +324,7 @@ export interface PerDimensionWeights {
 export function calculatePerDimensionWeights(
   queryType: QueryType, age: number = 35, activeEngines?: string[],
 ): PerDimensionWeights[] {
-  const dimensions: FateDimension[] = ['life', 'wealth', 'relation', 'health', 'wisdom', 'spirit'];
+  const dimensions: FateDimension[] = ['life', 'wealth', 'relation', 'health', 'wisdom', 'spirit', 'socialStatus', 'creativity', 'luck', 'homeStability'];
   return dimensions.map(dim => {
     const result = calculateDynamicWeights({ queryType, age, dimension: dim, activeEngines });
     return { dimension: dim, weights: result.weights };
@@ -400,7 +400,7 @@ export function analyzeWeightSensitivity(
   perturbationDelta: number = 0.05,
 ): FullSensitivityReport {
   const baseWeights = calculateDynamicWeights(ctx).weights;
-  const dimensions: FateDimension[] = ['life', 'wealth', 'relation', 'health', 'wisdom', 'spirit'];
+  const dimensions: FateDimension[] = ['life', 'wealth', 'relation', 'health', 'wisdom', 'spirit', 'socialStatus', 'creativity', 'luck', 'homeStability'];
 
   // Compute base fused vector
   function computeFused(weights: WeightConfig[]): Record<FateDimension, number> {

@@ -7,12 +7,13 @@ import { ALL_FATE_DIMENSIONS } from '@/types/prediction';
 import { useI18n } from '@/hooks/useI18n';
 import {
   Sun, Coins, Heart, Activity, Brain, Sparkles,
-  CheckCircle, AlertTriangle, Zap,
+  CheckCircle, AlertTriangle, Zap, Crown, Palette, Clover, Home,
 } from 'lucide-react';
 
 const DIM_ICONS: Record<FateDimension, typeof Sun> = {
   life: Sun, wealth: Coins, relation: Heart,
   health: Activity, wisdom: Brain, spirit: Sparkles,
+  socialStatus: Crown, creativity: Palette, luck: Clover, homeStability: Home,
 };
 
 const DIM_COLORS: Record<FateDimension, string> = {
@@ -22,11 +23,16 @@ const DIM_COLORS: Record<FateDimension, string> = {
   health: 'from-purple-500/80 to-purple-600/80',
   wisdom: 'from-blue-500/80 to-blue-600/80',
   spirit: 'from-indigo-500/80 to-indigo-600/80',
+  socialStatus: 'from-yellow-500/80 to-yellow-600/80',
+  creativity: 'from-pink-500/80 to-pink-600/80',
+  luck: 'from-lime-500/80 to-lime-600/80',
+  homeStability: 'from-teal-500/80 to-teal-600/80',
 };
 
 const DIM_TEXT: Record<FateDimension, string> = {
   life: 'text-amber-400', wealth: 'text-emerald-400', relation: 'text-rose-400',
   health: 'text-purple-400', wisdom: 'text-blue-400', spirit: 'text-indigo-400',
+  socialStatus: 'text-yellow-400', creativity: 'text-pink-400', luck: 'text-lime-400', homeStability: 'text-teal-400',
 };
 
 function sc(v: number) {

@@ -253,7 +253,87 @@ export interface EngineEventExtraction {
 }
 
 // ═══════════════════════════════════════════════
-// 8. Event Fusion Result
+// 8. Event Duration & Cascade Model
+// ═══════════════════════════════════════════════
+
+export type EventDurationType = 'instant' | 'short' | 'medium' | 'long' | 'permanent';
+
+/** How long an event's effects persist */
+export interface EventDuration {
+  type: EventDurationType;
+  /** Duration in years (0 for instant, Infinity for permanent) */
+  durationYears: number;
+  /** Decay function: how quickly the impact fades */
+  decayRate: number;
+  /** Whether the event can recur */
+  recurring: boolean;
+  /** Recurrence interval in years (if recurring) */
+  recurrenceInterval?: number;
+}
+
+/** Causal cascade: one event triggers another */
+export interface EventCascade {
+  /** The triggering event's mergeKey */
+  triggerEventKey: string;
+  /** The triggered event's mergeKey */
+  resultEventKey: string;
+  /** Delay in years before cascade fires */
+  delayYears: number;
+  /** Probability of cascade firing (0-1) */
+  cascadeProbability: number;
+  /** How the trigger modifies the result event */
+  modifier: CascadeModifier;
+  /** Reasoning for why this cascade exists */
+  reasoning: string;
+}
+
+export interface CascadeModifier {
+  /** Multiply the result event's probability */
+  probabilityMultiplier: number;
+  /** Shift the result event's age window */
+  ageShift: number;
+  /** Modify the result event's intensity */
+  intensityChange: number;
+  /** Additional fate impact from the cascade */
+  additionalFateImpact: Partial<Record<FateDimension, number>>;
+}
+
+/** Life phase with associated event patterns */
+export interface LifePhaseDescriptor {
+  name: string;
+  nameCN: string;
+  ageRange: [number, number];
+  /** Expected event density (events per year) */
+  eventDensity: number;
+  /** Which categories are most likely in this phase */
+  dominantCategories: EventCategory[];
+  /** Base fate vector tendency for this phase */
+  baseTendency: Partial<Record<FateDimension, number>>;
+}
+
+export const LIFE_PHASES: LifePhaseDescriptor[] = [
+  { name: 'Infancy', nameCN: '婴幼期', ageRange: [0, 5], eventDensity: 0.3,
+    dominantCategories: ['health', 'family'], baseTendency: { health: 70, homeStability: 80 } },
+  { name: 'Childhood', nameCN: '童年期', ageRange: [6, 12], eventDensity: 0.5,
+    dominantCategories: ['education', 'family', 'health'], baseTendency: { wisdom: 60, homeStability: 75 } },
+  { name: 'Adolescence', nameCN: '少年期', ageRange: [13, 17], eventDensity: 0.8,
+    dominantCategories: ['education', 'relationship', 'spiritual'], baseTendency: { wisdom: 65, relation: 55 } },
+  { name: 'Youth', nameCN: '青年期', ageRange: [18, 29], eventDensity: 1.2,
+    dominantCategories: ['career', 'relationship', 'education', 'migration'], baseTendency: { life: 65, relation: 60 } },
+  { name: 'Prime', nameCN: '壮年期', ageRange: [30, 44], eventDensity: 1.0,
+    dominantCategories: ['career', 'wealth', 'family', 'relationship'], baseTendency: { wealth: 65, life: 70 } },
+  { name: 'Midlife', nameCN: '中年期', ageRange: [45, 59], eventDensity: 0.8,
+    dominantCategories: ['career', 'health', 'family', 'wealth'], baseTendency: { life: 60, health: 55 } },
+  { name: 'Senior', nameCN: '壮暮期', ageRange: [60, 74], eventDensity: 0.6,
+    dominantCategories: ['health', 'family', 'spiritual'], baseTendency: { spirit: 70, health: 45 } },
+  { name: 'Elderly', nameCN: '晚年期', ageRange: [75, 89], eventDensity: 0.4,
+    dominantCategories: ['health', 'family', 'death'], baseTendency: { spirit: 75, health: 35 } },
+  { name: 'Longevity', nameCN: '长寿期', ageRange: [90, 120], eventDensity: 0.2,
+    dominantCategories: ['health', 'death', 'spiritual'], baseTendency: { spirit: 80, wisdom: 75, health: 25 } },
+];
+
+// ═══════════════════════════════════════════════
+// 9. Event Fusion Result
 // ═══════════════════════════════════════════════
 
 export interface EventFusionResult {

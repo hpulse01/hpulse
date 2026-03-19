@@ -12,7 +12,7 @@
  * 算法参考：邵雍《梅花易数》原典 + 《周易》
  */
 
-import type { EngineOutput, FateVector, StandardizedInput } from '@/types/prediction';
+import type { EngineOutput, FateVector, StandardizedInput, TimeWindow } from '@/types/prediction';
 
 // ═══════════════════════════════════════════════
 // Types
@@ -766,11 +766,11 @@ function meihuaToFateVector(result: MeihuaResult): FateVector {
   const analysis = result.analysis;
 
   const elementBonus: Record<WuXing, Partial<Record<keyof FateVector, number>>> = {
-    '金': { wealth: 8, life: 5, health: 3 },
-    '木': { health: 8, wisdom: 5, relation: 3 },
-    '水': { wisdom: 8, spirit: 5, wealth: 3 },
-    '火': { life: 8, relation: 5, spirit: 3 },
-    '土': { health: 5, wealth: 5, relation: 3 },
+    '金': { wealth: 8, life: 5, health: 3, socialStatus: 5, creativity: 3, luck: 4, homeStability: 3 },
+    '木': { health: 8, wisdom: 5, relation: 3, socialStatus: 2, creativity: 6, luck: 3, homeStability: 3 },
+    '水': { wisdom: 8, spirit: 5, wealth: 3, socialStatus: 2, creativity: 6, luck: 5, homeStability: 1 },
+    '火': { life: 8, relation: 5, spirit: 3, socialStatus: 5, creativity: 5, luck: 4, homeStability: -2 },
+    '土': { health: 5, wealth: 5, relation: 3, socialStatus: 3, creativity: 1, luck: 3, homeStability: 7 },
   };
 
   // 季节旺衰修正
@@ -787,6 +787,10 @@ function meihuaToFateVector(result: MeihuaResult): FateVector {
     health:   clamp(base + (bonus.health ?? 0)),
     wisdom:   clamp(base + (bonus.wisdom ?? 0) + sMod),
     spirit:   clamp(base + (bonus.spirit ?? 0)),
+    socialStatus: clamp(base + (bonus.socialStatus ?? 0) + sMod),
+    creativity:   clamp(base + (bonus.creativity ?? 0) + sMod),
+    luck:         clamp(base + (bonus.luck ?? 0) + sMod),
+    homeStability: clamp(base + (bonus.homeStability ?? 0)),
   };
 }
 
@@ -854,6 +858,20 @@ export function runMeihua(standardizedInput: StandardizedInput): {
       warnings: ['梅花易数基于起卦时间而非出生时间，适用于即时感应占断'],
       uncertaintyNotes: ['体用评分含季节旺衰修正', '应期推算为参考性质', 'v3.0增加错综卦与多层体用分析'],
       timingBasis: 'query',
+      explanationTrace: [
+        `起卦方式: ${result.method}`,
+        `本卦: ${result.benGua.name}(${result.benGua.element})`,
+        `互卦: ${result.huGua.name}，变卦: ${result.bianGua.name}`,
+        `错卦: ${result.analysis.cuoGua.gua.name}，综卦: ${result.analysis.zongGua.gua.name}`,
+        `体用关系: ${result.tiYong.relation}(${result.tiYong.tendency})`,
+        `季节旺衰: ${result.analysis.seasonalStrength.season}·${result.analysis.seasonalStrength.strength}`,
+        `多层体用综合: ${result.analysis.multiLayerTiYong.synthesis}`,
+      ],
+      completenessScore: 85,
+      validationFlags: { passed: ['hexagram-formation', 'mutual-hexagram', 'body-function', 'cuo-zong-gua', 'multi-layer-tiyong', 'wuxing-balance'], failed: [], warnings: ['query-time-based'] },
+      timeWindows: [],
+      aspectScores: { tiYong: result.tiYong.relation === '比和' ? 80 : result.tiYong.relation === '体生用' ? 60 : 50, seasonalStrength: result.analysis.seasonalStrength.strength === '旺' ? 90 : result.analysis.seasonalStrength.strength === '相' ? 70 : 50 },
+      eventCandidates: [`本卦${result.benGua.name}`, `变卦${result.bianGua.name}`, `体用${result.tiYong.tendency}`],
     },
     meihuaResult: result,
   };

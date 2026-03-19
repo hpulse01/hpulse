@@ -24,7 +24,7 @@ function clamp(v: number, min = 5, max = 95): number {
 }
 
 function emptyVector(base = 50): FateVector {
-  return { life: base, wealth: base, relation: base, health: base, wisdom: base, spirit: base };
+  return { life: base, wealth: base, relation: base, health: base, wisdom: base, spirit: base, socialStatus: base, creativity: base, luck: base, homeStability: base };
 }
 
 // ═══════════════════════════════════════════════
@@ -438,6 +438,10 @@ export function mapWesternToFateVector(
     health: g('health'),
     wisdom: clamp((g('wisdom') + g('creativity')) / 2),
     spirit: g('spirituality'),
+    socialStatus: clamp((g('career') + g('social')) / 2),
+    creativity: g('creativity'),
+    luck: g('fortune'),
+    homeStability: clamp((g('family') + g('love')) / 2),
   };
 
   // Grand pattern bonuses
@@ -478,6 +482,10 @@ export function mapVedicToFateVector(
     health: g('health'),
     wisdom: clamp((g('wisdom') + g('creativity')) / 2),
     spirit: g('spirituality'),
+    socialStatus: clamp((g('career') + g('social')) / 2),
+    creativity: g('creativity'),
+    luck: g('fortune'),
+    homeStability: clamp((g('family') + g('love')) / 2),
   };
 
   // Yoga bonuses
@@ -521,6 +529,10 @@ export function mapNumerologyToFateVector(
     health: g('health'),
     wisdom: clamp((g('wisdom') + g('creativity')) / 2),
     spirit: g('spirituality'),
+    socialStatus: clamp((g('career') + g('social')) / 2),
+    creativity: g('creativity'),
+    luck: g('fortune'),
+    homeStability: clamp((g('family') + g('love')) / 2),
   };
 
   // Master numbers boost spirit/wisdom
@@ -559,6 +571,10 @@ export function mapMayanToFateVector(
     health: g('health'),
     wisdom: clamp((g('wisdom') + g('creativity')) / 2),
     spirit: g('spirituality'),
+    socialStatus: clamp((g('career') + g('social')) / 2),
+    creativity: g('creativity'),
+    luck: g('fortune'),
+    homeStability: clamp((g('family') + g('love')) / 2),
   };
 
   // Earth family modifiers
@@ -615,6 +631,10 @@ export function mapKabbalahToFateVector(
     health: g('health'),
     wisdom: clamp((g('wisdom') + g('creativity')) / 2),
     spirit: g('spirituality'),
+    socialStatus: clamp((g('career') + g('social')) / 2),
+    creativity: g('creativity'),
+    luck: g('fortune'),
+    homeStability: clamp((g('family') + g('love')) / 2),
   };
 
   // Soul sephirah (primary influence)
@@ -666,6 +686,10 @@ export function mapLiuRenToFateVector(
     health: g('health'),
     wisdom: clamp((g('wisdom') + g('creativity')) / 2),
     spirit: g('spirituality'),
+    socialStatus: clamp((g('career') + g('social')) / 2),
+    creativity: g('creativity'),
+    luck: g('fortune'),
+    homeStability: clamp((g('family') + g('love')) / 2),
   };
 
   if (auspiciousness === '吉' || auspiciousness === '大吉') {
@@ -694,6 +718,10 @@ export function mapTaiyiToFateVector(
     health: g('health'),
     wisdom: clamp((g('wisdom') + g('creativity')) / 2),
     spirit: g('spirituality'),
+    socialStatus: clamp((g('career') + g('social')) / 2),
+    creativity: g('creativity'),
+    luck: g('fortune'),
+    homeStability: clamp((g('family') + g('love')) / 2),
   };
 
   if (auspiciousness === '吉' || auspiciousness === '大吉') {
@@ -731,6 +759,10 @@ export function mapMeihuaToFateVector(
     health: g('health'),
     wisdom: clamp((g('wisdom') + g('creativity')) / 2),
     spirit: g('spirituality'),
+    socialStatus: clamp((g('career') + g('social')) / 2),
+    creativity: g('creativity'),
+    luck: g('fortune'),
+    homeStability: clamp((g('family') + g('love')) / 2),
   };
 
   // 体用关系修正

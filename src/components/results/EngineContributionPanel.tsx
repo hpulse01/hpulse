@@ -12,6 +12,8 @@ const DIM_BAR: Record<FateDimension, string> = {
   life: 'from-amber-500 to-amber-600', wealth: 'from-emerald-500 to-emerald-600',
   relation: 'from-rose-500 to-rose-600', health: 'from-purple-500 to-purple-600',
   wisdom: 'from-blue-500 to-blue-600', spirit: 'from-indigo-500 to-indigo-600',
+  socialStatus: 'from-yellow-500 to-yellow-600', creativity: 'from-pink-500 to-pink-600',
+  luck: 'from-lime-500 to-lime-600', homeStability: 'from-teal-500 to-teal-600',
 };
 
 function sc(v: number) {

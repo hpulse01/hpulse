@@ -264,12 +264,118 @@ export function extractTiebanEvents(
       causalFactors: ['命局偏动'],
       triggerConditions: [], deathRelated: false,
       mergeKey: 'age-25-migration',
-      fateImpact: { life: 3 },
+      fateImpact: { life: 3, homeStability: -5 },
       sourceDetail: '铁板迁移推算',
       sourceFieldPath: 'destinyProjection.lifeDestiny(sub)',
       sourceEvidence: `命局子数值${propertyStrength}(<200)`,
       reasoning: '命局子数值偏低表示命主有动象，推算青年期迁移',
       confidence: 0.45, conflictTags: ['migration-early'],
+    });
+  }
+
+  // ── 1J. Accident/Trauma event (疾厄宫凶) ──
+  if (healthStrength < 300) {
+    const accidentAge = healthStrength < 150 ? 40 : 50;
+    seeds.push({
+      ...B, id: seedId('tieban', 'accident', accidentAge, 'health-palace-accident'),
+      category: 'accident', subcategory: '疾厄宫凶象意外',
+      description: `铁板疾厄宫数值极低(${healthStrength})，${accidentAge}岁前后需防意外伤害`,
+      earliestAge: accidentAge - 5, latestAge: accidentAge + 8,
+      probability: 0.35, intensity: 'major',
+      causalFactors: [`疾厄宫条文${proj.health}`, `健康数值${healthStrength}`],
+      triggerConditions: ['流年天克', '大运逢冲'], deathRelated: false,
+      mergeKey: `age-${accidentAge}-accident`,
+      fateImpact: { health: -10, luck: -5 },
+      sourceDetail: `铁板疾厄宫条文${proj.health}(意外推算)`,
+      sourceFieldPath: 'destinyProjection.health',
+      sourceEvidence: `疾厄宫条文${proj.health}，健康值${healthStrength}(<300)`,
+      reasoning: `健康数值${healthStrength}极低(<300)，推算${accidentAge}岁前后有意外伤害风险`,
+      confidence: 0.35, conflictTags: ['accident-tieban', 'health-risk'],
+    });
+  }
+
+  // ── 1K. Legal/Justice event (官禄宫低值) ──
+  if (careerStrength < 250) {
+    const legalAge = careerStrength < 150 ? 35 : 42;
+    seeds.push({
+      ...B, id: seedId('tieban', 'legal', legalAge, 'career-palace-legal'),
+      category: 'legal', subcategory: '官禄宫权威冲突',
+      description: `铁板官禄宫数值偏低(${careerStrength})，${legalAge}岁前后需防权威冲突或法律纠纷`,
+      earliestAge: legalAge - 3, latestAge: legalAge + 5,
+      probability: 0.3, intensity: 'major',
+      causalFactors: [`官禄宫条文${proj.career}`, `事业数值${careerStrength}`],
+      triggerConditions: ['流年逢官煞'], deathRelated: false,
+      mergeKey: `age-${legalAge}-legal`,
+      fateImpact: { socialStatus: -8, life: -5 },
+      sourceDetail: `铁板官禄宫条文${proj.career}(法律推算)`,
+      sourceFieldPath: 'destinyProjection.career',
+      sourceEvidence: `官禄宫条文${proj.career}，事业数值${careerStrength}(<250)`,
+      reasoning: `官禄宫数值${careerStrength}偏低表示权威冲突风险，推算${legalAge}岁应期`,
+      confidence: 0.3, conflictTags: ['legal-tieban', 'authority-conflict'],
+    });
+  }
+
+  // ── 1L. Financial Crisis (财帛宫弱期) ──
+  if (wealthStrength < 200) {
+    const crisisAge = wealthStrength < 100 ? 32 : 40;
+    seeds.push({
+      ...B, id: seedId('tieban', 'wealth', crisisAge, 'wealth-palace-crisis'),
+      category: 'wealth', subcategory: '财务危机',
+      description: `铁板财帛宫数值极低(${wealthStrength})，${crisisAge}岁前后需防财务危机`,
+      earliestAge: crisisAge - 3, latestAge: crisisAge + 5,
+      probability: 0.35, intensity: 'major',
+      causalFactors: [`财帛宫条文${proj.wealth}`, `财运数值${wealthStrength}`],
+      triggerConditions: ['流年逢劫财'], deathRelated: false,
+      mergeKey: `age-${crisisAge}-wealth-crisis`,
+      fateImpact: { wealth: -15, luck: -5 },
+      sourceDetail: `铁板财帛宫条文${proj.wealth}(危机推算)`,
+      sourceFieldPath: 'destinyProjection.wealth',
+      sourceEvidence: `财帛宫条文${proj.wealth}，财运数值${wealthStrength}(<200)`,
+      reasoning: `财帛宫数值${wealthStrength}极低表示财务危机风险`,
+      confidence: 0.35, conflictTags: ['wealth-crisis-tieban'],
+    });
+  }
+
+  // ── 1M. Parent/Family Death (父母宫弱期) ──
+  const parentStrength = proj.lifeDestiny % 800;
+  if (parentStrength < 300) {
+    const parentDeathAge = parentStrength < 150 ? 35 : 45;
+    seeds.push({
+      ...B, id: seedId('tieban', 'death', parentDeathAge, 'parent-death-risk'),
+      category: 'death', subcategory: '亲人离世',
+      description: `铁板推算${parentDeathAge}岁前后有父母健康或离世之忧`,
+      earliestAge: parentDeathAge - 5, latestAge: parentDeathAge + 10,
+      probability: 0.3, intensity: 'critical',
+      causalFactors: [`命局子数值${parentStrength}`, '父母宫弱'],
+      triggerConditions: ['流年冲年柱'], deathRelated: true,
+      mergeKey: `age-${parentDeathAge}-death-parent`,
+      fateImpact: { relation: -10, homeStability: -12 },
+      sourceDetail: '铁板父母宫推算',
+      sourceFieldPath: 'destinyProjection.lifeDestiny(parent-sub)',
+      sourceEvidence: `命局子数值${parentStrength}(<300)`,
+      reasoning: `命局子数值${parentStrength}偏低推算父母健康风险期`,
+      confidence: 0.3, conflictTags: ['death-parent', 'family-loss'],
+    });
+  }
+
+  // ── 1N. Migration (迁移宫 mid-life) ──
+  const migrationStrength = proj.career % 500;
+  if (migrationStrength < 250) {
+    seeds.push({
+      ...B, id: seedId('tieban', 'migration', 38, 'migration-midlife'),
+      category: 'migration', subcategory: '迁移宫中年变动',
+      description: `铁板推算命主中年期(35-42岁)有工作调动或迁居之象`,
+      earliestAge: 35, latestAge: 42,
+      probability: 0.45, intensity: 'moderate',
+      causalFactors: ['迁移宫偏动', `迁移数值${migrationStrength}`],
+      triggerConditions: ['大运转换期'], deathRelated: false,
+      mergeKey: 'age-38-migration',
+      fateImpact: { homeStability: -5, life: 3 },
+      sourceDetail: '铁板迁移宫中年推算',
+      sourceFieldPath: 'destinyProjection.career(migration-sub)',
+      sourceEvidence: `迁移数值${migrationStrength}(<250)`,
+      reasoning: `迁移数值偏低推算中年有迁移变动`,
+      confidence: 0.45, conflictTags: ['migration-midlife'],
     });
   }
 
@@ -498,6 +604,160 @@ export function extractBaziEvents(
     reasoning: `日主${dayMaster.strengthLevel}推算寿限`,
     confidence: 0.5, conflictTags: ['death-natural', 'longevity'],
   });
+
+  // ── Accident/Trauma: 羊刃/劫煞 indicators ──
+  const yangRen = tenGods.find(t => t.tenGod === '劫财');
+  if (yangRen) {
+    const accAge = 38;
+    seeds.push({
+      ...B, id: seedId('bazi', 'accident', accAge, 'yangren-trauma'),
+      category: 'accident', subcategory: '羊刃劫煞意外',
+      description: `八字劫财(羊刃)透出在${yangRen.position}，${accAge}岁前后需防意外伤害或手术`,
+      earliestAge: accAge - 5, latestAge: accAge + 8,
+      probability: 0.3, intensity: 'major',
+      causalFactors: [`劫财在${yangRen.position}`, '羊刃凶性'],
+      triggerConditions: ['流年逢冲', '大运逢羊刃年'], deathRelated: false,
+      mergeKey: `age-${accAge}-accident`,
+      fateImpact: { health: -8, luck: -5 },
+      sourceDetail: `八字劫财(羊刃)在${yangRen.position}`,
+      sourceFieldPath: `tenGods[劫财]`,
+      sourceEvidence: `劫财在${yangRen.position}位，含羊刃凶性`,
+      reasoning: '劫财(羊刃)透出表示意外伤害或手术风险',
+      confidence: 0.3, conflictTags: ['accident-yangren'],
+    });
+  }
+
+  // ── Legal/Justice: 官杀混杂 ──
+  const hasZhengGuan = tenGods.some(t => t.tenGod === '正官');
+  const hasQiSha = tenGods.some(t => t.tenGod === '七杀');
+  if (hasZhengGuan && hasQiSha) {
+    const legalAge = 36;
+    seeds.push({
+      ...B, id: seedId('bazi', 'legal', legalAge, 'guansha-mixed'),
+      category: 'legal', subcategory: '官杀混杂法律风险',
+      description: `八字官杀混杂，${legalAge}岁前后需防法律纠纷或权威冲突`,
+      earliestAge: legalAge - 4, latestAge: legalAge + 6,
+      probability: 0.3, intensity: 'major',
+      causalFactors: ['正官透出', '七杀透出', '官杀混杂'],
+      triggerConditions: ['流年逢官杀', '大运官杀叠加'], deathRelated: false,
+      mergeKey: `age-${legalAge}-legal`,
+      fateImpact: { socialStatus: -10, life: -5 },
+      sourceDetail: '八字官杀混杂',
+      sourceFieldPath: 'tenGods[正官+七杀]',
+      sourceEvidence: '正官与七杀同透，官杀混杂',
+      reasoning: '官杀混杂表示权威矛盾，易引发法律纠纷',
+      confidence: 0.3, conflictTags: ['legal-bazi', 'authority-conflict'],
+    });
+  }
+
+  // ── Relationship Dissolution: 比劫克财 ──
+  const bijie = tenGods.find(t => t.tenGod === '比肩' || t.tenGod === '劫财');
+  if (bijie && wealthGod) {
+    const divorceAge = 35;
+    seeds.push({
+      ...B, id: seedId('bazi', 'relationship', divorceAge, 'bijie-divorce'),
+      category: 'relationship', subcategory: '婚姻危机/离婚',
+      description: `八字比劫克财，${divorceAge}岁前后婚姻关系可能面临重大危机`,
+      earliestAge: divorceAge - 4, latestAge: divorceAge + 6,
+      probability: 0.3, intensity: 'major',
+      causalFactors: [`${bijie.tenGod}在${bijie.position}`, `${wealthGod.tenGod}在${wealthGod.position}`, '比劫克财'],
+      triggerConditions: ['流年逢比劫', '大运比劫旺'], deathRelated: false,
+      mergeKey: `age-${divorceAge}-relationship-crisis`,
+      fateImpact: { relation: -15, homeStability: -10 },
+      sourceDetail: '八字比劫克财婚姻分析',
+      sourceFieldPath: 'tenGods[比劫+财星]',
+      sourceEvidence: `${bijie.tenGod}在${bijie.position}克${wealthGod.tenGod}在${wealthGod.position}`,
+      reasoning: '比劫克财表示婚姻中争夺或耗损，流年引动易致婚变',
+      confidence: 0.3, conflictTags: ['marriage-crisis', 'divorce-risk'],
+    });
+  }
+
+  // ── Financial Crisis: 财星受克+失令 ──
+  if (wealthGod && unfavorable.elements.includes(STEM_ELEMENTS[wealthGod.position.charAt(0)] || '')) {
+    const crisisAge = 40;
+    seeds.push({
+      ...B, id: seedId('bazi', 'wealth', crisisAge, 'wealth-crisis'),
+      category: 'wealth', subcategory: '财务危机',
+      description: `八字财星受克失令，${crisisAge}岁前后需防重大财务损失`,
+      earliestAge: crisisAge - 5, latestAge: crisisAge + 5,
+      probability: 0.3, intensity: 'major',
+      causalFactors: [`${wealthGod.tenGod}受克`, '财星失令'],
+      triggerConditions: ['流年逢劫财', '大运比劫旺'], deathRelated: false,
+      mergeKey: `age-${crisisAge}-wealth-crisis`,
+      fateImpact: { wealth: -15, luck: -5 },
+      sourceDetail: '八字财星受克分析',
+      sourceFieldPath: `tenGods[${wealthGod.tenGod}]`,
+      sourceEvidence: `${wealthGod.tenGod}在${wealthGod.position}受克`,
+      reasoning: '财星受克失令表示财务根基薄弱，流年引动易致财务危机',
+      confidence: 0.3, conflictTags: ['wealth-crisis-bazi'],
+    });
+  }
+
+  // ── Migration/Relocation: 驿马星 activation ──
+  const metalCount = elementBalance.find(e => e.element === '金')?.percentage || 0;
+  const woodCount = elementBalance.find(e => e.element === '木')?.percentage || 0;
+  if (metalCount >= 25 || woodCount >= 25) {
+    const migAge = 28;
+    seeds.push({
+      ...B, id: seedId('bazi', 'migration', migAge, 'yima-activation'),
+      category: 'migration', subcategory: '驿马星迁移',
+      description: `八字${metalCount >= 25 ? '金旺' : '木旺'}含驿马动象，${migAge}岁前后有迁移或远行之象`,
+      earliestAge: migAge - 4, latestAge: migAge + 6,
+      probability: 0.4, intensity: 'moderate',
+      causalFactors: [metalCount >= 25 ? `金占${metalCount}%` : `木占${woodCount}%`, '驿马星动'],
+      triggerConditions: ['流年逢驿马'], deathRelated: false,
+      mergeKey: `age-${migAge}-migration`,
+      fateImpact: { homeStability: -8, life: 3 },
+      sourceDetail: '八字驿马星分析',
+      sourceFieldPath: `elementBalance.${metalCount >= 25 ? 'metal' : 'wood'}`,
+      sourceEvidence: `${metalCount >= 25 ? `金占${metalCount}%` : `木占${woodCount}%`}，驿马动象`,
+      reasoning: '金旺或木旺含驿马动象表示迁移倾向',
+      confidence: 0.4, conflictTags: ['migration-bazi'],
+    });
+  }
+
+  // ── Parent/Family Death: 年柱受克 ──
+  if (dayMaster.strengthLevel === '极旺' || dayMaster.strengthLevel === '偏旺') {
+    const parentAge = 45;
+    seeds.push({
+      ...B, id: seedId('bazi', 'death', parentAge, 'parent-death'),
+      category: 'death', subcategory: '亲人离世',
+      description: `八字日主${dayMaster.strengthLevel}克泄年柱，${parentAge}岁前后有父母健康或离世之忧`,
+      earliestAge: parentAge - 5, latestAge: parentAge + 10,
+      probability: 0.25, intensity: 'critical',
+      causalFactors: [`日主${dayMaster.strengthLevel}`, '年柱受克'],
+      triggerConditions: ['流年冲年柱', '大运克年柱'], deathRelated: true,
+      mergeKey: `age-${parentAge}-death-parent`,
+      fateImpact: { relation: -10, homeStability: -12 },
+      sourceDetail: '八字年柱受克分析',
+      sourceFieldPath: 'dayMaster.strengthLevel+yearPillar',
+      sourceEvidence: `日主${dayMaster.stem}(${dayMaster.element})${dayMaster.strengthLevel}，年柱受克`,
+      reasoning: '日主过旺克泄年柱表示父母宫受损，推算父母健康风险期',
+      confidence: 0.25, conflictTags: ['death-parent', 'family-loss'],
+    });
+  }
+
+  // ── Education: 印星+食伤学业 ──
+  const foodGod = tenGods.find(t => t.tenGod === '食神' || t.tenGod === '伤官');
+  if (foodGod) {
+    const eduAge = 18;
+    seeds.push({
+      ...B, id: seedId('bazi', 'education', eduAge, 'food-god-education'),
+      category: 'education', subcategory: '食伤学业创造',
+      description: `${foodGod.tenGod}透出，${eduAge}岁前后学业或创作才华显现`,
+      earliestAge: eduAge - 2, latestAge: eduAge + 4,
+      probability: 0.55, intensity: 'moderate',
+      causalFactors: [`${foodGod.tenGod}在${foodGod.position}`],
+      triggerConditions: ['流年逢印'], deathRelated: false,
+      mergeKey: `age-${eduAge}-education`,
+      fateImpact: { wisdom: 8, creativity: 10 },
+      sourceDetail: `八字${foodGod.tenGod}学业分析`,
+      sourceFieldPath: `tenGods[${foodGod.tenGod}]`,
+      sourceEvidence: `${foodGod.tenGod}在${foodGod.position}位`,
+      reasoning: '食伤透出主才华创作，18岁前后为学业关键期',
+      confidence: 0.55, conflictTags: ['education-timing'],
+    });
+  }
 
   return seeds;
 }
@@ -946,6 +1206,159 @@ export function extractZiweiEvents(
     }
   }
 
+  // ── 3G. Accident/Trauma (疾厄宫化忌 specific) ──
+  const jiePalace = report.palaces.find(p => p.name === '疾厄');
+  if (jiePalace) {
+    const jieHasJi = jiePalace.stars.some(s => s.sihua === '忌');
+    const jieShaStars = jiePalace.stars.filter(s => s.type === 'sha');
+    if (jieHasJi) {
+      const jiStarName = jiePalace.stars.find(s => s.sihua === '忌')?.name || '';
+      seeds.push({
+        ...B, id: seedId('ziwei', 'accident', 38, 'jie-palace-ji-accident'),
+        category: 'accident', subcategory: '疾厄宫化忌意外',
+        description: `疾厄宫${jiStarName}化忌，38岁前后需防意外伤害或急性疾病`,
+        earliestAge: 33, latestAge: 45,
+        probability: 0.35, intensity: 'major',
+        causalFactors: [`${jiStarName}化忌入疾厄`, ...jieShaStars.map(s => s.name)],
+        triggerConditions: ['大限逢疾厄', '流年煞星叠加'], deathRelated: false,
+        mergeKey: 'age-38-accident',
+        fateImpact: { health: -10, luck: -5 },
+        sourceDetail: `紫微疾厄宫${jiStarName}化忌`,
+        sourceFieldPath: 'palaces[疾厄].sihua=忌',
+        sourceEvidence: `${jiStarName}化忌入疾厄宫`,
+        reasoning: '疾厄宫化忌表示健康或意外风险加重',
+        confidence: 0.35, conflictTags: ['accident-ziwei', 'health-risk'],
+      });
+    }
+  }
+
+  // ── 3H. Legal/Justice (官禄宫化忌) ──
+  const guanPalace = report.palaces.find(p => p.name === '官禄');
+  if (guanPalace) {
+    const guanHasJi = guanPalace.stars.some(s => s.sihua === '忌');
+    if (guanHasJi) {
+      const guanJiStar = guanPalace.stars.find(s => s.sihua === '忌')?.name || '';
+      seeds.push({
+        ...B, id: seedId('ziwei', 'legal', 36, 'guan-palace-ji-legal'),
+        category: 'legal', subcategory: '官禄宫化忌法律',
+        description: `官禄宫${guanJiStar}化忌，36岁前后需防法律纠纷或职场权威冲突`,
+        earliestAge: 32, latestAge: 42,
+        probability: 0.35, intensity: 'major',
+        causalFactors: [`${guanJiStar}化忌入官禄`],
+        triggerConditions: ['大限逢官禄', '流年官星化忌'], deathRelated: false,
+        mergeKey: 'age-36-legal',
+        fateImpact: { socialStatus: -10, life: -5 },
+        sourceDetail: `紫微官禄宫${guanJiStar}化忌`,
+        sourceFieldPath: 'palaces[官禄].sihua=忌',
+        sourceEvidence: `${guanJiStar}化忌入官禄宫`,
+        reasoning: '官禄宫化忌表示事业受阻或法律纠纷风险',
+        confidence: 0.35, conflictTags: ['legal-ziwei', 'authority-conflict'],
+      });
+    }
+  }
+
+  // ── 3I. Relationship Dissolution (夫妻宫化忌) ──
+  const fqPalace = report.palaces.find(p => p.name === '夫妻');
+  if (fqPalace) {
+    const fqHasJi = fqPalace.stars.some(s => s.sihua === '忌');
+    const fqShaStars = fqPalace.stars.filter(s => s.type === 'sha');
+    if (fqHasJi) {
+      const fqJiStar = fqPalace.stars.find(s => s.sihua === '忌')?.name || '';
+      seeds.push({
+        ...B, id: seedId('ziwei', 'relationship', 34, 'fq-palace-ji-divorce'),
+        category: 'relationship', subcategory: '婚姻危机/离婚',
+        description: `夫妻宫${fqJiStar}化忌${fqShaStars.length > 0 ? '加煞' : ''}，34岁前后婚姻关系面临重大考验`,
+        earliestAge: 30, latestAge: 40,
+        probability: fqShaStars.length > 0 ? 0.4 : 0.3, intensity: fqShaStars.length > 0 ? 'critical' : 'major',
+        causalFactors: [`${fqJiStar}化忌入夫妻`, ...fqShaStars.map(s => s.name)],
+        triggerConditions: ['大限逢夫妻', '流年桃花冲'], deathRelated: false,
+        mergeKey: 'age-34-relationship-crisis',
+        fateImpact: { relation: -15, homeStability: -10 },
+        sourceDetail: `紫微夫妻宫${fqJiStar}化忌`,
+        sourceFieldPath: 'palaces[夫妻].sihua=忌',
+        sourceEvidence: `${fqJiStar}化忌入夫妻宫${fqShaStars.length > 0 ? '，煞星' + fqShaStars.map(s => s.name).join('') : ''}`,
+        reasoning: '夫妻宫化忌表示婚姻关系有裂痕风险',
+        confidence: fqShaStars.length > 0 ? 0.4 : 0.3, conflictTags: ['marriage-crisis', 'divorce-risk'],
+      });
+    }
+  }
+
+  // ── 3J. Financial Crisis (财帛宫化忌) ──
+  const caiboPalace = report.palaces.find(p => p.name === '财帛');
+  if (caiboPalace) {
+    const caiboHasJi = caiboPalace.stars.some(s => s.sihua === '忌');
+    if (caiboHasJi) {
+      const caiboJiStar = caiboPalace.stars.find(s => s.sihua === '忌')?.name || '';
+      seeds.push({
+        ...B, id: seedId('ziwei', 'wealth', 36, 'caibo-palace-ji-crisis'),
+        category: 'wealth', subcategory: '财务危机',
+        description: `财帛宫${caiboJiStar}化忌，36岁前后需防重大财务损失或破财`,
+        earliestAge: 32, latestAge: 42,
+        probability: 0.35, intensity: 'major',
+        causalFactors: [`${caiboJiStar}化忌入财帛`],
+        triggerConditions: ['大限逢财帛', '流年化忌叠加'], deathRelated: false,
+        mergeKey: 'age-36-wealth-crisis',
+        fateImpact: { wealth: -15, luck: -5 },
+        sourceDetail: `紫微财帛宫${caiboJiStar}化忌`,
+        sourceFieldPath: 'palaces[财帛].sihua=忌',
+        sourceEvidence: `${caiboJiStar}化忌入财帛宫`,
+        reasoning: '财帛宫化忌表示财运受阻，有破财或投资失利风险',
+        confidence: 0.35, conflictTags: ['wealth-crisis-ziwei'],
+      });
+    }
+  }
+
+  // ── 3K. Parent/Family Death (父母宫化忌) ──
+  const fmPalace = report.palaces.find(p => p.name === '父母');
+  if (fmPalace) {
+    const fmHasJi = fmPalace.stars.some(s => s.sihua === '忌');
+    const fmShaStars = fmPalace.stars.filter(s => s.type === 'sha');
+    if (fmHasJi || fmShaStars.length >= 2) {
+      const fmJiStar = fmPalace.stars.find(s => s.sihua === '忌')?.name || '';
+      seeds.push({
+        ...B, id: seedId('ziwei', 'death', 45, 'fm-palace-parent-death'),
+        category: 'death', subcategory: '亲人离世',
+        description: `父母宫${fmHasJi ? fmJiStar + '化忌' : ''}${fmShaStars.length >= 2 ? '煞聚' : ''}，45岁前后有父母健康或离世之忧`,
+        earliestAge: 40, latestAge: 55,
+        probability: fmHasJi && fmShaStars.length >= 2 ? 0.35 : 0.25, intensity: 'critical',
+        causalFactors: [fmHasJi ? `${fmJiStar}化忌入父母` : '', ...fmShaStars.map(s => s.name)].filter(Boolean),
+        triggerConditions: ['大限逢父母宫', '流年冲父母宫'], deathRelated: true,
+        mergeKey: 'age-45-death-parent',
+        fateImpact: { relation: -10, homeStability: -12 },
+        sourceDetail: '紫微父母宫分析',
+        sourceFieldPath: 'palaces[父母]',
+        sourceEvidence: `父母宫${fmHasJi ? fmJiStar + '化忌' : ''}${fmShaStars.length >= 2 ? '煞星' + fmShaStars.map(s => s.name).join('') : ''}`,
+        reasoning: '父母宫化忌或煞聚表示父母健康风险',
+        confidence: fmHasJi && fmShaStars.length >= 2 ? 0.35 : 0.25, conflictTags: ['death-parent', 'family-loss'],
+      });
+    }
+  }
+
+  // ── 3L. Education (命宫/福德宫 activity in youth) ──
+  const mingPalace = report.palaces.find(p => p.name === '命宫');
+  if (mingPalace) {
+    const mingHasLu = mingPalace.stars.some(s => s.sihua === '禄');
+    const mingBright = mingPalace.stars.filter(s => s.type === 'major' && ['庙', '旺'].includes(s.brightness));
+    if (mingHasLu || mingBright.length >= 2) {
+      seeds.push({
+        ...B, id: seedId('ziwei', 'education', 20, 'ming-palace-education'),
+        category: 'education', subcategory: '命宫学业天赋',
+        description: `命宫${mingHasLu ? '化禄' : ''}主星明亮，20岁前后学业表现优异`,
+        earliestAge: 17, latestAge: 24,
+        probability: 0.5, intensity: 'moderate',
+        causalFactors: [mingHasLu ? '命宫化禄' : '', ...mingBright.map(s => `${s.name}(${s.brightness})`)].filter(Boolean),
+        triggerConditions: [], deathRelated: false,
+        mergeKey: 'age-20-education',
+        fateImpact: { wisdom: 8, creativity: 5 },
+        sourceDetail: '紫微命宫学业推算',
+        sourceFieldPath: 'palaces[命宫]',
+        sourceEvidence: `命宫${mingHasLu ? '化禄' : ''}${mingBright.map(s => s.name).join('、')}明亮`,
+        reasoning: '命宫化禄或主星明亮表示先天智力出众，学业期表现优异',
+        confidence: 0.5, conflictTags: ['education-ziwei'],
+      });
+    }
+  }
+
   return seeds;
 }
 
@@ -1151,6 +1564,157 @@ export function extractWesternEvents(
     confidence: 0.3, conflictTags: ['death-natural', 'longevity'],
   });
 
+  // ── Accident/Trauma: Mars hard aspects ──
+  const marsInSign = marsSign?.sign || 'Aries';
+  const hardAspectSigns = ['Aries', 'Scorpio', 'Capricorn'];
+  if (hardAspectSigns.includes(marsInSign)) {
+    seeds.push({
+      ...B, id: seedId('western', 'accident', 35, 'mars-hard-aspect'),
+      category: 'accident', subcategory: '火星凶相意外',
+      description: `火星位于${marsInSign}(凶相位)，35岁前后需防意外伤害、手术或暴力冲突`,
+      earliestAge: 30, latestAge: 42,
+      probability: 0.3, intensity: 'major',
+      causalFactors: [`Mars in ${marsInSign}`, 'Mars hard aspect'],
+      triggerConditions: ['Mars transit conjunction/square'], deathRelated: false,
+      mergeKey: 'age-35-accident',
+      fateImpact: { health: -8, luck: -5 },
+      sourceDetail: `火星${marsInSign}凶相位`,
+      sourceFieldPath: 'planets.Mars.sign',
+      sourceEvidence: `火星位于${marsInSign}(凶相位星座)`,
+      reasoning: '火星在凶相位星座表示冲动能量过强，易引发意外',
+      confidence: 0.3, conflictTags: ['accident-western'],
+    });
+  }
+
+  // ── Legal/Justice: Saturn/Pluto hard aspects ──
+  const saturnSign = report.planets?.find(p => p.planet === 'Saturn');
+  const plutoSign = report.planets?.find(p => p.planet === 'Pluto');
+  if (saturnSign && plutoSign) {
+    seeds.push({
+      ...B, id: seedId('western', 'legal', 38, 'saturn-pluto-legal'),
+      category: 'legal', subcategory: '土冥法律冲突',
+      description: `土星${saturnSign.sign}+冥王星${plutoSign.sign}组合，38岁前后需防法律或权力结构冲突`,
+      earliestAge: 34, latestAge: 44,
+      probability: 0.3, intensity: 'major',
+      causalFactors: [`Saturn in ${saturnSign.sign}`, `Pluto in ${plutoSign.sign}`],
+      triggerConditions: ['Saturn transit square natal Pluto'], deathRelated: false,
+      mergeKey: 'age-38-legal',
+      fateImpact: { socialStatus: -8, life: -5 },
+      sourceDetail: `土星${saturnSign.sign}+冥王${plutoSign.sign}`,
+      sourceFieldPath: 'planets.Saturn+Pluto',
+      sourceEvidence: `土星${saturnSign.sign}，冥王${plutoSign.sign}`,
+      reasoning: '土冥组合表示权力结构压力，可能引发法律纠纷',
+      confidence: 0.3, conflictTags: ['legal-western', 'authority-conflict'],
+    });
+  }
+
+  // ── Relationship Dissolution: Saturn/Uranus hard aspects to 7th house ──
+  const uranusSign = report.planets?.find(p => p.planet === 'Uranus');
+  if (saturnSign && uranusSign) {
+    seeds.push({
+      ...B, id: seedId('western', 'relationship', 36, 'saturn-uranus-divorce'),
+      category: 'relationship', subcategory: '婚姻危机/离婚',
+      description: `土星${saturnSign.sign}与天王星${uranusSign.sign}形成张力，36岁前后婚姻关系面临突变或危机`,
+      earliestAge: 33, latestAge: 42,
+      probability: 0.3, intensity: 'major',
+      causalFactors: [`Saturn in ${saturnSign.sign}`, `Uranus in ${uranusSign.sign}`, '7th house pressure'],
+      triggerConditions: ['Uranus transit square Venus', 'Saturn transit 7th house'], deathRelated: false,
+      mergeKey: 'age-36-relationship-crisis',
+      fateImpact: { relation: -15, homeStability: -10 },
+      sourceDetail: `土星${saturnSign.sign}+天王${uranusSign.sign}婚姻分析`,
+      sourceFieldPath: 'planets.Saturn+Uranus',
+      sourceEvidence: `土星${saturnSign.sign}，天王${uranusSign.sign}`,
+      reasoning: '土天组合表示稳定与突变的冲突，影响婚姻关系',
+      confidence: 0.3, conflictTags: ['marriage-crisis', 'divorce-risk'],
+    });
+  }
+
+  // ── Financial Crisis: Saturn hard aspects ──
+  if (saturnSign) {
+    const stressFinanceSigns = ['Taurus', 'Scorpio', 'Capricorn'];
+    if (stressFinanceSigns.includes(saturnSign.sign)) {
+      seeds.push({
+        ...B, id: seedId('western', 'wealth', 38, 'saturn-financial-crisis'),
+        category: 'wealth', subcategory: '财务危机',
+        description: `土星位于${saturnSign.sign}，38岁前后需防重大财务损失或经济压力`,
+        earliestAge: 34, latestAge: 44,
+        probability: 0.3, intensity: 'major',
+        causalFactors: [`Saturn in ${saturnSign.sign}`, 'financial stress aspect'],
+        triggerConditions: ['Saturn transit square natal Venus'], deathRelated: false,
+        mergeKey: 'age-38-wealth-crisis',
+        fateImpact: { wealth: -12, luck: -5 },
+        sourceDetail: `土星${saturnSign.sign}财务分析`,
+        sourceFieldPath: 'planets.Saturn.sign',
+        sourceEvidence: `土星位于${saturnSign.sign}(财务压力星座)`,
+        reasoning: '土星在财务相关星座表示经济压力与限制',
+        confidence: 0.3, conflictTags: ['wealth-crisis-western'],
+      });
+    }
+  }
+
+  // ── Migration/Relocation: Jupiter/Uranus aspects ──
+  const jupiterSign = report.planets?.find(p => p.planet === 'Jupiter');
+  if (jupiterSign && uranusSign) {
+    seeds.push({
+      ...B, id: seedId('western', 'migration', 30, 'jupiter-uranus-migration'),
+      category: 'migration', subcategory: '木天迁移',
+      description: `木星${jupiterSign.sign}+天王星${uranusSign.sign}组合，30岁前后有突然迁移或海外发展之象`,
+      earliestAge: 26, latestAge: 36,
+      probability: 0.4, intensity: 'moderate',
+      causalFactors: [`Jupiter in ${jupiterSign.sign}`, `Uranus in ${uranusSign.sign}`],
+      triggerConditions: ['Jupiter transit 9th house'], deathRelated: false,
+      mergeKey: 'age-30-migration',
+      fateImpact: { homeStability: -5, life: 5 },
+      sourceDetail: `木星${jupiterSign.sign}+天王${uranusSign.sign}迁移分析`,
+      sourceFieldPath: 'planets.Jupiter+Uranus',
+      sourceEvidence: `木星${jupiterSign.sign}，天王${uranusSign.sign}`,
+      reasoning: '木天组合表示扩展与突变，推动远距离迁移',
+      confidence: 0.4, conflictTags: ['migration-western'],
+    });
+  }
+
+  // ── Education: Mercury/Jupiter aspects to 9th house ──
+  const mercurySign = report.planets?.find(p => p.planet === 'Mercury');
+  if (mercurySign && jupiterSign) {
+    seeds.push({
+      ...B, id: seedId('western', 'education', 20, 'mercury-jupiter-education'),
+      category: 'education', subcategory: '水木学业',
+      description: `水星${mercurySign.sign}+木星${jupiterSign.sign}组合，20岁前后学业成就突出`,
+      earliestAge: 17, latestAge: 24,
+      probability: 0.5, intensity: 'moderate',
+      causalFactors: [`Mercury in ${mercurySign.sign}`, `Jupiter in ${jupiterSign.sign}`],
+      triggerConditions: ['Jupiter transit conjunct Mercury'], deathRelated: false,
+      mergeKey: 'age-20-education',
+      fateImpact: { wisdom: 8, creativity: 5 },
+      sourceDetail: `水星${mercurySign.sign}+木星${jupiterSign.sign}学业分析`,
+      sourceFieldPath: 'planets.Mercury+Jupiter',
+      sourceEvidence: `水星${mercurySign.sign}，木星${jupiterSign.sign}`,
+      reasoning: '水木组合表示智力与扩展，推动学业成就',
+      confidence: 0.5, conflictTags: ['education-western'],
+    });
+  }
+
+  // ── Parent/Family Death: Saturn/Moon aspects ──
+  const moonSign = report.planets?.find(p => p.planet === 'Moon');
+  if (saturnSign && moonSign) {
+    seeds.push({
+      ...B, id: seedId('western', 'death', 50, 'saturn-moon-parent-death'),
+      category: 'death', subcategory: '亲人离世',
+      description: `土星${saturnSign.sign}与月亮${moonSign.sign}形成张力，50岁前后有父母健康或离世之忧`,
+      earliestAge: 45, latestAge: 58,
+      probability: 0.25, intensity: 'critical',
+      causalFactors: [`Saturn in ${saturnSign.sign}`, `Moon in ${moonSign.sign}`],
+      triggerConditions: ['Saturn transit square natal Moon'], deathRelated: true,
+      mergeKey: 'age-50-death-parent',
+      fateImpact: { relation: -10, homeStability: -12 },
+      sourceDetail: `土星${saturnSign.sign}+月亮${moonSign.sign}亲人分析`,
+      sourceFieldPath: 'planets.Saturn+Moon',
+      sourceEvidence: `土星${saturnSign.sign}，月亮${moonSign.sign}`,
+      reasoning: '土月张力表示家庭结构压力，影响父母健康',
+      confidence: 0.25, conflictTags: ['death-parent', 'family-loss'],
+    });
+  }
+
   return seeds;
 }
 
@@ -1332,6 +1896,154 @@ export function extractVedicEvents(
     });
   }
 
+  // ── Rahu transit → Accident risk ──
+  const rahuDasha = report.dashas.find(d => d.planet === 'Rahu');
+  if (rahuDasha && rahuDasha.startAge >= 20) {
+    seeds.push({
+      ...B, id: seedId('vedic', 'accident', rahuDasha.startAge + 3, 'rahu-transit-accident'),
+      category: 'accident', subcategory: 'Rahu意外风险',
+      description: `吠陀Rahu大周期(${rahuDasha.startAge}-${rahuDasha.endAge}岁)：心智混乱期，需防意外或欺骗`,
+      earliestAge: rahuDasha.startAge, latestAge: rahuDasha.endAge,
+      probability: 0.3, intensity: 'major',
+      causalFactors: ['Rahu Dasha', '心智混乱'],
+      triggerConditions: ['Rahu transit over natal Sun/Moon'], deathRelated: false,
+      mergeKey: `age-${rahuDasha.startAge + 3}-accident`,
+      fateImpact: { health: -5, luck: -8 },
+      sourceDetail: '吠陀Rahu大周期意外分析',
+      sourceFieldPath: `dashas[Rahu]`,
+      sourceEvidence: `Rahu Dasha ${rahuDasha.startAge}-${rahuDasha.endAge}岁`,
+      reasoning: 'Rahu大周期主混乱与突变，易引发意外或被骗',
+      confidence: 0.3, conflictTags: ['accident-vedic-rahu'],
+    });
+  }
+
+  // ── Legal/Justice: Saturn dasha ──
+  const saturnDasha = report.dashas.find(d => d.planet === 'Saturn' && d.startAge >= 25);
+  if (saturnDasha) {
+    seeds.push({
+      ...B, id: seedId('vedic', 'legal', saturnDasha.startAge + 3, 'saturn-dasha-legal'),
+      category: 'legal', subcategory: 'Saturn法律考验',
+      description: `吠陀Saturn大周期(${saturnDasha.startAge}-${saturnDasha.endAge}岁)：法律或规则考验期`,
+      earliestAge: saturnDasha.startAge, latestAge: saturnDasha.endAge,
+      probability: 0.25, intensity: 'moderate',
+      causalFactors: ['Saturn Dasha', '法律规则考验'],
+      triggerConditions: ['Saturn transit square natal Sun'], deathRelated: false,
+      mergeKey: `age-${saturnDasha.startAge + 3}-legal`,
+      fateImpact: { socialStatus: -5, life: -3 },
+      sourceDetail: '吠陀Saturn大周期法律分析',
+      sourceFieldPath: `dashas[Saturn]`,
+      sourceEvidence: `Saturn Dasha ${saturnDasha.startAge}-${saturnDasha.endAge}岁`,
+      reasoning: 'Saturn大周期主限制与规则，可能面临法律考验',
+      confidence: 0.25, conflictTags: ['legal-vedic'],
+    });
+  }
+
+  // ── Relationship Dissolution: Venus/Rahu dasha ──
+  const venusDasha = report.dashas.find(d => d.planet === 'Venus' && d.quality === 'malefic');
+  if (venusDasha && venusDasha.startAge >= 25) {
+    seeds.push({
+      ...B, id: seedId('vedic', 'relationship', venusDasha.startAge + 3, 'venus-malefic-divorce'),
+      category: 'relationship', subcategory: '婚姻危机/离婚',
+      description: `吠陀Venus凶险大周期(${venusDasha.startAge}-${venusDasha.endAge}岁)：情感关系面临危机`,
+      earliestAge: venusDasha.startAge, latestAge: venusDasha.endAge,
+      probability: 0.3, intensity: 'major',
+      causalFactors: ['Venus Dasha malefic', '情感受损'],
+      triggerConditions: ['Rahu transit over Venus'], deathRelated: false,
+      mergeKey: `age-${venusDasha.startAge + 3}-relationship-crisis`,
+      fateImpact: { relation: -12, homeStability: -8 },
+      sourceDetail: '吠陀Venus凶险期婚姻分析',
+      sourceFieldPath: `dashas[Venus].quality=malefic`,
+      sourceEvidence: `Venus凶险Dasha ${venusDasha.startAge}-${venusDasha.endAge}岁`,
+      reasoning: 'Venus凶险大周期表示情感受损，婚姻面临危机',
+      confidence: 0.3, conflictTags: ['marriage-crisis', 'divorce-risk'],
+    });
+  }
+
+  // ── Financial Crisis: Ketu/Saturn malefic dasha ──
+  const ketuDasha = report.dashas.find(d => d.planet === 'Ketu' && d.startAge >= 25);
+  if (ketuDasha) {
+    seeds.push({
+      ...B, id: seedId('vedic', 'wealth', ketuDasha.startAge + 2, 'ketu-financial-crisis'),
+      category: 'wealth', subcategory: '财务危机',
+      description: `吠陀Ketu大周期(${ketuDasha.startAge}-${ketuDasha.endAge}岁)：物质执着断裂，需防财务损失`,
+      earliestAge: ketuDasha.startAge, latestAge: ketuDasha.endAge,
+      probability: 0.3, intensity: 'major',
+      causalFactors: ['Ketu Dasha', '物质断裂'],
+      triggerConditions: ['Ketu transit 2nd/11th house'], deathRelated: false,
+      mergeKey: `age-${ketuDasha.startAge + 2}-wealth-crisis`,
+      fateImpact: { wealth: -12, luck: -5 },
+      sourceDetail: '吠陀Ketu大周期财务分析',
+      sourceFieldPath: `dashas[Ketu]`,
+      sourceEvidence: `Ketu Dasha ${ketuDasha.startAge}-${ketuDasha.endAge}岁`,
+      reasoning: 'Ketu大周期主物质断裂与灵性转向，易致财务损失',
+      confidence: 0.3, conflictTags: ['wealth-crisis-vedic'],
+    });
+  }
+
+  // ── Parent/Family Death: Sun/Moon malefic dasha ──
+  const sunDasha = report.dashas.find(d => d.planet === 'Sun' && d.quality === 'malefic' && d.startAge >= 35);
+  const moonDasha = report.dashas.find(d => d.planet === 'Moon' && d.quality === 'malefic' && d.startAge >= 35);
+  const parentDasha = sunDasha || moonDasha;
+  if (parentDasha) {
+    seeds.push({
+      ...B, id: seedId('vedic', 'death', parentDasha.startAge + 2, `${parentDasha.planet}-parent-death`),
+      category: 'death', subcategory: '亲人离世',
+      description: `吠陀${parentDasha.planet}凶险大周期(${parentDasha.startAge}-${parentDasha.endAge}岁)：父母健康或离世风险期`,
+      earliestAge: parentDasha.startAge, latestAge: parentDasha.endAge,
+      probability: 0.25, intensity: 'critical',
+      causalFactors: [`${parentDasha.planet} Dasha malefic`, '父母宫受压'],
+      triggerConditions: [`${parentDasha.planet} transit 4th house`], deathRelated: true,
+      mergeKey: `age-${parentDasha.startAge + 2}-death-parent`,
+      fateImpact: { relation: -10, homeStability: -12 },
+      sourceDetail: `吠陀${parentDasha.planet}凶险期亲人分析`,
+      sourceFieldPath: `dashas[${parentDasha.planet}].quality=malefic`,
+      sourceEvidence: `${parentDasha.planet}凶险Dasha ${parentDasha.startAge}-${parentDasha.endAge}岁`,
+      reasoning: `${parentDasha.planet}凶险大周期影响父母宫，有亲人离世风险`,
+      confidence: 0.25, conflictTags: ['death-parent', 'family-loss'],
+    });
+  }
+
+  // ── Education: Jupiter dasha in youth ──
+  const jupiterDasha = report.dashas.find(d => d.planet === 'Jupiter' && d.startAge <= 25);
+  if (jupiterDasha) {
+    seeds.push({
+      ...B, id: seedId('vedic', 'education', jupiterDasha.startAge + 2, 'jupiter-education'),
+      category: 'education', subcategory: 'Jupiter学业',
+      description: `吠陀Jupiter大周期(${jupiterDasha.startAge}-${jupiterDasha.endAge}岁)：学业与高等教育扩展期`,
+      earliestAge: jupiterDasha.startAge, latestAge: Math.min(jupiterDasha.endAge, 25),
+      probability: 0.55, intensity: 'moderate',
+      causalFactors: ['Jupiter Dasha', '学术扩展'],
+      triggerConditions: [], deathRelated: false,
+      mergeKey: `age-${jupiterDasha.startAge + 2}-education`,
+      fateImpact: { wisdom: 10, creativity: 5 },
+      sourceDetail: '吠陀Jupiter大周期学业',
+      sourceFieldPath: `dashas[Jupiter]`,
+      sourceEvidence: `Jupiter Dasha ${jupiterDasha.startAge}-${jupiterDasha.endAge}`,
+      reasoning: 'Jupiter大周期主扩展与智慧，推动学业发展',
+      confidence: 0.55, conflictTags: ['education-timing'],
+    });
+  }
+
+  // ── Migration: Rahu/Jupiter dasha ──
+  if (rahuDasha) {
+    seeds.push({
+      ...B, id: seedId('vedic', 'migration', rahuDasha.startAge + 2, 'rahu-migration'),
+      category: 'migration', subcategory: 'Rahu迁移',
+      description: `吠陀Rahu大周期(${rahuDasha.startAge}-${rahuDasha.endAge}岁)：有海外迁移或远行之象`,
+      earliestAge: rahuDasha.startAge, latestAge: rahuDasha.endAge,
+      probability: 0.4, intensity: 'moderate',
+      causalFactors: ['Rahu Dasha', '海外动象'],
+      triggerConditions: ['Rahu transit 9th/12th house'], deathRelated: false,
+      mergeKey: `age-${rahuDasha.startAge + 2}-migration`,
+      fateImpact: { homeStability: -5, life: 5 },
+      sourceDetail: '吠陀Rahu大周期迁移分析',
+      sourceFieldPath: `dashas[Rahu]`,
+      sourceEvidence: `Rahu Dasha ${rahuDasha.startAge}-${rahuDasha.endAge}岁`,
+      reasoning: 'Rahu主外国与远方，大周期内有迁移之象',
+      confidence: 0.4, conflictTags: ['migration-vedic'],
+    });
+  }
+
   return seeds;
 }
 
@@ -1494,6 +2206,172 @@ export function extractNumerologyEvents(
     reasoning: '生命数推算基础寿限',
     confidence: 0.25, conflictTags: ['death-natural', 'longevity'],
   });
+
+  // ── Education: personal year 1/3/7 ──
+  for (const py of report.personalYears) {
+    if (py.age < 16 || py.age > 25) continue;
+    if ([1, 3, 7].includes(py.number)) {
+      seeds.push({
+        ...B, id: seedId('numerology', 'education', py.age, `py-edu-${py.year}`),
+        category: 'education', subcategory: `个人年${py.number}学业`,
+        description: `数字命理${py.year}年(${py.age}岁)个人年${py.number}：${py.number === 1 ? '学业新起点' : py.number === 3 ? '创意表达期' : '深度学习期'}`,
+        earliestAge: py.age, latestAge: py.age + 1,
+        probability: 0.45, intensity: 'moderate',
+        causalFactors: [`个人年数${py.number}`, '学业相关'],
+        triggerConditions: [], deathRelated: false,
+        mergeKey: `age-${py.age}-education`,
+        fateImpact: { wisdom: 8, creativity: py.number === 3 ? 10 : 3 },
+        sourceDetail: `数字命理个人年${py.number}学业`,
+        sourceFieldPath: `personalYears[year=${py.year}]`,
+        sourceEvidence: `个人年${py.number}，年龄${py.age}(学业期)`,
+        reasoning: `个人年${py.number}在学业年龄段表示教育里程碑`,
+        confidence: 0.45, conflictTags: ['education-numerology'],
+      });
+    }
+  }
+
+  // ── Accident: personal year 4/8 in stress periods ──
+  for (const py of report.personalYears) {
+    if (py.age < 30 || py.age > 60) continue;
+    if (py.number === 4 && py.energy < 35) {
+      seeds.push({
+        ...B, id: seedId('numerology', 'accident', py.age, `py-accident-${py.year}`),
+        category: 'accident', subcategory: `个人年${py.number}意外`,
+        description: `数字命理${py.year}年(${py.age}岁)个人年4低能量期，需防意外或身体损伤`,
+        earliestAge: py.age, latestAge: py.age + 1,
+        probability: 0.25, intensity: 'moderate',
+        causalFactors: [`个人年数4`, `能量${py.energy}`],
+        triggerConditions: [], deathRelated: false,
+        mergeKey: `age-${py.age}-accident`,
+        fateImpact: { health: -5, luck: -5 },
+        sourceDetail: `数字命理个人年4意外风险`,
+        sourceFieldPath: `personalYears[year=${py.year}]`,
+        sourceEvidence: `个人年4，能量${py.energy}(<35)`,
+        reasoning: '个人年4低能量表示压力积累，易引发意外',
+        confidence: 0.25, conflictTags: ['accident-numerology'],
+      });
+    }
+  }
+
+  // ── Migration: personal year 5 ──
+  for (const py of report.personalYears) {
+    if (py.age < 20 || py.age > 50) continue;
+    if (py.number === 5) {
+      seeds.push({
+        ...B, id: seedId('numerology', 'migration', py.age, `py-migration-${py.year}`),
+        category: 'migration', subcategory: `个人年5迁移`,
+        description: `数字命理${py.year}年(${py.age}岁)个人年5：自由变化期，有迁移或环境变动之象`,
+        earliestAge: py.age, latestAge: py.age + 1,
+        probability: 0.4, intensity: 'moderate',
+        causalFactors: [`个人年数5`, '自由变化'],
+        triggerConditions: [], deathRelated: false,
+        mergeKey: `age-${py.age}-migration`,
+        fateImpact: { homeStability: -5, life: 3 },
+        sourceDetail: `数字命理个人年5迁移`,
+        sourceFieldPath: `personalYears[year=${py.year}]`,
+        sourceEvidence: `个人年5，自由变化主题`,
+        reasoning: '个人年5主自由与变化，推动迁移或环境变动',
+        confidence: 0.4, conflictTags: ['migration-numerology'],
+      });
+      break; // Only first occurrence
+    }
+  }
+
+  // ── Legal: personal year 8 conflict ──
+  for (const py of report.personalYears) {
+    if (py.age < 30 || py.age > 55) continue;
+    if (py.number === 8 && py.energy < 40) {
+      seeds.push({
+        ...B, id: seedId('numerology', 'legal', py.age, `py-legal-${py.year}`),
+        category: 'legal', subcategory: `个人年8权力冲突`,
+        description: `数字命理${py.year}年(${py.age}岁)个人年8低能量期：权力或法律纠纷风险`,
+        earliestAge: py.age, latestAge: py.age + 1,
+        probability: 0.25, intensity: 'moderate',
+        causalFactors: [`个人年数8`, `能量${py.energy}`, '权力主题'],
+        triggerConditions: [], deathRelated: false,
+        mergeKey: `age-${py.age}-legal`,
+        fateImpact: { socialStatus: -5, life: -3 },
+        sourceDetail: `数字命理个人年8法律风险`,
+        sourceFieldPath: `personalYears[year=${py.year}]`,
+        sourceEvidence: `个人年8，能量${py.energy}(<40)`,
+        reasoning: '个人年8主权力与物质，低能量期易引发法律或权力冲突',
+        confidence: 0.25, conflictTags: ['legal-numerology'],
+      });
+      break;
+    }
+  }
+
+  // ── Financial Crisis: personal year 9 + low energy ──
+  for (const py of report.personalYears) {
+    if (py.age < 30 || py.age > 55) continue;
+    if (py.number === 9 && py.energy < 35) {
+      seeds.push({
+        ...B, id: seedId('numerology', 'wealth', py.age, `py-wealth-crisis-${py.year}`),
+        category: 'wealth', subcategory: '财务危机',
+        description: `数字命理${py.year}年(${py.age}岁)个人年9低能量：周期结束清算，需防财务损失`,
+        earliestAge: py.age, latestAge: py.age + 1,
+        probability: 0.25, intensity: 'moderate',
+        causalFactors: [`个人年数9`, `能量${py.energy}`, '周期结束'],
+        triggerConditions: [], deathRelated: false,
+        mergeKey: `age-${py.age}-wealth-crisis`,
+        fateImpact: { wealth: -10, luck: -3 },
+        sourceDetail: `数字命理个人年9财务风险`,
+        sourceFieldPath: `personalYears[year=${py.year}]`,
+        sourceEvidence: `个人年9，能量${py.energy}(<35)`,
+        reasoning: '个人年9为周期终结，低能量期易引发财务清算',
+        confidence: 0.25, conflictTags: ['wealth-crisis-numerology'],
+      });
+      break;
+    }
+  }
+
+  // ── Relationship Dissolution: personal year 7 in mid-life ──
+  for (const py of report.personalYears) {
+    if (py.age < 30 || py.age > 50) continue;
+    if (py.number === 7) {
+      seeds.push({
+        ...B, id: seedId('numerology', 'relationship', py.age, `py-divorce-${py.year}`),
+        category: 'relationship', subcategory: '婚姻危机/离婚',
+        description: `数字命理${py.year}年(${py.age}岁)个人年7：内省孤独期，婚姻关系可能面临疏离`,
+        earliestAge: py.age, latestAge: py.age + 1,
+        probability: 0.25, intensity: 'moderate',
+        causalFactors: [`个人年数7`, '内省孤独'],
+        triggerConditions: [], deathRelated: false,
+        mergeKey: `age-${py.age}-relationship-crisis`,
+        fateImpact: { relation: -8, homeStability: -5 },
+        sourceDetail: `数字命理个人年7婚姻风险`,
+        sourceFieldPath: `personalYears[year=${py.year}]`,
+        sourceEvidence: `个人年7，内省与疏离主题`,
+        reasoning: '个人年7主内省与独处，中年期可能导致婚姻疏离',
+        confidence: 0.25, conflictTags: ['marriage-crisis', 'divorce-risk'],
+      });
+      break;
+    }
+  }
+
+  // ── Parent Death: personal year 9 in late period ──
+  for (const py of report.personalYears) {
+    if (py.age < 40 || py.age > 60) continue;
+    if (py.number === 9 && py.energy < 30) {
+      seeds.push({
+        ...B, id: seedId('numerology', 'death', py.age, `py-parent-death-${py.year}`),
+        category: 'death', subcategory: '亲人离世',
+        description: `数字命理${py.year}年(${py.age}岁)个人年9极低能量：周期结束，有亲人离世风险`,
+        earliestAge: py.age, latestAge: py.age + 2,
+        probability: 0.2, intensity: 'critical',
+        causalFactors: [`个人年数9`, `能量${py.energy}`, '周期终结'],
+        triggerConditions: [], deathRelated: true,
+        mergeKey: `age-${py.age}-death-parent`,
+        fateImpact: { relation: -10, homeStability: -8 },
+        sourceDetail: `数字命理个人年9亲人风险`,
+        sourceFieldPath: `personalYears[year=${py.year}]`,
+        sourceEvidence: `个人年9，能量${py.energy}(<30)`,
+        reasoning: '个人年9为终结年，极低能量期有亲人离世风险',
+        confidence: 0.2, conflictTags: ['death-parent', 'family-loss'],
+      });
+      break;
+    }
+  }
 
   return seeds;
 }

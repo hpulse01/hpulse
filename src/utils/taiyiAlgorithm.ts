@@ -10,7 +10,7 @@
  * - 应期细化（含季节+五行+方位三重判定）
  */
 
-import type { StandardizedInput, FateVector, EngineOutput } from '@/types/prediction';
+import type { StandardizedInput, FateVector, EngineOutput, TimeWindow } from '@/types/prediction';
 
 // ═══════════════════════════════════════════════
 // Types
@@ -486,11 +486,11 @@ function mapToFateVector(result: TaiyiResult): FateVector {
   const taiyiWx = NINE_PALACES.find(p => p.number === result.chart.taiyiGong)!.wuxing;
 
   const wxBoost: Record<string, Record<string, number>> = {
-    '木': { life: 4, wisdom: 5, health: 3, wealth: 0, relation: 2, spirit: 3 },
-    '火': { life: 5, wisdom: 3, health: -2, wealth: 2, relation: 4, spirit: 6 },
-    '土': { life: 2, wisdom: 0, health: 5, wealth: 5, relation: 3, spirit: 0 },
-    '金': { life: 3, wisdom: 4, health: 1, wealth: 4, relation: -1, spirit: 2 },
-    '水': { life: 1, wisdom: 6, health: 3, wealth: 2, relation: 3, spirit: 5 },
+    '木': { life: 4, wisdom: 5, health: 3, wealth: 0, relation: 2, spirit: 3, socialStatus: 3, creativity: 5, luck: 2, homeStability: 2 },
+    '火': { life: 5, wisdom: 3, health: -2, wealth: 2, relation: 4, spirit: 6, socialStatus: 4, creativity: 4, luck: 3, homeStability: -1 },
+    '土': { life: 2, wisdom: 0, health: 5, wealth: 5, relation: 3, spirit: 0, socialStatus: 3, creativity: 0, luck: 2, homeStability: 6 },
+    '金': { life: 3, wisdom: 4, health: 1, wealth: 4, relation: -1, spirit: 2, socialStatus: 4, creativity: 2, luck: 3, homeStability: 2 },
+    '水': { life: 1, wisdom: 6, health: 3, wealth: 2, relation: 3, spirit: 5, socialStatus: 1, creativity: 5, luck: 4, homeStability: 1 },
   };
 
   const boost = wxBoost[taiyiWx] || {};
@@ -512,6 +512,10 @@ function mapToFateVector(result: TaiyiResult): FateVector {
     health: clamp(base + (boost.health || 0) + sm),
     wisdom: clamp(base + (boost.wisdom || 0) + wenChangMod),
     spirit: clamp(base + (boost.spirit || 0) + patternMod + sm),
+    socialStatus: clamp(base + (boost.socialStatus || 0) + patternMod),
+    creativity: clamp(base + (boost.creativity || 0) + wenChangMod),
+    luck: clamp(base + (boost.luck || 0) + patternMod + sm),
+    homeStability: clamp(base + (boost.homeStability || 0)),
   };
 }
 
@@ -553,6 +557,22 @@ export function buildTaiyiEngineOutput(si: StandardizedInput): { eo: EngineOutpu
     warnings: result.meta.warnings,
     uncertaintyNotes: result.meta.uncertaintyNotes,
     timingBasis: 'query',
+    explanationTrace: [
+      `积年: ${result.chart.jiNian}，局数: 第${result.chart.juNumber}局`,
+      `太乙值位: ${result.chart.taiyiZhiWei}`,
+      `主算: 第${result.chart.zhuSuanGong}宫(值${result.chart.zhuSuanValue})`,
+      `客算: 第${result.chart.keSuanGong}宫(值${result.chart.keSuanValue})`,
+      `主客关系: ${result.chart.zhuKeRelation}`,
+      `格局: ${patternNames || '无特殊格局'}`,
+      `太乙十二运: ${result.twelveStage.stage}(${result.twelveStage.strength})`,
+      `三门四户: ${result.sanMenSiHu.interpretation}`,
+      `文昌: ${result.wenChang.interpretation}`,
+    ],
+    completenessScore: 78,
+    validationFlags: { passed: ['ji-nian', 'ju-number', 'taiyi-palace', 'zhu-ke', 'sixteen-spirits', 'twelve-stage', 'san-men-si-hu', 'wen-chang'], failed: [], warnings: ['query-time-based'] },
+    timeWindows: [],
+    aspectScores: { overallAuspiciousness: result.auspiciousness === '大吉' ? 95 : result.auspiciousness === '吉' ? 75 : result.auspiciousness === '中' ? 55 : result.auspiciousness === '凶' ? 30 : 15, patternCount: result.patterns.length },
+    eventCandidates: [`第${result.chart.juNumber}局`, `${result.chart.zhuKeRelation}`, `${result.auspiciousness}`],
   };
 
   return { eo, taiyiResult: result };

@@ -25,7 +25,7 @@ function makeInput(): StandardizedInput {
   };
 }
 
-const BASE_FATE: FateVector = { life: 55, wealth: 50, relation: 50, health: 60, wisdom: 55, spirit: 45 };
+const BASE_FATE: FateVector = { life: 55, wealth: 50, relation: 50, health: 60, wisdom: 55, spirit: 45, socialStatus: 50, creativity: 52, luck: 50, homeStability: 48 };
 
 function buildTestFusionResult() {
   const result = QuantumPredictionEngine.predict({
