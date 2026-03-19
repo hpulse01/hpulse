@@ -41,6 +41,6 @@ describe('PredictionOrchestrator', () => {
   it('keeps death boundary terminal in the unified timeline', () => {
     const report = PredictionOrchestrator.execute(makeInput());
     expect(report.collapseResult).not.toBeNull();
-    expect(report.destinyTimeline.at(-1)?.isTerminal).toBe(true);
+    expect(report.destinyTimeline[report.destinyTimeline.length - 1]?.isTerminal).toBe(true);
   });
 });

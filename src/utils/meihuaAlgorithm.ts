@@ -39,6 +39,8 @@ export interface MeihuaGua {
   name: string;
   /** 卦辞简述 */
   description: string;
+  /** 卦五行属性 */
+  element?: WuXing;
 }
 
 export interface TiYongRelation {

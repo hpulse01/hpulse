@@ -27,16 +27,19 @@ import { useState } from 'react';
 const DIM_ICONS: Record<FateDimension, typeof Sun> = {
   life: Sun, wealth: Coins, relation: Heart,
   health: Activity, wisdom: Brain, spirit: Sparkles,
+  socialStatus: TrendingUp, creativity: Zap, luck: Sparkles, homeStability: Heart,
 };
 
 const DIM_COLORS: Record<FateDimension, string> = {
   life: 'text-amber-400', wealth: 'text-emerald-400', relation: 'text-rose-400',
   health: 'text-purple-400', wisdom: 'text-blue-400', spirit: 'text-indigo-400',
+  socialStatus: 'text-orange-400', creativity: 'text-cyan-400', luck: 'text-yellow-400', homeStability: 'text-pink-400',
 };
 
 const DIM_BAR_COLORS: Record<FateDimension, string> = {
   life: 'bg-amber-500', wealth: 'bg-emerald-500', relation: 'bg-rose-500',
   health: 'bg-purple-500', wisdom: 'bg-blue-500', spirit: 'bg-indigo-500',
+  socialStatus: 'bg-orange-500', creativity: 'bg-cyan-500', luck: 'bg-yellow-500', homeStability: 'bg-pink-500',
 };
 
 function scoreColor(v: number): string {
