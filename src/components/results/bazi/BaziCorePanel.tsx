@@ -129,8 +129,22 @@ export function BaziCorePanel({ bazi }: Props) {
         )}
       </div>
 
-      {bazi.warnings?.length > 0 && <WarningCenter warnings={bazi.warnings} uncertaintyNotes={bazi.uncertaintyNotes} />}
-      {bazi.explanationTrace?.length > 0 && <ExplanationTraceViewer trace={bazi.explanationTrace} />}
+      {bazi.warnings?.length > 0 && (
+        <details className="rounded-md border border-amber-500/25 bg-amber-500/5 px-3 py-2">
+          <summary className="text-[10px] font-mono uppercase tracking-[0.28em] text-amber-300/85 cursor-pointer">⚠ warnings ({bazi.warnings.length})</summary>
+          <ul className="mt-2 space-y-1 text-[11px] text-amber-100/85">
+            {bazi.warnings.map((w, i) => <li key={i}>· {w}</li>)}
+          </ul>
+        </details>
+      )}
+      {bazi.explanationTrace?.length > 0 && (
+        <details className="rounded-md border border-primary/15 bg-card/30 px-3 py-2">
+          <summary className="text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground/70 cursor-pointer">explanation trace ({bazi.explanationTrace.length})</summary>
+          <ol className="mt-2 space-y-1 text-[11px] text-foreground/80 list-decimal list-inside">
+            {bazi.explanationTrace.map((t, i) => <li key={i}>{t}</li>)}
+          </ol>
+        </details>
+      )}
     </div>
   );
 }
