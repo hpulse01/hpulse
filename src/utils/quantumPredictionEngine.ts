@@ -28,6 +28,7 @@ import { runQimen, type QimenResult } from './qimenAlgorithm';
 import { buildLiuRenEngineOutput, type LiuRenResult } from './liurenAlgorithm';
 import { buildTaiyiEngineOutput, type TaiyiResult } from './taiyiAlgorithm';
 import { performDeepBaZiAnalysis, type DeepBaZiAnalysis } from './baziDeepAnalysis';
+import { runCoreEngine, applyCoreOverlay, computeQualityMultiplier } from './p4CoreOverlay';
 
 // Destiny Tree imports
 import { extractTiebanEvents, extractBaziEvents, extractZiweiEvents, extractWesternEvents, extractVedicEvents, extractNumerologyEvents, extractMayanEvents, extractKabbalahEvents, extractInstantEvents } from './eventSeedExtractors';
