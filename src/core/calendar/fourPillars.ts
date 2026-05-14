@@ -40,14 +40,18 @@ export function fourPillarsFromAstro(astro: NormalizedAstroTime): FourPillars {
   const beijingMs = utc.getTime() + BEIJING_OFFSET_MIN * 60_000;
   const bj = new Date(beijingMs);
 
-  // Day-boundary adjustment: if zi-shi-23, treat 23:00–23:59 as the next day's 子时.
+  // Day-boundary adjustment: if zi-shi-23 policy AND the LOCAL hour at the
+  // birth location is 23, treat 23:00–23:59 as the next day's 子时.
+  // (We use Beijing wall-clock for the lunar/day tables, but the day-rollover
+  //  decision must be made by the local clock at the birthplace.)
+  const localHour = astro.localDateTime.hour;
   let effectiveUtc = utc;
-  if (shouldAdvanceDayAt23(astro.dayBoundaryPolicy) && bj.getUTCHours() === 23) {
+  if (shouldAdvanceDayAt23(astro.dayBoundaryPolicy) && localHour === 23) {
     effectiveUtc = new Date(utc.getTime() + 60 * 60_000);
     trace.push({
       rule: 'dayBoundary.zi-shi-23',
-      detail: '23:00–23:59 视为次日子时，日柱前移一日。',
-      data: { originalUtc: astro.utcDateTime, effectiveUtc: effectiveUtc.toISOString() },
+      detail: '23:00–23:59 视为次日子时，日柱前移一日（按出生地本地时刻判断）。',
+      data: { originalUtc: astro.utcDateTime, effectiveUtc: effectiveUtc.toISOString(), localHour },
     });
   }
 
@@ -62,13 +66,24 @@ export function fourPillarsFromAstro(astro: NormalizedAstroTime): FourPillars {
   const month = parseGanzhi(lunar.monthGanzhi);
   const day = parseGanzhi(lunar.dayGanzhi);
 
-  // Hour pillar from day stem + civil hour at Beijing wall clock of the original (NOT advanced) time.
-  const civilHour = bj.getUTCHours();
-  const hour = hourPillarOf(day.stem, civilHour);
+  // Hour pillar: prefer TRUE SOLAR TIME at the birth location (canonical
+  // BaZi rule). Fall back to local civil hour, then Beijing as last resort.
+  let hourSource: 'trueSolar' | 'localCivil' | 'beijingCivil' = 'beijingCivil';
+  let hourForPillar: number = bj.getUTCHours();
+  if (Number.isFinite(astro.trueSolarTime)) {
+    // Wrap into [0,24)
+    const t = ((astro.trueSolarTime % 24) + 24) % 24;
+    hourForPillar = Math.floor(t);
+    hourSource = 'trueSolar';
+  } else if (Number.isFinite(localHour)) {
+    hourForPillar = localHour;
+    hourSource = 'localCivil';
+  }
+  const hour = hourPillarOf(day.stem, hourForPillar);
   trace.push({
     rule: 'hourPillar.五鼠遁',
-    detail: '由日干 + 时辰地支推时柱（五鼠遁）。',
-    data: { dayStem: day.stem, civilHour, hour: hour.ganzhi },
+    detail: '由日干 + 时辰地支推时柱（五鼠遁），时辰按真太阳时取。',
+    data: { dayStem: day.stem, hourForPillar, hourSource, hour: hour.ganzhi },
   });
 
   // Append upstream solar-term context for transparency.
