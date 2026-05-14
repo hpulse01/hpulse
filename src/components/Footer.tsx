@@ -16,7 +16,7 @@ export function Footer() {
             Quantum Destiny Prediction System · {t('footer.desc')}
           </p>
           <p className="text-muted-foreground/30 text-[10px] font-sans">
-            <a href="mailto:001@hpulse.me" className="hover:text-primary/50 transition-colors">001@hpulse.me</a>
+            联系方式：<a href="mailto:hpulse001@gamil.com" className="hover:text-primary/50 transition-colors">hpulse001@gamil.com</a>
             <span className="mx-2">·</span>
             © {new Date().getFullYear()} H-Pulse
           </p>
