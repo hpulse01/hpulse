@@ -28,8 +28,8 @@ describe('numerology/calculate', () => {
     expect(calculateLifePath(1990, 5, 14)).toBe(11);
   });
   it('Personal Year stable', () => {
-    // 5 + 14 + 2026 = 5 + 5 + 1 = 11 (master kept)
-    expect(calculatePersonalYear(5, 14, 2026)).toBe(11);
+    // digits: 5 + (1+4) + (2+0+2+6) = 20 → 2
+    expect(calculatePersonalYear(5, 14, 2026)).toBe(2);
   });
   it('full pipeline deterministic', () => {
     const a = calculateNumerology(INPUT);
