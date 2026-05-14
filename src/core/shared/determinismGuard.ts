@@ -37,13 +37,15 @@ export interface DateUsage {
   looksLikeTiming: boolean;
 }
 
-const TIMING_HINTS = /computationTimeMs|elapsed|t0|tStart|startTime|performance\.now/;
+const TIMING_HINTS = /computationTimeMs|elapsed|t0|tStart|startTime|performance\.now|Date\.now\(\)\s*-\s*/;
+const COMMENT_LINE_RE = /^\s*(\/\/|\*|\/\*)/;
 
 export function scanDateNowUsage(file: string, source: string): DateUsage[] {
   const out: DateUsage[] = [];
   const lines = source.split('\n');
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    if (COMMENT_LINE_RE.test(line)) continue;
     if (DATE_TIME_TOKENS.some(re => re.test(line))) {
       const ctx = lines.slice(Math.max(0, i - 1), Math.min(lines.length, i + 2)).join('\n');
       out.push({
