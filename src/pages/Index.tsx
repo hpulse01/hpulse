@@ -445,7 +445,7 @@ const Index = () => {
                     <HolographicPanel innerPadding="md">
                       <NumerologyCorePanel
                         engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'numerology')}
-                        userName={profile?.full_name ?? null}
+                        userName={profile?.display_name ?? null}
                         currentYear={new Date().getFullYear()}
                       />
                     </HolographicPanel>
@@ -455,7 +455,7 @@ const Index = () => {
                     <HolographicPanel innerPadding="md">
                       <KabbalahCorePanel
                         engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'kabbalah')}
-                        userName={profile?.full_name ?? null}
+                        userName={profile?.display_name ?? null}
                       />
                     </HolographicPanel>
                   </TabsContent>
