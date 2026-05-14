@@ -1,6 +1,9 @@
 import type { EngineOutput } from '@/types/prediction';
 import { SourceGradeBadge } from '@/components/hpulse/SourceGradeBadge';
 import { ImplementationStatusBadge } from '@/components/hpulse/ImplementationStatusBadge';
+import { WarningCenter } from '@/components/hpulse/WarningCenter';
+import { ExplanationTraceViewer } from '@/components/hpulse/ExplanationTraceViewer';
+import { asText, formatPercent, formatScore } from '@/utils/displayFormat';
 
 interface Props {
   bazi: EngineOutput | undefined | null;
@@ -8,11 +11,31 @@ interface Props {
 
 const PILLAR_LABELS = ['年柱', '月柱', '日柱', '时柱'];
 
-/**
- * BaziCorePanel — surfaces the four pillars + day master + pattern from
- * the P4.2 bazi engine's normalizedOutput. Gracefully handles missing
- * data with explicit fallback messaging.
- */
+const STEM_TO_ELEMENT: Record<string, string> = {
+  甲: '木', 乙: '木', 丙: '火', 丁: '火', 戊: '土',
+  己: '土', 庚: '金', 辛: '金', 壬: '水', 癸: '水',
+};
+
+/** Parse "甲子 乙丑 丙寅 丁卯" → individual pillars. */
+function pillarFromLegacy(four: string | undefined, idx: number): string {
+  if (!four) return '';
+  const parts = four.split(/\s+/).filter(Boolean);
+  return parts[idx] ?? '';
+}
+
+/** Parse legacy "甲(木)" → "甲" */
+function dayMasterFromLegacy(legacy: string | undefined): string {
+  if (!legacy) return '';
+  const m = legacy.match(/^(.)(?:\(|（|$)/);
+  return m?.[1] ?? legacy;
+}
+
+/** Parse "偏强(72分)" → "偏强" */
+function strengthLevelFromLegacy(legacy: string | undefined): string {
+  if (!legacy) return '';
+  return legacy.replace(/[(（].*$/, '');
+}
+
 export function BaziCorePanel({ bazi }: Props) {
   if (!bazi) {
     return (
@@ -23,7 +46,25 @@ export function BaziCorePanel({ bazi }: Props) {
   }
 
   const n = bazi.normalizedOutput ?? {};
-  const pillars = [n.yearGZ, n.monthGZ, n.dayGZ, n.hourGZ];
+  const four = asText(n['四柱']);
+
+  // P4 core key → fallback to legacy 中文 key
+  const yearGZ = asText(n.yearGZ) || pillarFromLegacy(four, 0);
+  const monthGZ = asText(n.monthGZ) || pillarFromLegacy(four, 1);
+  const dayGZ = asText(n.dayGZ) || pillarFromLegacy(four, 2);
+  const hourGZ = asText(n.hourGZ) || pillarFromLegacy(four, 3);
+  const pillars = [yearGZ, monthGZ, dayGZ, hourGZ];
+
+  const dayMasterRaw = asText(n.dayMaster) || dayMasterFromLegacy(asText(n['日主']));
+  const dayMaster = dayMasterRaw;
+  const dayMasterElement = asText(n.dayMasterElement) || STEM_TO_ELEMENT[dayMaster] || '';
+  const strengthLevel = asText(n.strengthLevel) || strengthLevelFromLegacy(asText(n['强度']));
+  const strengthScore = asText(n.strengthScore);
+  const pattern = asText(n.pattern) || asText(n['格局']);
+  const usefulGod = asText(n.usefulGod) || asText(n['喜用']);
+  const avoidGod = asText(n.avoidGod) || asText(n['忌']);
+
+  const status = asText(n.implementationStatus) || asText(n.p4ImplementationStatus);
 
   return (
     <div className="space-y-4">
@@ -32,10 +73,10 @@ export function BaziCorePanel({ bazi }: Props) {
           {bazi.engineNameCN || '八字命理'}
         </h3>
         <span className="text-[10px] font-mono text-muted-foreground/70">v{bazi.engineVersion}</span>
-        <ImplementationStatusBadge status={n.implementationStatus} />
+        <ImplementationStatusBadge status={status || undefined} />
         <SourceGradeBadge grade={bazi.sourceGrade} />
         <span className="ml-auto text-[10px] font-mono text-primary/85">
-          conf {((bazi.confidence ?? 0) * 100).toFixed(0)}% · compl {(bazi.completenessScore ?? 0).toFixed(0)}
+          conf {formatPercent(bazi.confidence)} · compl {formatScore(bazi.completenessScore)}
         </span>
       </header>
 
@@ -49,23 +90,28 @@ export function BaziCorePanel({ bazi }: Props) {
         ))}
       </div>
 
-      {/* Day master strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-        <Cell label="日主" value={n.dayMaster} />
-        <Cell label="日主五行" value={n.dayMasterElement} />
-        <Cell label="强弱" value={n.strengthLevel} hint={`score ${n.strengthScore ?? '—'}`} />
-        <Cell label="格局" value={n.pattern} />
+        <Cell label="日主" value={dayMaster} />
+        <Cell label="日主五行" value={dayMasterElement} />
+        <Cell label="强弱" value={strengthLevel} hint={strengthScore ? `score ${strengthScore}` : undefined} />
+        <Cell label="格局" value={pattern} />
       </div>
 
-      <div className="rounded-md border border-primary/15 bg-card/30 px-3 py-2.5">
-        <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground/70">用神 / Useful God</div>
-        <div className="mt-1 text-sm font-serif tracking-wider text-primary/90">{n.usefulGod || '—'}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="rounded-md border border-primary/15 bg-card/30 px-3 py-2.5">
+          <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground/70">用神 · Useful God</div>
+          <div className="mt-1 text-sm font-serif tracking-wider text-primary/90">{usefulGod || '—'}</div>
+        </div>
+        <div className="rounded-md border border-primary/15 bg-card/30 px-3 py-2.5">
+          <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground/70">忌神 · Avoid</div>
+          <div className="mt-1 text-sm font-serif tracking-wider text-foreground/85">{avoidGod || '—'}</div>
+        </div>
       </div>
 
       {/* Da Yun timeline (timeWindows) */}
-      {Array.isArray(bazi.timeWindows) && bazi.timeWindows.length > 0 && (
-        <div>
-          <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground/70 mb-2">大运 · Da Yun</div>
+      <div>
+        <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground/70 mb-2">大运 · Da Yun</div>
+        {Array.isArray(bazi.timeWindows) && bazi.timeWindows.length > 0 ? (
           <div className="overflow-x-auto -mx-1 px-1 scrollbar-thin">
             <ol className="inline-flex gap-2 min-w-full">
               {bazi.timeWindows.map((w, i) => (
@@ -73,13 +119,18 @@ export function BaziCorePanel({ bazi }: Props) {
                   <div className="text-[9px] font-mono text-muted-foreground/70 uppercase tracking-wider">
                     {w.startAge}–{w.endAge}
                   </div>
-                  <div className="mt-1 font-serif text-sm text-primary/90">{w.evidence?.replace('大运 ', '')}</div>
+                  <div className="mt-1 font-serif text-sm text-primary/90">{(w.evidence ?? '').replace('大运 ', '')}</div>
                 </li>
               ))}
             </ol>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="text-[11px] text-muted-foreground/60 italic">暂无大运时间窗 / No Da Yun windows available.</div>
+        )}
+      </div>
+
+      {bazi.warnings?.length > 0 && <WarningCenter warnings={bazi.warnings} uncertaintyNotes={bazi.uncertaintyNotes} />}
+      {bazi.explanationTrace?.length > 0 && <ExplanationTraceViewer trace={bazi.explanationTrace} />}
     </div>
   );
 }
