@@ -366,10 +366,24 @@ const Index = () => {
                     )}
                   </TabsContent>
 
+                  <TabsContent value="bazi" className="mt-5">
+                    <HolographicPanel innerPadding="md">
+                      <BaziCorePanel
+                        bazi={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'bazi')}
+                      />
+                    </HolographicPanel>
+                  </TabsContent>
+
                   <TabsContent value="engines" className="mt-5">
                     {quantumResult.unifiedResult && (
                       <EngineContributionPanel result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
                     )}
+                  </TabsContent>
+
+                  <TabsContent value="audit" className="mt-5">
+                    <HolographicPanel innerPadding="md">
+                      <AuditTracePanel engineOutputs={quantumResult.unifiedResult?.engineOutputs} />
+                    </HolographicPanel>
                   </TabsContent>
 
                   <TabsContent value="tree" className="mt-5">
