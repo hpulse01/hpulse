@@ -55,7 +55,7 @@ export function fourPillarsFromAstro(astro: NormalizedAstroTime): FourPillars {
   trace.push({
     rule: 'lunarFromUtc',
     detail: '使用 lunar-typescript exact-jieqi 表生成年/月/日柱（立春切年，节气切月）。',
-    data: lunar,
+    data: { ...lunar },
   });
 
   const year = parseGanzhi(lunar.yearGanzhi);
