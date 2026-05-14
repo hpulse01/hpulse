@@ -40,6 +40,8 @@ import {
 
 import { AuditTracePanel } from '@/components/results/audit/AuditTracePanel';
 import { BaziCorePanel } from '@/components/results/bazi/BaziCorePanel';
+import { TiebanCorePanel } from '@/components/results/tieban/TiebanCorePanel';
+import { ZiweiCorePanel } from '@/components/results/ziwei/ZiweiCorePanel';
 
 import { HeroMission } from '@/components/hpulse/HeroMission';
 import { SystemStatusBar } from '@/components/hpulse/SystemStatusBar';
