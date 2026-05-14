@@ -1,3 +1,4 @@
+import { formatPercent, formatScore } from '@/utils/displayFormat';
 import type { EngineOutput } from '@/types/prediction';
 import { SourceGradeBadge } from '@/components/hpulse/SourceGradeBadge';
 import { ImplementationStatusBadge } from '@/components/hpulse/ImplementationStatusBadge';
@@ -23,8 +24,8 @@ export function EnginePanelHeader({ engineOutput, fallbackName, extraTags }: Hea
       <SourceGradeBadge grade={engineOutput.sourceGrade} />
       {extraTags}
       <span className="ml-auto text-[10px] font-mono text-primary/85 tabular-nums">
-        conf {((engineOutput.confidence ?? 0) * 100).toFixed(0)}% · compl{' '}
-        {(engineOutput.completenessScore ?? 0).toFixed(0)} · {engineOutput.computationTimeMs ?? 0}ms
+        conf {formatPercent(engineOutput.confidence)} · compl{' '}
+        {formatScore(engineOutput.completenessScore)} · {engineOutput.computationTimeMs ?? 0}ms
       </span>
     </header>
   );
