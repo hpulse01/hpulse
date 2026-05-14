@@ -91,12 +91,15 @@ export function EngineContributionPanel({ result }: Props) {
                   <div className="space-y-1.5">
                     <div className="text-[10px] text-muted-foreground/50 font-sans">{t('engine_panel.key_outputs')}</div>
                     <div className="grid grid-cols-2 gap-1.5">
-                      {Object.entries(eo.normalizedOutput).slice(0, 12).map(([k, v]) => (
-                        <div key={k} className="p-2 rounded-lg bg-card/30 border border-border/10">
-                          <div className="text-[9px] text-muted-foreground/40 font-sans">{k}</div>
-                          <div className="text-[10px] text-foreground/70 truncate font-sans" title={v}>{v || '—'}</div>
-                        </div>
-                      ))}
+                      {Object.entries(eo.normalizedOutput).slice(0, 12).map(([k, v]) => {
+                        const s = v == null ? '' : typeof v === 'string' ? v : (typeof v === 'number' || typeof v === 'boolean') ? String(v) : Array.isArray(v) ? `[${v.length}]` : '{…}';
+                        return (
+                          <div key={k} className="p-2 rounded-lg bg-card/30 border border-border/10">
+                            <div className="text-[9px] text-muted-foreground/40 font-sans">{k}</div>
+                            <div className="text-[10px] text-foreground/70 truncate font-sans" title={s}>{s || '—'}</div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 

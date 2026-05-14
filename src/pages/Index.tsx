@@ -52,6 +52,7 @@ import { VedicCorePanel } from '@/components/results/vedic/VedicCorePanel';
 import { NumerologyCorePanel } from '@/components/results/numerology/NumerologyCorePanel';
 import { MayanCorePanel } from '@/components/results/mayan/MayanCorePanel';
 import { KabbalahCorePanel } from '@/components/results/kabbalah/KabbalahCorePanel';
+import { QuantumCollapsePanel } from '@/components/results/quantum-collapse/QuantumCollapsePanel';
 
 import { HeroMission } from '@/components/hpulse/HeroMission';
 import { SystemStatusBar } from '@/components/hpulse/SystemStatusBar';
@@ -183,6 +184,7 @@ const Index = () => {
       { id: 'path', label: t('tab.path'), icon: Target },
       { id: 'destiny', label: t('tab.destiny'), icon: Scroll },
       { id: 'quantum', label: t('tab.quantum'), icon: Atom },
+      { id: 'quantumCollapse', label: lang === 'zh' ? '量子坍缩' : 'Quantum Collapse', icon: Atom },
     ];
     if (isSuperAdmin) {
       tabs.push({ id: 'orchestration', label: t('tab.orchestration'), icon: Shield });
@@ -511,6 +513,12 @@ const Index = () => {
 
                   <TabsContent value="quantum" className="mt-5">
                     <UnifiedQuantumPanel result={quantumResult} birthYear={birthInput.year} />
+                  </TabsContent>
+
+                  <TabsContent value="quantumCollapse" className="mt-5">
+                    <HolographicPanel innerPadding="md">
+                      <QuantumCollapsePanel quantumResult={quantumResult} />
+                    </HolographicPanel>
                   </TabsContent>
 
                   {isSuperAdmin && unifiedReport && (

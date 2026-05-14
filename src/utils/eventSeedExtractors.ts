@@ -2681,7 +2681,7 @@ export function extractInstantEvents(
   birthYear: number,
 ): DestinyEventSeed[] {
   const seeds: DestinyEventSeed[] = [];
-  const no = eo.normalizedOutput;
+  const no = eo.normalizedOutput as Record<string, string>;
   const queryDate = new Date(queryTimeUtc);
   const queryYear = queryDate.getFullYear();
   const currentAge = queryYear - birthYear;

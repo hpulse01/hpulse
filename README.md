@@ -89,3 +89,39 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md) for details.
 - 13 引擎全部接入结果页 Tab (移动端横向滚动,桌面端可换行)
 - 缺姓名 / 缺希伯来 / 缺 Lagna / 缺 Long Count / 缺月将 → 显式降级,不伪造
 - 详见 [`docs/P5_3_FRONTEND_SYNC.md`](docs/P5_3_FRONTEND_SYNC.md)
+
+---
+
+## P5-FIX (UI Display Fix)
+
+Fixes a class of "engine ran but UI was blank" issues without modifying any
+algorithm code or Supabase configuration:
+
+- `EngineOutput.normalizedOutput` widened from `Record<string,string>` to
+  `Record<string,unknown>` so engines can pass structured data
+  (`palaces[]`, `sihua[]`, `daxian[]`, `liunian[]`, `patterns[]`,
+  `strengthAnalysis`, `clauseLookups`, ...) directly to the UI without
+  lossy stringify.
+- `mergeCoreOverlay` now merges BOTH `legacy.normalizedOutput` AND
+  `core.normalizedOutput` (preserving each under
+  `legacyNormalizedOutput` / `coreNormalizedOutput`) so panels can read
+  canonical P4 keys (`yearGZ`, `dayMaster`, `palaces`, ...) AND legacy
+  Chinese keys (`日主`, `四柱`, `格局`, ...).
+- `BaziCorePanel` now reads both P4 canonical keys and legacy 中文 keys,
+  parses `四柱` into individual pillars, and uses `formatPercent` /
+  `formatScore` helpers for confidence/completeness display.
+- `ZiweiCorePanel` now reads structured `palaces[]`, `sihua[]`, `daxian[]`,
+  `liunian[]`, `patterns[]`, `strengthAnalysis` from `normalizedOutput`,
+  with graceful fallback to `aspectScores`.
+- New `GenericEnginePanel` renders any `EngineOutput` (header, fateVector,
+  normalizedOutput keys, timeWindows, eventCandidates, warnings,
+  uncertaintyNotes, explanationTrace) as a safe fallback.
+- New `QuantumCollapsePanel` + `quantumCollapse` result tab surface the
+  existing legacy / event-driven destiny tree and collapse summary, with
+  an explicit warning that the deterministic P6 Quantum Collapse Core is
+  not yet wired.
+- New `src/utils/displayFormat.ts` (`formatPercent`, `formatScore`,
+  `normalizePercent`, `asText`) unifies display of confidence values
+  whether engines report on a `0..1` or `0..100` scale.
+
+No core algorithm files were rewritten; no Supabase migrations were issued.
