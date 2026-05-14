@@ -76,6 +76,7 @@ const Index = () => {
   const [clauseCount, setClauseCount] = useState<number | null>(null);
   const [activeResultTab, setActiveResultTab] = useState('overview');
   const [unifiedReport, setUnifiedReport] = useState<ReturnType<typeof PredictionOrchestrator.execute> | null>(null);
+  const [selectedKaoKe, setSelectedKaoKe] = useState<KaoKeWithMatch | null>(null);
 
   const { isSuperAdmin } = useAdminAccess();
   const { profile } = useAuth();
