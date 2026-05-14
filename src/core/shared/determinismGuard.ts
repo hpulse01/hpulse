@@ -13,10 +13,49 @@
 
 export const FORBIDDEN_TOKENS: readonly RegExp[] = [
   /\bMath\.random\s*\(/,
-  // Date.now is allowed for performance.now-equivalent timing in adapters,
-  // but never as a value baked into algorithm output. The test enforces
-  // explicit allow-list per file.
 ];
+
+/**
+ * Date.now / new Date() are allowed only when used for measuring elapsed
+ * computation time (computationTimeMs). They must NOT influence the
+ * algorithmic output. Any other usage in src/core is suspicious.
+ *
+ * scanDateNowUsage() returns occurrences with their surrounding line so
+ * the audit can flag misuse. An allow-list of files (adapters that need
+ * to stamp computationTimeMs) is supported.
+ */
+export const DATE_TIME_TOKENS: readonly RegExp[] = [
+  /\bDate\.now\s*\(/,
+  /new\s+Date\s*\(\s*\)/,
+];
+
+export interface DateUsage {
+  file: string;
+  line: number;
+  text: string;
+  /** true if line context suggests timing measurement, not value baking */
+  looksLikeTiming: boolean;
+}
+
+const TIMING_HINTS = /computationTimeMs|elapsed|t0|tStart|startTime|performance\.now/;
+
+export function scanDateNowUsage(file: string, source: string): DateUsage[] {
+  const out: DateUsage[] = [];
+  const lines = source.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (DATE_TIME_TOKENS.some(re => re.test(line))) {
+      const ctx = lines.slice(Math.max(0, i - 1), Math.min(lines.length, i + 2)).join('\n');
+      out.push({
+        file,
+        line: i + 1,
+        text: line.trim(),
+        looksLikeTiming: TIMING_HINTS.test(ctx),
+      });
+    }
+  }
+  return out;
+}
 
 export function findForbidden(source: string): string[] {
   const hits: string[] = [];
