@@ -481,11 +481,13 @@ const Index = () => {
                     )}
                   </TabsContent>
 
+                  {isSuperAdmin && (
                   <TabsContent value="audit" className="mt-5">
                     <HolographicPanel innerPadding="md">
                       <AuditTracePanel engineOutputs={quantumResult.unifiedResult?.engineOutputs} />
                     </HolographicPanel>
                   </TabsContent>
+                  )}
 
                   <TabsContent value="tree" className="mt-5">
                     {quantumResult.destinyTree && quantumResult.collapseResult ? (
