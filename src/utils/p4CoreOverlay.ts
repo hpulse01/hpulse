@@ -59,51 +59,48 @@ export interface CoreOverlayResult {
 /* ───────────────────────── core dispatchers ───────────────────────── */
 
 function runCoreBazi(si: StandardizedInput): EngineOutput {
-  const chart = calculateBaziChart({
+  const input = {
     birthLocalDateTime: si.birthLocalDateTime,
-    birthUtcDateTime: si.birthUtcDateTime,
+    gender: si.gender,
+    timezoneIana: si.timezoneIana,
+    timezoneOffsetMinutes: si.timezoneOffsetMinutesAtBirth,
     geoLatitude: si.geoLatitude,
     geoLongitude: si.geoLongitude,
-    timezoneIana: si.timezoneIana,
-    timezoneOffsetMinutesAtBirth: si.timezoneOffsetMinutesAtBirth,
-    gender: si.gender,
-  } as Parameters<typeof calculateBaziChart>[0]);
-  return baziChartToEngineOutput(chart);
+    queryTimeUtc: si.queryTimeUtc,
+  };
+  const chart = calculateBaziChart(input);
+  return baziChartToEngineOutput(chart, input);
 }
 
 function runCoreZiwei(si: StandardizedInput): EngineOutput {
-  const chart = calculateZiweiChart({
+  const input = {
     birthLocalDateTime: si.birthLocalDateTime,
-    birthUtcDateTime: si.birthUtcDateTime,
+    gender: si.gender,
+    timezoneIana: si.timezoneIana,
     geoLatitude: si.geoLatitude,
     geoLongitude: si.geoLongitude,
-    timezoneIana: si.timezoneIana,
-    timezoneOffsetMinutesAtBirth: si.timezoneOffsetMinutesAtBirth,
-    gender: si.gender,
-  } as Parameters<typeof calculateZiweiChart>[0]);
-  return ziweiChartToEngineOutput(chart);
-}
-
-function runCoreTiebanWrapper(si: StandardizedInput): EngineOutput {
-  return runCoreTieban(si as Parameters<typeof runCoreTieban>[0]);
+    queryTimeUtc: si.queryTimeUtc,
+  };
+  const chart = calculateZiweiChart(input);
+  return ziweiChartToEngineOutput(chart, input);
 }
 
 function runCoreLiuyao(si: StandardizedInput): EngineOutput {
   const chart = calculateHexagram({
+    mode: 'time',
     queryTimeUtc: si.queryTimeUtc,
     timezoneIana: si.timezoneIana,
     questionText: si.questionText,
-    method: 'time',
-  } as Parameters<typeof calculateHexagram>[0]);
+  });
   return liuyaoChartToEngineOutput(chart);
 }
 
 function runCoreMeihuaWrapper(si: StandardizedInput): EngineOutput {
   const chart = calculateMeihua({
-    method: 'time',
+    mode: 'time',
     queryTimeUtc: si.queryTimeUtc,
     timezoneIana: si.timezoneIana,
-  } as Parameters<typeof calculateMeihua>[0]);
+  });
   return meihuaChartToEngineOutput(chart);
 }
 
@@ -113,7 +110,7 @@ function runCoreQimenWrapper(si: StandardizedInput): EngineOutput {
     timezoneIana: si.timezoneIana,
     geoLatitude: si.geoLatitude,
     geoLongitude: si.geoLongitude,
-  } as Parameters<typeof calculateQimenChart>[0]);
+  });
   return qimenChartToEngineOutput(chart);
 }
 
@@ -124,7 +121,7 @@ function runCoreLiurenWrapper(si: StandardizedInput): EngineOutput {
     geoLatitude: si.geoLatitude,
     geoLongitude: si.geoLongitude,
     questionText: si.questionText,
-  } as Parameters<typeof calculateLiurenChart>[0]);
+  });
   return liurenChartToEngineOutput(chart);
 }
 
@@ -132,7 +129,7 @@ function runCoreTaiyiWrapper(si: StandardizedInput): EngineOutput {
   const chart = calculateTaiyiChart({
     queryTimeUtc: si.queryTimeUtc,
     timezoneIana: si.timezoneIana,
-  } as Parameters<typeof calculateTaiyiChart>[0]);
+  });
   return taiyiChartToEngineOutput(chart);
 }
 
