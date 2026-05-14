@@ -899,9 +899,19 @@ function orchestrate(
       age: currentAge,
       activeEngines: executedNames,
     });
-    const weightsUsed: WeightEntry[] = dynamicResult.weights.map(w => ({
-      engineName: w.engineName, weight: w.weight, reason: w.reason,
-    }));
+    const weightsUsed: WeightEntry[] = dynamicResult.weights.map(w => {
+      const eo = engineOutputs.find(e => e.engineName === w.engineName);
+      if (!eo) return { engineName: w.engineName, weight: w.weight, reason: w.reason };
+      const { multiplier, reason } = computeQualityMultiplier(eo);
+      // attach to matching trace entry
+      const tr = executionTrace.find(t => t.engineName === w.engineName && t.success);
+      if (tr) tr.qualityMultiplier = multiplier;
+      return {
+        engineName: w.engineName,
+        weight: w.weight * multiplier,
+        reason: `${w.reason} | p4Quality(x${multiplier.toFixed(2)}): ${reason}`,
+      };
+    });
 
   // Conflict detection & fusion
   const conflicts = detectConflicts(engineOutputs, weightsUsed);
