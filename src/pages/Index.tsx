@@ -52,6 +52,7 @@ import { VedicCorePanel } from '@/components/results/vedic/VedicCorePanel';
 import { NumerologyCorePanel } from '@/components/results/numerology/NumerologyCorePanel';
 import { MayanCorePanel } from '@/components/results/mayan/MayanCorePanel';
 import { KabbalahCorePanel } from '@/components/results/kabbalah/KabbalahCorePanel';
+import { QuantumCollapsePanel } from '@/components/results/quantum-collapse/QuantumCollapsePanel';
 
 import { HeroMission } from '@/components/hpulse/HeroMission';
 import { SystemStatusBar } from '@/components/hpulse/SystemStatusBar';
