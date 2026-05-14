@@ -211,19 +211,12 @@ const Index = () => {
         <div className="container max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             {/* Brand */}
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-lg border border-primary/30 bg-primary/[0.06] flex items-center justify-center shrink-0">
-                <Atom className="w-4 h-4 text-primary" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-base md:text-lg font-serif text-gradient-gold tracking-[0.22em] leading-none">
-                  H-Pulse
-                </h1>
-                <p className="text-[9px] uppercase tracking-[0.32em] text-muted-foreground/65 font-mono mt-0.5 truncate">
-                  Quantum Prediction System
-                </p>
-              </div>
-            </div>
+            <Link to="/" className="flex items-center gap-3 min-w-0 group" aria-label="H-Pulse">
+              <HPulseLogo variant="full" size="md" tone="light" className="shrink-0" />
+              <span className="hidden md:inline text-[9px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono border-l border-border/40 pl-3 ml-1 truncate">
+                Quantum Prediction System
+              </span>
+            </Link>
 
             {/* Status (desktop) */}
             <div className="hidden lg:flex">
