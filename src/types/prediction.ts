@@ -178,7 +178,12 @@ export interface EngineOutput {
   computationTimeMs: number;
   rawInputSnapshot: Record<string, unknown>;
   fateVector: FateVector;
-  normalizedOutput: Record<string, string>;
+  /**
+   * P5-FIX: widened from Record<string,string> to Record<string,unknown>
+   * so engines can pass structured data (palaces[], sihua[], daxian[], etc.)
+   * straight to the UI without lossy stringify.
+   */
+  normalizedOutput: Record<string, unknown>;
   warnings: string[];
   uncertaintyNotes: string[];
   /** What time basis does this engine use: birth time, query time, or hybrid */
