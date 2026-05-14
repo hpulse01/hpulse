@@ -184,6 +184,7 @@ const Index = () => {
       { id: 'path', label: t('tab.path'), icon: Target },
       { id: 'destiny', label: t('tab.destiny'), icon: Scroll },
       { id: 'quantum', label: t('tab.quantum'), icon: Atom },
+      { id: 'quantumCollapse', label: lang === 'zh' ? '量子坍缩' : 'Quantum Collapse', icon: Atom },
     ];
     if (isSuperAdmin) {
       tabs.push({ id: 'orchestration', label: t('tab.orchestration'), icon: Shield });
