@@ -11,8 +11,9 @@
  */
 
 import type {
-  ExplanationStep, Hexagram, LiuyaoCoreInput, SixRelative, YongShenAnalysis, YongShenCategory,
+  Hexagram, LiuyaoCoreInput, SixRelative, YongShenAnalysis, YongShenCategory,
 } from './types';
+import type { ExplanationStep } from '../astro-time/types';
 import { QUESTION_KEYWORDS, RELATIVE_KE, RELATIVE_SHENG, YONGSHEN_RULES } from './constants';
 
 export function selectYongShenCategory(input: LiuyaoCoreInput): {
