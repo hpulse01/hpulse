@@ -53,94 +53,85 @@ export function DisclaimerDialog({ open, onAccept }: DisclaimerDialogProps) {
 
   return (
     <AlertDialog open={open}>
-      <AlertDialogContent className="sm:max-w-lg border-accent/40 bg-gradient-to-b from-card to-card/95">
-        <AlertDialogHeader className="space-y-4">
-          {/* Warning Icon */}
-          <div className="mx-auto w-16 h-16 rounded-full bg-accent/10 border-2 border-accent/30 flex items-center justify-center">
-            <AlertTriangle className="w-8 h-8 text-accent" />
+      <AlertDialogContent className="sm:max-w-xl border-primary/30 bg-gradient-to-br from-card via-card/95 to-card/85 backdrop-blur-xl shadow-[0_20px_80px_-20px_hsl(40_65%_55%_/_0.4)]">
+        {/* Decorative top hairline */}
+        <div
+          aria-hidden
+          className="absolute top-0 left-8 right-8 h-px"
+          style={{
+            background:
+              'linear-gradient(90deg, transparent, hsl(40 65% 55% / 0.6), transparent)',
+          }}
+        />
+        <AlertDialogHeader className="space-y-3">
+          <div className="mx-auto w-14 h-14 rounded-full bg-primary/[0.08] border border-primary/40 flex items-center justify-center">
+            <Shield className="w-6 h-6 text-primary" />
           </div>
-
-          <AlertDialogTitle className="text-xl font-serif text-center tracking-wider text-foreground">
-            重要声明与免责条款
+          <p className="text-center text-[10px] uppercase tracking-[0.45em] text-primary/70 font-mono">
+            H-Pulse · System Disclosure
+          </p>
+          <AlertDialogTitle className="text-xl font-serif text-center tracking-[0.18em] text-gradient-gold">
+            系统使用声明
           </AlertDialogTitle>
-
           <AlertDialogDescription asChild>
-            <div className="text-sm text-muted-foreground text-center">
-              使用本应用前，请仔细阅读以下声明
+            <div className="text-xs text-muted-foreground/80 text-center font-sans leading-relaxed">
+              进入 H-Pulse 量子预测系统前,请确认您已理解以下条款。
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        {/* Scrollable Disclaimer Content */}
-        <ScrollArea className="max-h-[50vh] pr-3">
-          <div className="space-y-4 text-sm leading-relaxed text-foreground/80">
-            {/* Section 1 */}
-            <div className="p-3 rounded-lg bg-accent/5 border border-accent/20">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="w-4 h-4 text-accent flex-shrink-0" />
-                <h3 className="font-semibold text-foreground">一、算法性质说明</h3>
+        <ScrollArea className="max-h-[45vh] pr-3">
+          <div className="space-y-3 text-sm leading-relaxed text-foreground/80">
+            <div className="p-3 rounded-lg bg-primary/[0.04] border border-primary/20">
+              <div className="flex items-center gap-2 mb-1.5">
+                <AlertTriangle className="w-4 h-4 text-primary flex-shrink-0" />
+                <h3 className="font-serif text-foreground tracking-wider text-sm">一、系统性质</h3>
               </div>
-              <p>
-                本应用集成铁板神数、八字命理、紫微斗数、六爻、西方占星、吠陀占星、数字命理、玛雅历法、卡巴拉、
-                梅花易数、奇门遁甲、大六壬、太乙神数等十三大命理体系。所有算法均基于传统数学模型的程序化实现，
-                <strong className="text-accent">不构成任何形式的科学预测、医疗建议、投资建议或人生指导</strong>。
+              <p className="text-xs">
+                H-Pulse 输出的是基于当前输入、当前算法版本与多引擎融合结果生成的生命轨迹预测。
+                系统集成铁板神数、八字、紫微斗数、六爻、西方占星、吠陀、数字、玛雅、卡巴拉、
+                梅花易数、奇门、大六壬、太乙等十三大体系,
+                <strong className="text-primary">不构成科学预测、医疗、投资或人生决策建议</strong>。
               </p>
             </div>
 
-            {/* Section 2 */}
-            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="w-4 h-4 text-primary flex-shrink-0" />
-                <h3 className="font-semibold text-foreground">二、结果仅供参考</h3>
+            <div className="p-3 rounded-lg bg-card/40 border border-border/30">
+              <div className="flex items-center gap-2 mb-1.5">
+                <BookOpen className="w-4 h-4 text-primary/70 flex-shrink-0" />
+                <h3 className="font-serif text-foreground tracking-wider text-sm">二、敏感结果</h3>
               </div>
-              <p>
-                所有推算结果（包括但不限于命运树生成、量子坍缩路径、寿限推断、婚姻/事业/健康预测）
-                均为<strong className="text-primary">基于传统命理理论的数学推演结果</strong>，
-                不代表真实未来，不应作为任何重大人生决策的依据。
+              <p className="text-xs">
+                系统会输出寿数、健康危机、关系破裂、意外等敏感预测。这些为模型坍缩结果,
+                <strong className="text-foreground/95">不代表必然事实</strong>。
+                用户应理解其敏感性,并自行决定如何使用。涉及健康请咨询医生,涉及法律请咨询律师,
+                涉及心理请联系专业人士。
               </p>
             </div>
 
-            {/* Section 3 */}
-            <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-              <div className="flex items-center gap-2 mb-2">
+            <div className="p-3 rounded-lg bg-destructive/[0.06] border border-destructive/25">
+              <div className="flex items-center gap-2 mb-1.5">
                 <Scale className="w-4 h-4 text-destructive flex-shrink-0" />
-                <h3 className="font-semibold text-foreground">三、免责声明</h3>
+                <h3 className="font-serif text-foreground tracking-wider text-sm">三、责任与使用</h3>
               </div>
-              <ul className="list-disc list-inside space-y-1.5 text-foreground/70">
-                <li>本应用对推算结果的准确性、完整性、适用性<strong>不做任何保证</strong></li>
-                <li>用户因使用本应用结果而做出的任何决定，<strong>后果自行承担</strong></li>
-                <li>涉及健康问题请咨询专业医生，涉及法律问题请咨询专业律师</li>
-                <li>涉及心理健康问题请联系专业心理咨询师或拨打心理援助热线</li>
-                <li>本应用<strong>严禁</strong>用于封建迷信活动或欺骗他人</li>
-              </ul>
-            </div>
-
-            {/* Section 4 */}
-            <div className="p-3 rounded-lg bg-muted/50 border border-border/30">
-              <div className="flex items-center gap-2 mb-2">
-                <BookOpen className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <h3 className="font-semibold text-foreground">四、使用须知</h3>
-              </div>
-              <ul className="list-disc list-inside space-y-1.5 text-foreground/70">
-                <li>本应用仅为<strong>传统文化研究与个人兴趣</strong>提供工具性辅助</li>
-                <li>用户应以<strong>理性、科学</strong>的态度看待所有推算结果</li>
-                <li>未满18周岁的用户应在监护人指导下使用</li>
-                <li>继续使用即表示您已充分理解并同意以上全部条款</li>
+              <ul className="list-disc list-inside space-y-1 text-xs text-foreground/75">
+                <li>系统对结果的准确性、完整性、适用性<strong>不做任何保证</strong></li>
+                <li>用户基于结果做出的任何决定,<strong>后果自行承担</strong></li>
+                <li>严禁用于封建迷信活动、欺骗他人或鼓励违法及伤害行为</li>
+                <li>未满18周岁应在监护人指导下使用</li>
               </ul>
             </div>
           </div>
         </ScrollArea>
 
-        {/* Checkbox */}
-        <div className="flex items-start gap-3 p-3 rounded-lg border border-accent/30 bg-accent/5 mt-2">
+        <div className="flex items-start gap-3 p-3 rounded-lg border border-primary/30 bg-primary/[0.04] mt-2">
           <Checkbox
             id="disclaimer-accept"
             checked={checked}
             onCheckedChange={(v) => setChecked(v === true)}
-            className="mt-0.5 border-accent/50 data-[state=checked]:bg-accent data-[state=checked]:border-accent"
+            className="mt-0.5 border-primary/50 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
           />
-          <label htmlFor="disclaimer-accept" className="text-sm text-foreground cursor-pointer leading-snug select-none">
-            我已仔细阅读并充分理解以上声明，了解所有推算结果<strong className="text-accent">仅供参考、不构成任何建议</strong>，
+          <label htmlFor="disclaimer-accept" className="text-xs text-foreground/90 cursor-pointer leading-snug select-none font-sans">
+            我已仔细阅读并理解以上声明,知晓所有结果<strong className="text-primary">仅为模型坍缩输出</strong>,
             自愿承担使用风险。
           </label>
         </div>
@@ -149,9 +140,9 @@ export function DisclaimerDialog({ open, onAccept }: DisclaimerDialogProps) {
           <AlertDialogAction
             onClick={handleAccept}
             disabled={!checked}
-            className="w-full sm:w-auto px-8 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto px-10 py-5 font-serif tracking-[0.25em] disabled:opacity-40 disabled:cursor-not-allowed bg-primary hover:bg-primary/90"
           >
-            我已理解，同意并继续
+            我理解并进入系统
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
