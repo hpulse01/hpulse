@@ -155,6 +155,8 @@ const Index = () => {
     const tabs = [
       { id: 'overview', label: t('tab.overview'), icon: Sparkles },
       { id: 'bazi', label: lang === 'zh' ? '八字' : 'Bazi', icon: BookOpen },
+      { id: 'tieban', label: lang === 'zh' ? '铁板' : 'Tieban', icon: Scroll },
+      { id: 'ziwei', label: lang === 'zh' ? '紫微' : 'Ziwei', icon: Atom },
       { id: 'engines', label: t('tab.engines'), icon: Layers },
       { id: 'audit', label: lang === 'zh' ? '算法审计' : 'Audit', icon: Activity },
       { id: 'tree', label: t('tab.tree'), icon: TreePine },
