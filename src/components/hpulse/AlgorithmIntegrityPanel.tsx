@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { EngineOutput } from '@/types/prediction';
 import { AuditMetricCard } from './AuditMetricCard';
 import { Activity } from 'lucide-react';
+import { normalizePercent } from '@/utils/displayFormat';
 
 interface Props {
   engineOutputs: EngineOutput[] | undefined | null;
@@ -22,7 +23,7 @@ export function AlgorithmIntegrityPanel({ engineOutputs, className }: Props) {
       else if (status === 'partial' || status === 'partial_rules') partial++;
       else if (status === 'needs_source_validation') nsv++;
       if (e.validationFlags?.failed?.length) failed++;
-      totalConf += typeof e.confidence === 'number' ? e.confidence : 0;
+      totalConf += normalizePercent(e.confidence) ?? 0;
       totalComp += typeof e.completenessScore === 'number' ? e.completenessScore : 0;
       warns += e.warnings?.length ?? 0;
       traces += e.explanationTrace?.length ?? 0;
@@ -31,7 +32,7 @@ export function AlgorithmIntegrityPanel({ engineOutputs, className }: Props) {
     return {
       total: list.length,
       complete, partial, nsv, failed,
-      avgConf: (totalConf / n) * 100,
+      avgConf: totalConf / n,
       avgComp: totalComp / n,
       warns, traces,
     };
