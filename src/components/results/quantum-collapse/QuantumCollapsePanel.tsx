@@ -101,11 +101,20 @@ export function QuantumCollapsePanel({ quantumResult }: Props) {
       {timeline.length > 0 && (
         <Section title={`事件时间线 · Destiny Timeline (${timeline.length})`}>
           <ul className="space-y-1 text-[11px] font-mono text-foreground/80 max-h-64 overflow-y-auto">
-            {timeline.slice(0, 60).map((e, i) => (
-              <li key={i} className="border-b border-primary/5 py-1">
-                · {('age' in e ? `[age ${e.age}]` : '')} {('description' in e ? String(e.description) : JSON.stringify(e).slice(0, 80))}
-              </li>
-            ))}
+            {timeline.slice(0, 60).map((e, i) => {
+              const age = (e as Record<string, unknown>).age;
+              const desc = (e as Record<string, unknown>).description;
+              const descText = typeof desc === 'string'
+                ? desc
+                : typeof desc === 'number' || typeof desc === 'boolean'
+                  ? String(desc)
+                  : '—';
+              return (
+                <li key={i} className="border-b border-primary/5 py-1 break-words">
+                  · {age != null ? `[age ${age}] ` : ''}{descText}
+                </li>
+              );
+            })}
           </ul>
         </Section>
       )}
