@@ -47,8 +47,9 @@ describe('generateTiebanReport', () => {
 
   it('marks fallback transparently when exact id is missing', async () => {
     const cal = applyCalibration(base, candidate);
+    // Only every 7th id has content → many requested ids miss → nearest-neighbor fallback used.
     const report = await generateTiebanReport(base, quarter, cal, {
-      clauseProvider: (n) => (n % 5 === 0 ? { content: `回退条文 ${n}` } : null),
+      clauseProvider: (n) => (n % 7 === 0 ? { content: `回退条文 ${n}` } : null),
     });
     const anyFallback = report.clauseLookups.some(
       (m) => !m.exactMatch && m.fallbackReason === 'NEAREST_NEIGHBOR',
