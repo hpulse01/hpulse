@@ -166,7 +166,8 @@ const Index = () => {
     // Public tabs — visible to all users
     const publicTabs = [
       { id: 'overview', label: t('tab.overview'), icon: Sparkles },
-      { id: 'tieban', label: lang === 'zh' ? '铁板命盘' : 'Tieban', icon: Scroll },
+      { id: 'tieban', label: lang === 'zh' ? '铁板' : 'Tieban', icon: Scroll },
+      { id: 'destiny', label: lang === 'zh' ? '铁板命盘' : 'Destiny Chart', icon: Scroll },
       { id: 'engines', label: t('tab.engines'), icon: Layers },
       { id: 'tree', label: t('tab.tree'), icon: TreePine },
       { id: 'path', label: t('tab.path'), icon: Target },
@@ -188,7 +189,6 @@ const Index = () => {
       { id: 'mayan', label: lang === 'zh' ? '玛雅' : 'Mayan', icon: BookOpen },
       { id: 'kabbalah', label: lang === 'zh' ? '卡巴拉' : 'Kabbalah', icon: BookOpen },
       { id: 'audit', label: lang === 'zh' ? '算法审计' : 'Audit', icon: Activity },
-      { id: 'destiny', label: t('tab.destiny'), icon: Scroll },
     ];
     const tabs = isSuperAdmin ? [...publicTabs, ...adminAlgoTabs] : publicTabs;
     if (isSuperAdmin) {
@@ -509,7 +509,6 @@ const Index = () => {
                     )}
                   </TabsContent>
 
-                  {isSuperAdmin && (
                   <TabsContent value="destiny" className="mt-5">
                     <DestinyDashboard
                       report={fullReport}
@@ -526,7 +525,6 @@ const Index = () => {
                       onReset={handleReset}
                     />
                   </TabsContent>
-                  )}
                   <TabsContent value="quantum" className="mt-5">
                     <UnifiedQuantumPanel result={quantumResult} birthYear={birthInput.year} />
                   </TabsContent>
