@@ -179,11 +179,11 @@ export function calculateHexagram(input: LiuyaoCoreInput): LiuyaoChart {
     // Build calendar to get year/month/day/hour-branch numbers (use lunar for plum-blossom)
     const cal = buildCalendarContext(input, warnings, trace);
     if (!cal) throw new Error('time mode failed: calendar context unavailable');
-    const yearNum = STEMS.indexOf(cal.yearGanzhi.charAt(0)) + 1
-                  + (BRANCHES.indexOf(cal.yearGanzhi.charAt(1)) + 1);
-    const monthNum = BRANCHES.indexOf(cal.monthGanzhi.charAt(1)) + 1;
-    const dayNum = BRANCHES.indexOf(cal.dayGanzhi.charAt(1)) + 1;
-    const hourBranchIdx = BRANCHES.indexOf(cal.hourGanzhi.charAt(1)) + 1;
+    const yearNum = (STEMS as readonly string[]).indexOf(cal.yearGanzhi.charAt(0)) + 1
+                  + ((BRANCHES as readonly string[]).indexOf(cal.yearGanzhi.charAt(1)) + 1);
+    const monthNum = (BRANCHES as readonly string[]).indexOf(cal.monthGanzhi.charAt(1)) + 1;
+    const dayNum = (BRANCHES as readonly string[]).indexOf(cal.dayGanzhi.charAt(1)) + 1;
+    const hourBranchIdx = (BRANCHES as readonly string[]).indexOf(cal.hourGanzhi.charAt(1)) + 1;
     const cast = castFromTime(yearNum, monthNum, dayNum, hourBranchIdx);
     rawLines = rawLinesFromTrigramsAndChange(cast.lowerIdx, cast.upperIdx, cast.changingPos);
     castingSource = `time:${input.queryTimeUtc}|tz=${input.timezoneIana}|lower=${cast.lowerIdx}|upper=${cast.upperIdx}|动爻=${cast.changingPos}`;
@@ -225,7 +225,7 @@ export function calculateHexagram(input: LiuyaoCoreInput): LiuyaoChart {
   trace.push({
     rule: 'liuyao.palace',
     detail: `归 ${palace.palace} 宫(${palace.palaceElement})，世爻第 ${palace.shiYao} 爻，应爻第 ${palace.yingYao} 爻 (gongOrder=${palace.gongOrder})。`,
-    data: palace,
+    data: { ...palace } as Record<string, unknown>,
   });
 
   // 6. 六亲 + 六神 + 旺衰
