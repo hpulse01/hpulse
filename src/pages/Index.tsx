@@ -149,7 +149,9 @@ const Index = () => {
   const resultTabs = useMemo(() => {
     const tabs = [
       { id: 'overview', label: t('tab.overview'), icon: Sparkles },
+      { id: 'bazi', label: lang === 'zh' ? '八字' : 'Bazi', icon: BookOpen },
       { id: 'engines', label: t('tab.engines'), icon: Layers },
+      { id: 'audit', label: lang === 'zh' ? '算法审计' : 'Audit', icon: Activity },
       { id: 'tree', label: t('tab.tree'), icon: TreePine },
       { id: 'path', label: t('tab.path'), icon: Target },
       { id: 'destiny', label: t('tab.destiny'), icon: Scroll },
@@ -159,7 +161,7 @@ const Index = () => {
       tabs.push({ id: 'orchestration', label: t('tab.orchestration'), icon: Shield });
     }
     return tabs;
-  }, [isSuperAdmin, t]);
+  }, [isSuperAdmin, t, lang]);
 
   const isResultStep = step === 'result';
 
