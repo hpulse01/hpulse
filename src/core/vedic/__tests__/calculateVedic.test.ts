@@ -67,7 +67,8 @@ describe('vedic/calculateChart', () => {
       expect(periods[i].startUtc).toBe(periods[i - 1].endUtc);
     }
     const total = periods.reduce((s, p) => s + p.years, 0);
-    expect(total).toBeGreaterThan(110);
+    // First period is partial (balance of birth nakshatra) → total = 120 - traversed.
+    expect(total).toBeGreaterThan(100);
     expect(total).toBeLessThanOrEqual(120);
   });
 
