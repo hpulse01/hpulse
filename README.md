@@ -75,3 +75,9 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md) for details.
 - [`docs/RESPONSIVE_DESIGN.md`](docs/RESPONSIVE_DESIGN.md) — desktop / tablet / mobile layout
 - [`docs/ENGINE_OUTPUT_SCHEMA.md`](docs/ENGINE_OUTPUT_SCHEMA.md) — `EngineOutput` field contract
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — phased roadmap
+
+## P5.1 (2026-05) — 铁板/紫微 UI 接入
+- 新增 17 个 panel 组件,完整暴露铁板的 baseNumber / theoreticalBase / quarterKe / systemOffset / clauseLookup / 六亲校时 / 9 大报告分区
+- 紫微展示十二宫、四化、大限、流年、格局、命格强度、星曜矩阵
+- 复用 P5 共享审计组件,无重复造轮子
+- 文档总数:README + 8 个 docs 文档(共 9 个 Markdown 文件)
