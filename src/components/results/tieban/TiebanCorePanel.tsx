@@ -1,3 +1,4 @@
+import { formatPercent, formatScore } from '@/utils/displayFormat';
 import type { EngineOutput } from '@/types/prediction';
 import type { FullDestinyReport, KaoKeWithMatch, CalibrationResult } from '@/utils/tiebanAlgorithm';
 import { SourceGradeBadge } from '@/components/hpulse/SourceGradeBadge';
@@ -64,7 +65,7 @@ export function TiebanCorePanel(props: Props) {
         <ImplementationStatusBadge status={norm.implementationStatus} />
         <SourceGradeBadge grade={engineOutput?.sourceGrade} />
         <span className="ml-auto text-[10px] font-mono text-primary/85 tabular-nums">
-          conf {((engineOutput?.confidence ?? 0) * 100).toFixed(0)}% · compl {(engineOutput?.completenessScore ?? 0).toFixed(0)}
+          conf {{formatPercent(engineOutput?.confidence)} · compl {{formatScore(engineOutput?.completenessScore)}
         </span>
       </header>
 

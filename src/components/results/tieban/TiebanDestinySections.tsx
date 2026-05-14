@@ -1,3 +1,4 @@
+import { formatPercent, formatScore } from '@/utils/displayFormat';
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, Shield } from 'lucide-react';
 import { ClauseLookupPanel, type ClauseLookupItem } from './ClauseLookupPanel';
@@ -71,7 +72,7 @@ function SectionRow({ s }: { s: DestinySectionView }) {
           {sensitive && <Shield className="w-3 h-3 text-destructive/80 ml-1" aria-label="sensitive" />}
         </span>
         <span className="text-[10px] font-mono text-muted-foreground/65 tabular-nums">
-          conf {((s.confidence ?? 0) * 100).toFixed(0)}%
+          conf {{formatPercent(s.confidence)}
         </span>
       </button>
       {open && (
