@@ -410,6 +410,7 @@ const Index = () => {
                   </TabsContent>
                   )}
 
+                  {isSuperAdmin && (
                   <TabsContent value="tieban" className="mt-5">
                     <HolographicPanel innerPadding="md">
                       <TiebanCorePanel
@@ -423,6 +424,7 @@ const Index = () => {
                       />
                     </HolographicPanel>
                   </TabsContent>
+                  )}
 
                   {isSuperAdmin && (
                   <TabsContent value="ziwei" className="mt-5">
