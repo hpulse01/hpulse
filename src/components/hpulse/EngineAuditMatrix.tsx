@@ -69,8 +69,8 @@ export function EngineAuditMatrix({ engineOutputs, className }: Props) {
                 </td>
                 <td className="px-3 py-2"><ImplementationStatusBadge status={statusOf(e)} /></td>
                 <td className="px-3 py-2"><SourceGradeBadge grade={e.sourceGrade} /></td>
-                <td className="px-3 py-2 text-right font-mono text-primary/90">{{formatPercent(e.confidence)}</td>
-                <td className="px-3 py-2 text-right font-mono">{{formatScore(e.completenessScore)}</td>
+                <td className="px-3 py-2 text-right font-mono text-primary/90">{formatPercent(e.confidence)}</td>
+                <td className="px-3 py-2 text-right font-mono">{formatScore(e.completenessScore)}</td>
                 <td className={`px-3 py-2 text-right font-mono ${(e.warnings?.length ?? 0) > 0 ? 'text-amber-300' : 'text-muted-foreground/60'}`}>
                   {e.warnings?.length ?? 0}
                 </td>
@@ -99,8 +99,8 @@ export function EngineAuditMatrix({ engineOutputs, className }: Props) {
               </div>
             </div>
             <div className="grid grid-cols-4 gap-2 mt-3 text-[10px] font-mono">
-              <div><div className="text-muted-foreground/60">Conf</div><div className="text-primary/90">{{formatPercent(e.confidence)}</div></div>
-              <div><div className="text-muted-foreground/60">Compl</div><div>{{formatScore(e.completenessScore)}</div></div>
+              <div><div className="text-muted-foreground/60">Conf</div><div className="text-primary/90">{formatPercent(e.confidence)}</div></div>
+              <div><div className="text-muted-foreground/60">Compl</div><div>{formatScore(e.completenessScore)}</div></div>
               <div><div className="text-muted-foreground/60">Warn</div><div className={(e.warnings?.length ?? 0) > 0 ? 'text-amber-300' : ''}>{e.warnings?.length ?? 0}</div></div>
               <div><div className="text-muted-foreground/60">ms</div><div>{(e.computationTimeMs ?? 0).toFixed(1)}</div></div>
             </div>

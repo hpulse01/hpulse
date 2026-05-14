@@ -24,8 +24,8 @@ export function EnginePanelHeader({ engineOutput, fallbackName, extraTags }: Hea
       <SourceGradeBadge grade={engineOutput.sourceGrade} />
       {extraTags}
       <span className="ml-auto text-[10px] font-mono text-primary/85 tabular-nums">
-        conf {{formatPercent(engineOutput.confidence)} · compl{' '}
-        {{formatScore(engineOutput.completenessScore)} · {engineOutput.computationTimeMs ?? 0}ms
+        conf {formatPercent(engineOutput.confidence)} · compl{' '}
+        {formatScore(engineOutput.completenessScore)} · {engineOutput.computationTimeMs ?? 0}ms
       </span>
     </header>
   );

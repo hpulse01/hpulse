@@ -67,7 +67,7 @@ export function LiuYaoCorePanel({ engineOutput }: Props) {
         <SourceGradeBadge grade={engineOutput.sourceGrade} />
         {norm.castingSource && <span className="text-[10px] font-mono text-muted-foreground/65">起卦 · {norm.castingSource}</span>}
         <span className="ml-auto text-[10px] font-mono text-primary/85 tabular-nums">
-          conf {{formatPercent(engineOutput.confidence)} · compl {{formatScore(engineOutput.completenessScore)}
+          conf {formatPercent(engineOutput.confidence)} · compl {formatScore(engineOutput.completenessScore)}
         </span>
       </header>
 

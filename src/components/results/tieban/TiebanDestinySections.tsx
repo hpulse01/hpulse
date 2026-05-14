@@ -72,7 +72,7 @@ function SectionRow({ s }: { s: DestinySectionView }) {
           {sensitive && <Shield className="w-3 h-3 text-destructive/80 ml-1" aria-label="sensitive" />}
         </span>
         <span className="text-[10px] font-mono text-muted-foreground/65 tabular-nums">
-          conf {{formatPercent(s.confidence)}
+          conf {formatPercent(s.confidence)}
         </span>
       </button>
       {open && (

@@ -65,7 +65,7 @@ export function TiebanCorePanel(props: Props) {
         <ImplementationStatusBadge status={norm.implementationStatus} />
         <SourceGradeBadge grade={engineOutput?.sourceGrade} />
         <span className="ml-auto text-[10px] font-mono text-primary/85 tabular-nums">
-          conf {{formatPercent(engineOutput?.confidence)} · compl {{formatScore(engineOutput?.completenessScore)}
+          conf {formatPercent(engineOutput?.confidence)} · compl {formatScore(engineOutput?.completenessScore)}
         </span>
       </header>
 

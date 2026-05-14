@@ -19,7 +19,7 @@ export function MeihuaAuditTrace({ engineOutput }: Props) {
         <ImplementationStatusBadge status={norm.implementationStatus} />
         <SourceGradeBadge grade={engineOutput.sourceGrade} />
         <span className="ml-auto text-[10px] font-mono text-primary/85 tabular-nums">
-          conf {{formatPercent(engineOutput.confidence)} · compl {{formatScore(engineOutput.completenessScore)} · {engineOutput.computationTimeMs ?? 0}ms
+          conf {formatPercent(engineOutput.confidence)} · compl {formatScore(engineOutput.completenessScore)} · {engineOutput.computationTimeMs ?? 0}ms
         </span>
       </div>
       {engineOutput.uncertaintyNotes && engineOutput.uncertaintyNotes.length > 0 && (

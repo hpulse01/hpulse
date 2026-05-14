@@ -27,7 +27,7 @@ export function TiebanAuditTrace({ engineOutput }: Props) {
         <ImplementationStatusBadge status={status} />
         <SourceGradeBadge grade={sourceGrade} />
         <span className="ml-auto text-[10px] font-mono text-primary/85 tabular-nums">
-          conf {{formatPercent(confidence)} · compl {{formatScore(completenessScore)}
+          conf {formatPercent(confidence)} · compl {formatScore(completenessScore)}
         </span>
       </div>
       {validationFlags && (
