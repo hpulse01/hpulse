@@ -424,6 +424,42 @@ const Index = () => {
                     </HolographicPanel>
                   </TabsContent>
 
+                  {([
+                    ['liuyao', LiuYaoCorePanel],
+                    ['meihua', MeihuaCorePanel],
+                    ['qimen', QimenCorePanel],
+                    ['liuren', LiuRenCorePanel],
+                    ['taiyi', TaiyiCorePanel],
+                    ['western', WesternCorePanel],
+                    ['vedic', VedicCorePanel],
+                    ['mayan', MayanCorePanel],
+                  ] as const).map(([id, Comp]) => (
+                    <TabsContent key={id} value={id} className="mt-5">
+                      <HolographicPanel innerPadding="md">
+                        <Comp engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === id)} />
+                      </HolographicPanel>
+                    </TabsContent>
+                  ))}
+
+                  <TabsContent value="numerology" className="mt-5">
+                    <HolographicPanel innerPadding="md">
+                      <NumerologyCorePanel
+                        engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'numerology')}
+                        userName={profile?.full_name ?? null}
+                        currentYear={new Date().getFullYear()}
+                      />
+                    </HolographicPanel>
+                  </TabsContent>
+
+                  <TabsContent value="kabbalah" className="mt-5">
+                    <HolographicPanel innerPadding="md">
+                      <KabbalahCorePanel
+                        engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'kabbalah')}
+                        userName={profile?.full_name ?? null}
+                      />
+                    </HolographicPanel>
+                  </TabsContent>
+
                   <TabsContent value="engines" className="mt-5">
                     {quantumResult.unifiedResult && (
                       <EngineContributionPanel result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
