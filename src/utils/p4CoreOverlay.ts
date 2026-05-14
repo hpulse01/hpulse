@@ -22,7 +22,6 @@ import type { EngineOutput, StandardizedInput } from '@/types/prediction';
 
 import { calculateBaziChart, baziChartToEngineOutput } from '@/core/bazi';
 import { calculateZiweiChart, ziweiChartToEngineOutput } from '@/core/ziwei';
-import { runTieban as runCoreTieban } from '@/core/tieban';
 import { calculateHexagram, liuyaoChartToEngineOutput } from '@/core/liuyao';
 import { calculateMeihua, meihuaChartToEngineOutput } from '@/core/meihua';
 import { calculateQimenChart, qimenChartToEngineOutput } from '@/core/qimen';
@@ -34,9 +33,14 @@ import { calculateNumerology, numerologyToEngineOutput } from '@/core/numerology
 import { calculateMayan, mayanToEngineOutput } from '@/core/mayan';
 import { calculateKabbalah, kabbalahToEngineOutput } from '@/core/kabbalah';
 
-/** Engines wired to a P4 core adapter. */
+/**
+ * Engines wired to a P4 core adapter.
+ * `tieban` core requires multi-step (normalizeBirthTime + base + report)
+ * wiring + KaoKe family-facts; not yet exposed as a single-call adapter.
+ * It is intentionally OMITTED — its legacy output passes through unchanged.
+ */
 export const CORE_ENGINE_NAMES = [
-  'bazi', 'ziwei', 'tieban',
+  'bazi', 'ziwei',
   'liuyao', 'meihua', 'qimen', 'liuren', 'taiyi',
   'western', 'vedic', 'numerology', 'mayan', 'kabbalah',
 ] as const;
