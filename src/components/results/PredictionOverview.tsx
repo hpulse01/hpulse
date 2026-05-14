@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import type { UnifiedPredictionResult, FateDimension } from '@/types/prediction';
 import { ALL_FATE_DIMENSIONS } from '@/types/prediction';
 import { useI18n } from '@/hooks/useI18n';
+import { normalizePercent, formatPercent } from '@/utils/displayFormat';
 import {
   Sun, Coins, Heart, Activity, Brain, Sparkles,
   CheckCircle, AlertTriangle, Zap, Crown, Palette, Clover, Home,
