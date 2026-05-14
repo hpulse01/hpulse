@@ -25,12 +25,12 @@ describe('calculateTiebanBase', () => {
   });
 
   it('rawQuarterIndex matches minute mapping', () => {
-    // hour=14 → minuteInShichen = (14%2)*60 + 30 = 90 → quarter 6
+    // hour=14 (even) → minuteInShichen = 0 + 30 = 30 → quarter = 2, offset 0
     const astro = normalizeBirthTime({
       birthLocalDateTime: { year: 1995, month: 6, day: 15, hour: 14, minute: 30 }, ...SH,
     });
     const r = calculateTiebanBase(astro, 'male');
-    expect(r.rawQuarterIndex).toBe(6);
+    expect(r.rawQuarterIndex).toBe(2);
     expect(r.minuteOffset).toBe(0);
   });
 
