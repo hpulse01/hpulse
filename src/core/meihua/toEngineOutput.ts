@@ -33,7 +33,7 @@ function buildFateVector(chart: MeihuaChart): { vector: FateVector; trace: strin
   return {
     vector: {
       life:          dim('life',          (base + conf) / 2 + trendBias),
-      wealth:        dim('wealth',        base + (eb as { wealth?: number }).wealth ?? 0 + trendBias),
+      wealth:        dim('wealth',        base + ((eb as { wealth?: number }).wealth ?? 0) + trendBias),
       relation:      dim('relation',      base + trendBias),
       health:        dim('health',        base + ((eb as { health?: number }).health ?? 0) + trendBias),
       wisdom:        dim('wisdom',        base + ((eb as { wisdom?: number }).wisdom ?? 0)),
