@@ -21,6 +21,7 @@ import {
   Clock, Zap, Timer, Layers,
 } from 'lucide-react';
 import { useState } from 'react';
+import { formatPercent, normalizePercent } from '@/utils/displayFormat';
 
 // ── Dimension icons & colors ──
 
