@@ -110,6 +110,7 @@ const Index = () => {
     selectedOption: KaoKeWithMatch
   ) => {
     setStep('projecting');
+    setSelectedKaoKe(selectedOption);
     try {
       await new Promise(resolve => setTimeout(resolve, 2000));
       const systemOffset = TiebanEngine.calculateSystemOffset(theoreticalBase, selectedOption.clauseNumber);
