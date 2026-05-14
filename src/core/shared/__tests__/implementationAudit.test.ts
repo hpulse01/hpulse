@@ -23,7 +23,7 @@ function eo(over: Partial<EngineOutput>): EngineOutput {
     warnings: [],
     uncertaintyNotes: [],
     timingBasis: 'birth',
-    explanationTrace: ['s1', 's2'],
+    explanationTrace: ['step one detail', 'step two detail'],
     completenessScore: 80,
     validationFlags: { passed: [], failed: [], warnings: [] },
     timeWindows: [],
