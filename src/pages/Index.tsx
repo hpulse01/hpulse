@@ -166,7 +166,8 @@ const Index = () => {
     // Public tabs — visible to all users
     const publicTabs = [
       { id: 'overview', label: t('tab.overview'), icon: Sparkles },
-      { id: 'tieban', label: lang === 'zh' ? '铁板命盘' : 'Tieban', icon: Scroll },
+      { id: 'tieban', label: lang === 'zh' ? '铁板' : 'Tieban', icon: Scroll },
+      { id: 'destiny', label: lang === 'zh' ? '铁板命盘' : 'Destiny Chart', icon: Scroll },
       { id: 'engines', label: t('tab.engines'), icon: Layers },
       { id: 'tree', label: t('tab.tree'), icon: TreePine },
       { id: 'path', label: t('tab.path'), icon: Target },
