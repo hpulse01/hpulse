@@ -256,7 +256,13 @@ export function mergeCoreOverlay(legacy: EngineOutput, core: EngineOutput): Engi
     },
     aspectScores: { ...legacy.aspectScores, ...core.aspectScores },
     normalizedOutput: {
+      // P5-FIX: merge legacy + core normalizedOutput so UI panels can read
+      // canonical core keys (yearGZ/dayMaster/palaces/sihua/...) AND legacy
+      // 中文 keys (四柱/日主/格局/...) without re-stringifying structured data.
       ...legacy.normalizedOutput,
+      ...core.normalizedOutput,
+      legacyNormalizedOutput: legacy.normalizedOutput,
+      coreNormalizedOutput: core.normalizedOutput,
       p4CoreVersion: core.engineVersion,
       p4ImplementationStatus: core.normalizedOutput?.implementationStatus ?? 'unknown',
     },
