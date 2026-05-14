@@ -109,3 +109,52 @@ export interface TiebanCalculation {
   explanationTrace: ExplanationStep[];
   sourceGrade: SourceGrade;
 }
+
+// ─── P4.3 report layer ───────────────────────────────────────────────────
+
+export type ImplementationStatus =
+  | 'complete'
+  | 'partial'
+  | 'placeholder_removed'
+  | 'needs_source_validation';
+
+export interface CalibrationResult {
+  theoreticalBase: number;
+  confirmedClauseId: number | null;
+  systemOffset: number;
+  lockedQuarterIndex: number | null;
+  selectedOption: FamilyVerificationCandidate | null;
+  calibrationTrace: ExplanationStep[];
+  warnings: AstroWarning[];
+}
+
+export interface DestinySection {
+  sectionKey: string;
+  sectionName: string;
+  palace: string;
+  requestedClauseNumber: number;
+  clauseLookup: ClauseMatch;
+  /** Neutral, cautious paraphrase of the clause content. */
+  interpretation: string;
+  sensitiveFlags: string[];
+  confidence: number;
+  explanationTrace: ExplanationStep[];
+}
+
+export interface TiebanFullReport {
+  inputSnapshot: Record<string, unknown>;
+  baseResult: TheoreticalBaseResult;
+  quarterKe: QuarterKeResult;
+  calibration: CalibrationResult;
+  clauseLookups: ClauseMatch[];
+  destinySections: DestinySection[];
+  sensitiveFlags: string[];
+  implementationStatus: ImplementationStatus;
+  sourceGrade: SourceGrade;
+  confidence: number;
+  completenessScore: number;
+  warnings: AstroWarning[];
+  uncertaintyNotes: string[];
+  explanationTrace: ExplanationStep[];
+  validationFlags: { passed: string[]; failed: string[]; warnings: string[] };
+}
