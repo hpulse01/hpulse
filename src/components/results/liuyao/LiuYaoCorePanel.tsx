@@ -63,7 +63,7 @@ export function LiuYaoCorePanel({ engineOutput }: Props) {
       <header className="flex flex-wrap items-center gap-2">
         <h3 className="text-sm font-serif tracking-[0.22em] text-gradient-gold">{engineOutput.engineNameCN ?? '六爻'}</h3>
         <span className="text-[10px] font-mono text-muted-foreground/70">v{engineOutput.engineVersion}</span>
-        <ImplementationStatusBadge status={norm.implementationStatus} />
+        <ImplementationStatusBadge status={(norm.implementationStatus as string) ?? (norm.p4ImplementationStatus as string) ?? undefined} />
         <SourceGradeBadge grade={engineOutput.sourceGrade} />
         {norm.castingSource && <span className="text-[10px] font-mono text-muted-foreground/65">起卦 · {norm.castingSource}</span>}
         <span className="ml-auto text-[10px] font-mono text-primary/85 tabular-nums">

@@ -21,6 +21,7 @@ import {
   Clock, Zap, Timer, Layers,
 } from 'lucide-react';
 import { useState } from 'react';
+import { formatPercent, normalizePercent } from '@/utils/displayFormat';
 
 // ── Dimension icons & colors ──
 
@@ -266,13 +267,13 @@ function EngineConfidenceList({ result }: { result: UnifiedPredictionResult }) {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-muted-foreground">权重{weightPct}%</span>
-                <span className={`text-xs font-mono font-bold ${scoreColor(eo.confidence * 100)}`}>
-                  {Math.round(eo.confidence * 100)}%
+                <span className={`text-xs font-mono font-bold ${scoreColor(normalizePercent(eo.confidence) ?? 0)}`}>
+                  {formatPercent(eo.confidence)}
                 </span>
               </div>
             </div>
             <div className="h-1 bg-secondary/30 rounded-full overflow-hidden">
-              <div className="h-full rounded-full bg-primary/60" style={{ width: `${eo.confidence * 100}%` }} />
+              <div className="h-full rounded-full bg-primary/60" style={{ width: `${normalizePercent(eo.confidence) ?? 0}%` }} />
             </div>
             <div className="flex items-center justify-between mt-1">
               <span className="text-[9px] text-muted-foreground">{eo.ruleSchool}</span>

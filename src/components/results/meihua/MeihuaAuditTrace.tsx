@@ -16,7 +16,7 @@ export function MeihuaAuditTrace({ engineOutput }: Props) {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2 rounded-md border border-primary/15 bg-card/30 px-3 py-2">
         <span className="text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground/70">审计 · Audit</span>
-        <ImplementationStatusBadge status={norm.implementationStatus} />
+        <ImplementationStatusBadge status={(norm.implementationStatus as string) ?? (norm.p4ImplementationStatus as string) ?? undefined} />
         <SourceGradeBadge grade={engineOutput.sourceGrade} />
         <span className="ml-auto text-[10px] font-mono text-primary/85 tabular-nums">
           conf {formatPercent(engineOutput.confidence)} · compl {formatScore(engineOutput.completenessScore)} · {engineOutput.computationTimeMs ?? 0}ms

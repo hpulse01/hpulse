@@ -7,6 +7,7 @@ import { ALL_FATE_DIMENSIONS } from '@/types/prediction';
 import { useI18n } from '@/hooks/useI18n';
 import { Timer, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import { formatPercent, normalizePercent } from '@/utils/displayFormat';
 
 const DIM_BAR: Record<FateDimension, string> = {
   life: 'from-amber-500 to-amber-600', wealth: 'from-emerald-500 to-emerald-600',
@@ -57,13 +58,13 @@ export function EngineContributionPanel({ result }: Props) {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] text-muted-foreground/50 font-sans">{weightPct}%</span>
-                    <span className={`text-sm font-mono font-semibold ${sc(eo.confidence * 100)}`}>
-                      {Math.round(eo.confidence * 100)}%
+                    <span className={`text-sm font-mono font-semibold ${sc(normalizePercent(eo.confidence) ?? 0)}`}>
+                      {formatPercent(eo.confidence)}
                     </span>
                   </div>
                 </div>
                 <div className="h-1 bg-border/15 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full bg-gradient-to-r from-primary/40 to-primary/60" style={{ width: `${eo.confidence * 100}%` }} />
+                  <div className="h-full rounded-full bg-gradient-to-r from-primary/40 to-primary/60" style={{ width: `${normalizePercent(eo.confidence) ?? 0}%` }} />
                 </div>
                 <div className="flex items-center justify-between mt-1.5">
                   <span className="text-[9px] text-muted-foreground/40 font-sans">{eo.ruleSchool} · {eo.sourceGrade} · v{eo.engineVersion}</span>
