@@ -189,7 +189,6 @@ const Index = () => {
       { id: 'mayan', label: lang === 'zh' ? '玛雅' : 'Mayan', icon: BookOpen },
       { id: 'kabbalah', label: lang === 'zh' ? '卡巴拉' : 'Kabbalah', icon: BookOpen },
       { id: 'audit', label: lang === 'zh' ? '算法审计' : 'Audit', icon: Activity },
-      { id: 'destiny', label: t('tab.destiny'), icon: Scroll },
     ];
     const tabs = isSuperAdmin ? [...publicTabs, ...adminAlgoTabs] : publicTabs;
     if (isSuperAdmin) {
