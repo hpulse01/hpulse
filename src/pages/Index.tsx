@@ -35,8 +35,11 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import {
   Atom, RotateCcw, Sparkles, Scroll, TreePine, Target, Layers, Shield,
-  AlertTriangle, Archive, ArrowLeft, Database,
+  AlertTriangle, Archive, ArrowLeft, Database, Activity, BookOpen,
 } from 'lucide-react';
+
+import { AuditTracePanel } from '@/components/results/audit/AuditTracePanel';
+import { BaziCorePanel } from '@/components/results/bazi/BaziCorePanel';
 
 import { HeroMission } from '@/components/hpulse/HeroMission';
 import { SystemStatusBar } from '@/components/hpulse/SystemStatusBar';
@@ -146,7 +149,9 @@ const Index = () => {
   const resultTabs = useMemo(() => {
     const tabs = [
       { id: 'overview', label: t('tab.overview'), icon: Sparkles },
+      { id: 'bazi', label: lang === 'zh' ? '八字' : 'Bazi', icon: BookOpen },
       { id: 'engines', label: t('tab.engines'), icon: Layers },
+      { id: 'audit', label: lang === 'zh' ? '算法审计' : 'Audit', icon: Activity },
       { id: 'tree', label: t('tab.tree'), icon: TreePine },
       { id: 'path', label: t('tab.path'), icon: Target },
       { id: 'destiny', label: t('tab.destiny'), icon: Scroll },
@@ -156,7 +161,7 @@ const Index = () => {
       tabs.push({ id: 'orchestration', label: t('tab.orchestration'), icon: Shield });
     }
     return tabs;
-  }, [isSuperAdmin, t]);
+  }, [isSuperAdmin, t, lang]);
 
   const isResultStep = step === 'result';
 
@@ -361,10 +366,24 @@ const Index = () => {
                     )}
                   </TabsContent>
 
+                  <TabsContent value="bazi" className="mt-5">
+                    <HolographicPanel innerPadding="md">
+                      <BaziCorePanel
+                        bazi={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'bazi')}
+                      />
+                    </HolographicPanel>
+                  </TabsContent>
+
                   <TabsContent value="engines" className="mt-5">
                     {quantumResult.unifiedResult && (
                       <EngineContributionPanel result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
                     )}
+                  </TabsContent>
+
+                  <TabsContent value="audit" className="mt-5">
+                    <HolographicPanel innerPadding="md">
+                      <AuditTracePanel engineOutputs={quantumResult.unifiedResult?.engineOutputs} />
+                    </HolographicPanel>
                   </TabsContent>
 
                   <TabsContent value="tree" className="mt-5">

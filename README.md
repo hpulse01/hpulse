@@ -1,73 +1,77 @@
-# Welcome to your Lovable project
+# H-Pulse Quantum Prediction System
 
-## Project info
+> A deterministic, audit-ready, multi-system destiny projection engine.
+> Sometimes called the **Destiny Operating System**.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+H-Pulse is **not** an entertainment astrology site. It is a serious life-trajectory engine that fuses 13+ classical and modern divination systems into a single, traceable, falsifiable prediction. Every output ships with its own audit trail.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## Positioning
 
-**Use Lovable**
+- **Mission**: project a single human life trajectory as honestly as the math allows.
+- **Method**: 13 independent algorithm cores → standardized `EngineOutput` → confidence-weighted fusion → `FateVector` → recursive destiny tree → unique-path collapse.
+- **Promise**: no `Math.random` in any prediction. No `Date.now()` baked into output. Every step has an `explanationTrace`.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+H-Pulse never claims absolute foreknowledge. The system is calibrated **continuously** against ledger-stored predictions and user-reported outcomes (P6 onwards).
 
-Changes made via Lovable will be committed automatically to this repo.
+## Tech Stack
 
-**Use your preferred IDE**
+- **Frontend**: React 18 · Vite · TypeScript · TailwindCSS · shadcn/ui · Recharts · Framer Motion
+- **Algorithm Core**: pure deterministic TypeScript modules in `src/core/`
+- **Astronomy**: `astronomy-engine` (DE405/DE421-grade ephemeris)
+- **Backend**: Lovable Cloud (Supabase: Postgres + Edge Functions + Realtime)
+- **AI Layer**: Lovable AI Gateway (Sonar / Gemini / GPT models — interpretation only, never algorithm)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Local Development
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+bun install        # or npm install
+bun run dev        # Vite dev server
+bun run build      # production bundle
+bunx vitest run    # core algorithm tests
 ```
 
-**Edit a file directly in GitHub**
+## Current Functional Surface
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- ✅ Disclaimer-gated entry
+- ✅ Birth-data + geo + IANA timezone capture
+- ✅ Kao Ke (六亲校时) temporal-lock verification
+- ✅ Quantum prediction orchestration across 13 engines
+- ✅ Destiny tree + unique path collapse
+- ✅ P5 audit UI (algorithm integrity, engine matrix, explanation trace, warnings, fate vector)
+- ✅ Super-admin orchestration console
 
-**Use GitHub Codespaces**
+## Algorithm Status (Phase P4 final)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+| Tier | Engines |
+|---|---|
+| **complete** | meihua, numerology (with name) |
+| **partial** | bazi, ziwei, liuyao, qimen, liuren, taiyi, western, vedic, mayan, kabbalah |
+| **needs_source_validation** | tieban |
 
-## What technologies are used for this project?
+See [`docs/ALGORITHM_STATUS.md`](docs/ALGORITHM_STATUS.md) for the full per-engine grade, implemented rules, and missing rules.
 
-This project is built with:
+## Phase Roadmap
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **P3** — UI shell, design language, Lovable Cloud integration ✅
+- **P4** — `src/core/` deterministic algorithm reconstruction (P4.1 → P4.12) ✅
+- **P5** — Frontend sync with P4 algorithm metadata + responsive overhaul ✅ *(this phase)*
+- **P6** — Prediction Verification Ledger
+- **P7** — Rule knowledge base expansion
+- **P8** — User long-term feedback calibration
+- **P9** — Multi-platform delivery
+- **P10** — Commercialization & permission layer
 
-## How can I deploy this project?
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for details.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Documentation
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system architecture
+- [`docs/ALGORITHM_STATUS.md`](docs/ALGORITHM_STATUS.md) — per-engine implementation status
+- [`docs/UI_SYSTEM.md`](docs/UI_SYSTEM.md) — Digital Temple design system
+- [`docs/P4_ALGORITHM_CORE.md`](docs/P4_ALGORITHM_CORE.md) — P4 algorithm core spec
+- [`docs/P5_FRONTEND_SYNC.md`](docs/P5_FRONTEND_SYNC.md) — P5 frontend sync changelog
+- [`docs/RESPONSIVE_DESIGN.md`](docs/RESPONSIVE_DESIGN.md) — desktop / tablet / mobile layout
+- [`docs/ENGINE_OUTPUT_SCHEMA.md`](docs/ENGINE_OUTPUT_SCHEMA.md) — `EngineOutput` field contract
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — phased roadmap
