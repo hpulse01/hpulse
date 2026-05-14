@@ -424,6 +424,7 @@ const Index = () => {
                     </HolographicPanel>
                   </TabsContent>
 
+                  {isSuperAdmin && (
                   <TabsContent value="ziwei" className="mt-5">
                     <HolographicPanel innerPadding="md">
                       <ZiweiCorePanel
@@ -432,8 +433,9 @@ const Index = () => {
                       />
                     </HolographicPanel>
                   </TabsContent>
+                  )}
 
-                  {([
+                  {isSuperAdmin && ([
                     ['liuyao', LiuYaoCorePanel],
                     ['meihua', MeihuaCorePanel],
                     ['qimen', QimenCorePanel],
@@ -450,6 +452,7 @@ const Index = () => {
                     </TabsContent>
                   ))}
 
+                  {isSuperAdmin && (
                   <TabsContent value="numerology" className="mt-5">
                     <HolographicPanel innerPadding="md">
                       <NumerologyCorePanel
@@ -459,7 +462,9 @@ const Index = () => {
                       />
                     </HolographicPanel>
                   </TabsContent>
+                  )}
 
+                  {isSuperAdmin && (
                   <TabsContent value="kabbalah" className="mt-5">
                     <HolographicPanel innerPadding="md">
                       <KabbalahCorePanel
@@ -468,6 +473,7 @@ const Index = () => {
                       />
                     </HolographicPanel>
                   </TabsContent>
+                  )}
 
                   <TabsContent value="engines" className="mt-5">
                     {quantumResult.unifiedResult && (
