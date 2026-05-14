@@ -180,7 +180,7 @@ function runCoreKabbalahEngine(si: StandardizedInput): EngineOutput {
 const DISPATCH: Record<CoreEngineName, (si: StandardizedInput) => EngineOutput> = {
   bazi: runCoreBazi,
   ziwei: runCoreZiwei,
-  tieban: runCoreTiebanWrapper,
+  
   liuyao: runCoreLiuyao,
   meihua: runCoreMeihuaWrapper,
   qimen: runCoreQimenWrapper,
