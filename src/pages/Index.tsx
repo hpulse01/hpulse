@@ -511,7 +511,6 @@ const Index = () => {
                     )}
                   </TabsContent>
 
-                  {isSuperAdmin && (
                   <TabsContent value="destiny" className="mt-5">
                     <DestinyDashboard
                       report={fullReport}
@@ -528,7 +527,6 @@ const Index = () => {
                       onReset={handleReset}
                     />
                   </TabsContent>
-                  )}
                   <TabsContent value="quantum" className="mt-5">
                     <UnifiedQuantumPanel result={quantumResult} birthYear={birthInput.year} />
                   </TabsContent>
