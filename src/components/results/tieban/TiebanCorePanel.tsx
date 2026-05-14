@@ -63,7 +63,7 @@ export function TiebanCorePanel(props: Props) {
       <header className="flex flex-wrap items-center gap-2">
         <h3 className="text-sm font-serif tracking-[0.22em] text-gradient-gold">{engineOutput?.engineNameCN ?? '铁板神数'}</h3>
         <span className="text-[10px] font-mono text-muted-foreground/70">v{engineOutput?.engineVersion ?? '—'}</span>
-        <ImplementationStatusBadge status={norm.implementationStatus} />
+        <ImplementationStatusBadge status={implStatus} />
         <SourceGradeBadge grade={engineOutput?.sourceGrade} />
         <span className="ml-auto text-[10px] font-mono text-primary/85 tabular-nums">
           conf {formatPercent(engineOutput?.confidence)} · compl {formatScore(engineOutput?.completenessScore)}
