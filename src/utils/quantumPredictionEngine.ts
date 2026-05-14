@@ -852,11 +852,20 @@ function orchestrate(
     const startMs = Date.now();
     try {
       const result = runner();
+      // P4.11 — overlay deterministic core metadata onto legacy EngineOutput
+      const overlay = runCoreEngine(name, standardizedInput);
+      const finalEo = applyCoreOverlay(result.eo, overlay);
       const endMs = Date.now();
-      engineOutputs.push(result.eo);
+      engineOutputs.push(finalEo);
       executedEngines.push(name);
-      executionTrace.push(makeTraceEntry(name, timingBasis, startMs, endMs, true));
-      return result;
+      const trace = makeTraceEntry(name, timingBasis, startMs, endMs, true);
+      trace.warnings = finalEo.warnings;
+      trace.completenessScore = finalEo.completenessScore;
+      trace.implementationStatus = String(finalEo.normalizedOutput?.p4ImplementationStatus
+        ?? finalEo.normalizedOutput?.implementationStatus ?? 'unknown');
+      trace.sourceGrade = finalEo.sourceGrade;
+      executionTrace.push(trace);
+      return { ...result, eo: finalEo };
     } catch (err) {
       const endMs = Date.now();
       const errorMsg = err instanceof Error ? err.message : String(err);
