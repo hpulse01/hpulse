@@ -1,0 +1,44 @@
+/**
+ * P4.10 — Numerology types.
+ */
+export interface NumerologyInput {
+  /** Local birth date (Gregorian). */
+  birthYear: number;
+  birthMonth: number;     // 1..12
+  birthDay: number;       // 1..31
+  /** Full birth name (Latin script). Optional — without it, name-based numbers are skipped. */
+  fullName?: string;
+  /** Reference year for Personal Year (defaults to current Gregorian year of queryTimeUtc). */
+  referenceYear?: number;
+  /** ISO UTC timestamp the query was made (used only to derive default referenceYear). */
+  queryTimeUtc?: string;
+}
+
+export interface NumerologyWarning {
+  code: string; message: string; level: 'info' | 'warn' | 'error';
+}
+
+export interface ExplanationStep {
+  rule: string; detail: string; data?: Record<string, unknown>;
+}
+
+export interface NumerologyResult {
+  input: NumerologyInput;
+  /** Life Path number derived from full birth date. Master numbers 11/22/33 preserved. */
+  lifePath: number;
+  /** Destiny / Expression number — sum of all letters in full name. */
+  destiny: number | null;
+  /** Soul Urge — sum of vowels. */
+  soulUrge: number | null;
+  /** Personality — sum of consonants. */
+  personality: number | null;
+  /** Personal Year for referenceYear. */
+  personalYear: number;
+  referenceYear: number;
+  confidence: number;
+  completenessScore: number;
+  sourceGrade: 'A' | 'B' | 'C' | 'D';
+  implementationStatus: 'complete' | 'partial' | 'needs_source_validation';
+  warnings: NumerologyWarning[];
+  explanationTrace: ExplanationStep[];
+}
