@@ -225,7 +225,7 @@ export function calculateHexagram(input: LiuyaoCoreInput): LiuyaoChart {
   trace.push({
     rule: 'liuyao.palace',
     detail: `归 ${palace.palace} 宫(${palace.palaceElement})，世爻第 ${palace.shiYao} 爻，应爻第 ${palace.yingYao} 爻 (gongOrder=${palace.gongOrder})。`,
-    data: palace,
+    data: { ...palace } as Record<string, unknown>,
   });
 
   // 6. 六亲 + 六神 + 旺衰
