@@ -24,7 +24,7 @@ const SH = { geoLatitude: 31.2304, geoLongitude: 121.4737, timezoneIana: 'Asia/S
 const cases = [
   { y: 1995, m: 6,  d: 15, h: 14, mi: 30 },
   { y: 1985, m: 8,  d: 20, h: 11, mi: 0 },
-  { y: 2000, m: 5,  d: 5,  h: 8,  mi: 0 },
+  { y: 2000, m: 7,  d: 20, h: 8,  mi: 0 },  // mid-月, well clear of any 节
   { y: 2010, m: 12, d: 1,  h: 18, mi: 30 },
   { y: 1978, m: 9,  d: 9,  h: 9,  mi: 0 },
 ];
