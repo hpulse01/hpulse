@@ -43,6 +43,7 @@ export function TiebanCorePanel(props: Props) {
   }
 
   const norm = (engineOutput?.normalizedOutput ?? {}) as Record<string, string>;
+  const implStatus = String(norm.implementationStatus ?? norm.p4ImplementationStatus ?? '') || undefined;
   const lockedQuarter = calibration?.lockedQuarterIndex
     ?? (norm.lockedQuarterIndex ? Number(norm.lockedQuarterIndex) : null);
   const sysOffset = calibration?.systemOffset
