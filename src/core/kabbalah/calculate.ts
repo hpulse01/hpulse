@@ -1,0 +1,95 @@
+/**
+ * P4.10 — Kabbalah core calculation.
+ *
+ * Without name input we DO NOT fabricate Gematria — we degrade gracefully:
+ * primarySephirah is derived from a reduced birth-date sum and clearly
+ * labelled as `derivedFromName=false` with reduced confidence.
+ */
+import { gematria, isHebrewInput } from './gematria';
+import { sephirahFromNumber } from './treeOfLife';
+import { reduceToDigit, sumDigits } from '../numerology/reduce';
+import type { KabbalahInput, KabbalahResult, KabbalahWarning, ExplanationStep } from './types';
+
+export function calculateKabbalah(input: KabbalahInput): KabbalahResult {
+  const warnings: KabbalahWarning[] = [];
+  const trace: ExplanationStep[] = [];
+
+  const name = input.name?.trim() ?? '';
+  const hasName = name.length > 0;
+
+  let gem = null as ReturnType<typeof gematria> | null;
+  let primaryNumber: number | null = null;
+
+  if (hasName) {
+    gem = gematria(name);
+    primaryNumber = gem.total;
+    trace.push({
+      rule: 'kabbalah.gematria',
+      detail: `Gematria(${gem.source}) = ${gem.total} from ${gem.letters.length} letters`,
+    });
+    if (gem.source === 'transliterated') {
+      warnings.push({
+        code: 'latin_transliteration',
+        message: 'Name was provided in Latin script; transliterated to Hebrew via coarse phonetic map. For exact gematria, supply Hebrew letters.',
+        level: 'warn',
+      });
+    }
+    if (gem.letters.length === 0) {
+      warnings.push({
+        code: 'no_gematria_letters',
+        message: 'Name produced zero gematria-mappable letters; primary sephirah will fall back to birth date.',
+        level: 'warn',
+      });
+      primaryNumber = null;
+    }
+  } else {
+    warnings.push({
+      code: 'no_name',
+      message: 'No name (Hebrew or Latin) supplied — Gematria SKIPPED. Primary sephirah falls back to a coarse birth-date mapping; this is NOT a complete Kabbalistic profile.',
+      level: 'warn',
+    });
+    trace.push({ rule: 'kabbalah.gematria', detail: 'skipped (no name)' });
+  }
+
+  if (primaryNumber == null) {
+    if (input.birthYear != null && input.birthMonth != null && input.birthDay != null) {
+      primaryNumber = reduceToDigit(
+        sumDigits(input.birthYear) + sumDigits(input.birthMonth) + sumDigits(input.birthDay),
+      );
+      trace.push({
+        rule: 'kabbalah.fallback',
+        detail: `Fallback sephirah index from reduced birthdate = ${primaryNumber}`,
+      });
+    }
+  }
+
+  const primarySephirah = primaryNumber != null ? sephirahFromNumber(primaryNumber) : null;
+  if (primarySephirah) {
+    trace.push({
+      rule: 'kabbalah.tree',
+      detail: `Sephirah ${primarySephirah.number} ${primarySephirah.name} — ${primarySephirah.attribute}`,
+    });
+  }
+
+  const derivedFromName = hasName && gem != null && gem.letters.length > 0;
+  const isHebrewSource = derivedFromName && gem!.source === 'hebrew';
+
+  const completenessScore = isHebrewSource ? 80 : derivedFromName ? 65 : 40;
+  const confidence = isHebrewSource ? 75 : derivedFromName ? 60 : 35;
+  const sourceGrade: KabbalahResult['sourceGrade'] = isHebrewSource ? 'B' : derivedFromName ? 'C' : 'D';
+
+  return {
+    input,
+    gematria: gem,
+    primarySephirah,
+    derivedFromName,
+    confidence,
+    completenessScore,
+    sourceGrade,
+    implementationStatus: 'partial',
+    warnings,
+    explanationTrace: trace,
+  };
+}
+
+export { isHebrewInput };
