@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { QuantumPredictionResult } from '@/utils/quantumPredictionEngine';
 import { formatPercent, formatScore } from '@/utils/displayFormat';
 
@@ -131,7 +132,7 @@ function Metric({ label, value }: { label: string; value: number | string }) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
       <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground/70 mb-1.5">{title}</div>
