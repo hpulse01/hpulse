@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import type { UnifiedPredictionResult, FateDimension } from '@/types/prediction';
 import { ALL_FATE_DIMENSIONS } from '@/types/prediction';
 import { useI18n } from '@/hooks/useI18n';
+import { normalizePercent, formatPercent } from '@/utils/displayFormat';
 import {
   Sun, Coins, Heart, Activity, Brain, Sparkles,
   CheckCircle, AlertTriangle, Zap, Crown, Palette, Clover, Home,
@@ -54,7 +55,7 @@ export function PredictionOverview({ result }: Props) {
       {/* Stats row */}
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
         {[
-          { label: t('overview.confidence'), value: `${Math.round(result.finalConfidence * 100)}%`, color: sc(result.finalConfidence * 100) },
+          { label: t('overview.confidence'), value: formatPercent(result.finalConfidence), color: sc(normalizePercent(result.finalConfidence) ?? 0) },
           { label: t('overview.active_engines'), value: result.activeEngines.length, color: 'text-primary' },
           { label: t('overview.natal'), value: birthEngines, color: 'text-amber-400' },
           { label: t('overview.instant'), value: queryEngines, color: 'text-blue-400' },
