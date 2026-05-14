@@ -17,6 +17,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertTriangle, Shield, Scale, BookOpen } from 'lucide-react';
+import { HPulseLogo } from '@/components/brand';
 
 const CONSENT_KEY = 'hpulse_disclaimer_accepted';
 const CONSENT_VERSION = '1.0'; // bump to force re-consent
@@ -64,11 +65,11 @@ export function DisclaimerDialog({ open, onAccept }: DisclaimerDialogProps) {
           }}
         />
         <AlertDialogHeader className="space-y-3">
-          <div className="mx-auto w-14 h-14 rounded-full bg-primary/[0.08] border border-primary/40 flex items-center justify-center">
-            <Shield className="w-6 h-6 text-primary" />
+          <div className="flex justify-center">
+            <HPulseLogo variant="full" size="lg" tone="light" />
           </div>
           <p className="text-center text-[10px] uppercase tracking-[0.45em] text-primary/70 font-mono">
-            H-Pulse · System Disclosure
+            System Disclosure
           </p>
           <AlertDialogTitle className="text-xl font-serif text-center tracking-[0.18em] text-gradient-gold">
             系统使用声明

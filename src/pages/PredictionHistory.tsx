@@ -3,15 +3,16 @@ import { ArrowLeft, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { HolographicPanel } from '@/components/hpulse/HolographicPanel';
 import { Footer } from '@/components/Footer';
+import { HPulseLogo } from '@/components/brand';
 
 const PredictionHistory = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background bg-scroll-texture">
       <header className="border-b border-border/40">
         <div className="container max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-lg font-serif text-gradient-gold tracking-[0.2em]">
-            预测档案
-          </h1>
+          <Link to="/" aria-label="H-Pulse">
+            <HPulseLogo variant="full" size="md" tone="light" />
+          </Link>
           <Button asChild variant="outline" size="sm" className="border-border/40">
             <Link to="/">
               <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
