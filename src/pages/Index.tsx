@@ -148,6 +148,7 @@ const Index = () => {
     setQuantumResult(null);
     setUnifiedReport(null);
     setActiveResultTab('overview');
+    setSelectedKaoKe(null);
   }, []);
 
   const resultTabs = useMemo(() => {
