@@ -35,8 +35,11 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import {
   Atom, RotateCcw, Sparkles, Scroll, TreePine, Target, Layers, Shield,
-  AlertTriangle, Archive, ArrowLeft, Database,
+  AlertTriangle, Archive, ArrowLeft, Database, Activity, BookOpen,
 } from 'lucide-react';
+
+import { AuditTracePanel } from '@/components/results/audit/AuditTracePanel';
+import { BaziCorePanel } from '@/components/results/bazi/BaziCorePanel';
 
 import { HeroMission } from '@/components/hpulse/HeroMission';
 import { SystemStatusBar } from '@/components/hpulse/SystemStatusBar';
