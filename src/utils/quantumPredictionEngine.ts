@@ -28,6 +28,7 @@ import { runQimen, type QimenResult } from './qimenAlgorithm';
 import { buildLiuRenEngineOutput, type LiuRenResult } from './liurenAlgorithm';
 import { buildTaiyiEngineOutput, type TaiyiResult } from './taiyiAlgorithm';
 import { performDeepBaZiAnalysis, type DeepBaZiAnalysis } from './baziDeepAnalysis';
+import { runCoreEngine, applyCoreOverlay, computeQualityMultiplier } from './p4CoreOverlay';
 
 // Destiny Tree imports
 import { extractTiebanEvents, extractBaziEvents, extractZiweiEvents, extractWesternEvents, extractVedicEvents, extractNumerologyEvents, extractMayanEvents, extractKabbalahEvents, extractInstantEvents } from './eventSeedExtractors';
@@ -852,11 +853,20 @@ function orchestrate(
     const startMs = Date.now();
     try {
       const result = runner();
+      // P4.11 — overlay deterministic core metadata onto legacy EngineOutput
+      const overlay = runCoreEngine(name, standardizedInput);
+      const finalEo = applyCoreOverlay(result.eo, overlay);
       const endMs = Date.now();
-      engineOutputs.push(result.eo);
+      engineOutputs.push(finalEo);
       executedEngines.push(name);
-      executionTrace.push(makeTraceEntry(name, timingBasis, startMs, endMs, true));
-      return result;
+      const trace = makeTraceEntry(name, timingBasis, startMs, endMs, true);
+      trace.warnings = finalEo.warnings;
+      trace.completenessScore = finalEo.completenessScore;
+      trace.implementationStatus = String(finalEo.normalizedOutput?.p4ImplementationStatus
+        ?? finalEo.normalizedOutput?.implementationStatus ?? 'unknown');
+      trace.sourceGrade = finalEo.sourceGrade;
+      executionTrace.push(trace);
+      return { ...result, eo: finalEo };
     } catch (err) {
       const endMs = Date.now();
       const errorMsg = err instanceof Error ? err.message : String(err);
@@ -889,9 +899,19 @@ function orchestrate(
       age: currentAge,
       activeEngines: executedNames,
     });
-    const weightsUsed: WeightEntry[] = dynamicResult.weights.map(w => ({
-      engineName: w.engineName, weight: w.weight, reason: w.reason,
-    }));
+    const weightsUsed: WeightEntry[] = dynamicResult.weights.map(w => {
+      const eo = engineOutputs.find(e => e.engineName === w.engineName);
+      if (!eo) return { engineName: w.engineName, weight: w.weight, reason: w.reason };
+      const { multiplier, reason } = computeQualityMultiplier(eo);
+      // attach to matching trace entry
+      const tr = executionTrace.find(t => t.engineName === w.engineName && t.success);
+      if (tr) tr.qualityMultiplier = multiplier;
+      return {
+        engineName: w.engineName,
+        weight: w.weight * multiplier,
+        reason: `${w.reason} | p4Quality(x${multiplier.toFixed(2)}): ${reason}`,
+      };
+    });
 
   // Conflict detection & fusion
   const conflicts = detectConflicts(engineOutputs, weightsUsed);

@@ -254,6 +254,12 @@ export interface ExecutionTraceEntry {
   dependenciesUsed: string[];
   success: boolean;
   errorMessage?: string;
+  /** P4.11 — extended fields surfaced by the core overlay. */
+  warnings?: string[];
+  completenessScore?: number;
+  implementationStatus?: string;
+  sourceGrade?: string;
+  qualityMultiplier?: number;
 }
 
 // ═══════════════════════════════════════════════
