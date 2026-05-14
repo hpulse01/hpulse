@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, readdirSync, statSync } from 'fs';
+import { join } from 'path';
 import { assertDeterministic, findForbidden } from '../determinismGuard';
 
 function walk(dir: string, out: string[] = []): string[] {
