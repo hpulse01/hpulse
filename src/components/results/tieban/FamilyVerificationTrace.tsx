@@ -40,8 +40,8 @@ export function FamilyVerificationTrace({
           <div className="rounded-md border border-emerald-400/40 bg-emerald-400/[0.05] p-3">
             <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-emerald-300">锁定时辰 · Locked</div>
             <dl className="mt-2 grid grid-cols-2 gap-y-1.5 text-[11px] font-sans">
-              <Row label="刻位" value={selectedOption.label} />
-              <Row label="时间区间" value={selectedOption.timeRange} />
+              <Row label="刻位" value={selectedOption.timeLabel ?? `第${selectedOption.keIndex + 1}刻`} />
+              <Row label="quarterIndex" value={String(selectedOption.quarterIndex)} />
               <Row label="对应条文" value={`#${selectedOption.clauseNumber}`} />
               <Row label="匹配评分" value={`${selectedOption.matchScore}/100`} />
             </dl>
