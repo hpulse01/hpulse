@@ -515,6 +515,12 @@ const Index = () => {
                     <UnifiedQuantumPanel result={quantumResult} birthYear={birthInput.year} />
                   </TabsContent>
 
+                  <TabsContent value="quantumCollapse" className="mt-5">
+                    <HolographicPanel innerPadding="md">
+                      <QuantumCollapsePanel quantumResult={quantumResult} />
+                    </HolographicPanel>
+                  </TabsContent>
+
                   {isSuperAdmin && unifiedReport && (
                     <TabsContent value="orchestration" className="mt-5">
                       <div className="space-y-4">
