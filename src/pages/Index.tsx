@@ -42,6 +42,16 @@ import { AuditTracePanel } from '@/components/results/audit/AuditTracePanel';
 import { BaziCorePanel } from '@/components/results/bazi/BaziCorePanel';
 import { TiebanCorePanel } from '@/components/results/tieban/TiebanCorePanel';
 import { ZiweiCorePanel } from '@/components/results/ziwei/ZiweiCorePanel';
+import { LiuYaoCorePanel } from '@/components/results/liuyao/LiuYaoCorePanel';
+import { MeihuaCorePanel } from '@/components/results/meihua/MeihuaCorePanel';
+import { QimenCorePanel } from '@/components/results/qimen/QimenCorePanel';
+import { LiuRenCorePanel } from '@/components/results/liuren/LiuRenCorePanel';
+import { TaiyiCorePanel } from '@/components/results/taiyi/TaiyiCorePanel';
+import { WesternCorePanel } from '@/components/results/western/WesternCorePanel';
+import { VedicCorePanel } from '@/components/results/vedic/VedicCorePanel';
+import { NumerologyCorePanel } from '@/components/results/numerology/NumerologyCorePanel';
+import { MayanCorePanel } from '@/components/results/mayan/MayanCorePanel';
+import { KabbalahCorePanel } from '@/components/results/kabbalah/KabbalahCorePanel';
 
 import { HeroMission } from '@/components/hpulse/HeroMission';
 import { SystemStatusBar } from '@/components/hpulse/SystemStatusBar';
@@ -157,6 +167,16 @@ const Index = () => {
       { id: 'bazi', label: lang === 'zh' ? '八字' : 'Bazi', icon: BookOpen },
       { id: 'tieban', label: lang === 'zh' ? '铁板' : 'Tieban', icon: Scroll },
       { id: 'ziwei', label: lang === 'zh' ? '紫微' : 'Ziwei', icon: Atom },
+      { id: 'liuyao', label: lang === 'zh' ? '六爻' : 'Liu Yao', icon: Layers },
+      { id: 'meihua', label: lang === 'zh' ? '梅花' : 'Meihua', icon: Layers },
+      { id: 'qimen', label: lang === 'zh' ? '奇门' : 'Qi Men', icon: Layers },
+      { id: 'liuren', label: lang === 'zh' ? '六壬' : 'Liu Ren', icon: Layers },
+      { id: 'taiyi', label: lang === 'zh' ? '太乙' : 'Taiyi', icon: Layers },
+      { id: 'western', label: lang === 'zh' ? '西方占星' : 'Western', icon: Atom },
+      { id: 'vedic', label: lang === 'zh' ? '吠陀' : 'Vedic', icon: Atom },
+      { id: 'numerology', label: lang === 'zh' ? '数字命理' : 'Numerology', icon: BookOpen },
+      { id: 'mayan', label: lang === 'zh' ? '玛雅' : 'Mayan', icon: BookOpen },
+      { id: 'kabbalah', label: lang === 'zh' ? '卡巴拉' : 'Kabbalah', icon: BookOpen },
       { id: 'engines', label: t('tab.engines'), icon: Layers },
       { id: 'audit', label: lang === 'zh' ? '算法审计' : 'Audit', icon: Activity },
       { id: 'tree', label: t('tab.tree'), icon: TreePine },
@@ -400,6 +420,42 @@ const Index = () => {
                       <ZiweiCorePanel
                         engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'ziwei')}
                         birthYear={birthInput.year}
+                      />
+                    </HolographicPanel>
+                  </TabsContent>
+
+                  {([
+                    ['liuyao', LiuYaoCorePanel],
+                    ['meihua', MeihuaCorePanel],
+                    ['qimen', QimenCorePanel],
+                    ['liuren', LiuRenCorePanel],
+                    ['taiyi', TaiyiCorePanel],
+                    ['western', WesternCorePanel],
+                    ['vedic', VedicCorePanel],
+                    ['mayan', MayanCorePanel],
+                  ] as const).map(([id, Comp]) => (
+                    <TabsContent key={id} value={id} className="mt-5">
+                      <HolographicPanel innerPadding="md">
+                        <Comp engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === id)} />
+                      </HolographicPanel>
+                    </TabsContent>
+                  ))}
+
+                  <TabsContent value="numerology" className="mt-5">
+                    <HolographicPanel innerPadding="md">
+                      <NumerologyCorePanel
+                        engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'numerology')}
+                        userName={profile?.display_name ?? null}
+                        currentYear={new Date().getFullYear()}
+                      />
+                    </HolographicPanel>
+                  </TabsContent>
+
+                  <TabsContent value="kabbalah" className="mt-5">
+                    <HolographicPanel innerPadding="md">
+                      <KabbalahCorePanel
+                        engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'kabbalah')}
+                        userName={profile?.display_name ?? null}
                       />
                     </HolographicPanel>
                   </TabsContent>

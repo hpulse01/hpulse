@@ -81,3 +81,11 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md) for details.
 - 紫微展示十二宫、四化、大限、流年、格局、命格强度、星曜矩阵
 - 复用 P5 共享审计组件,无重复造轮子
 - 文档总数:README + 8 个 docs 文档(共 9 个 Markdown 文件)
+
+## P5.2 + P5.3 (2026-05) — 剩余 10 引擎 UI 接入
+- P5.2: 六爻 / 梅花 / 奇门 完整 panel + 子组件
+- P5.3: 六壬 / 太乙 / 西方占星 / 吠陀 / 数字命理 / 玛雅 / 卡巴拉 完整 panel
+- 新增共享 `EnginePanelShell` 减少重复 (header / warnings / audit / KV)
+- 13 引擎全部接入结果页 Tab (移动端横向滚动,桌面端可换行)
+- 缺姓名 / 缺希伯来 / 缺 Lagna / 缺 Long Count / 缺月将 → 显式降级,不伪造
+- 详见 [`docs/P5_3_FRONTEND_SYNC.md`](docs/P5_3_FRONTEND_SYNC.md)
