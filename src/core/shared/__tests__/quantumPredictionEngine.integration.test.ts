@@ -4,7 +4,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { auditEngineOutputs } from '@/core/shared/implementationAudit';
-import { quantumPredictionEngine } from '@/utils/quantumPredictionEngine';
+import { QuantumPredictionEngine } from '@/utils/quantumPredictionEngine';
+const quantumPredictionEngine: any = QuantumPredictionEngine;
 
 const SAMPLE_INPUT = {
   birthDateUtc: '1990-05-15T08:30:00Z',
