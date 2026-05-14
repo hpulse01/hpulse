@@ -2,7 +2,7 @@ interface Lesson { name: string; upper?: string; lower?: string; relation?: stri
 interface Props { lessons?: Lesson[] }
 
 export function LiuRenFourLessonsPanel({ lessons }: Props) {
-  const items = lessons && lessons.length > 0 ? lessons : ['一课','二课','三课','四课'].map(n => ({ name: n }));
+  const items: Lesson[] = lessons && lessons.length > 0 ? lessons : ['一课','二课','三课','四课'].map(n => ({ name: n }));
   return (
     <div className="rounded-md border border-primary/15 bg-card/30 p-3">
       <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground/70 mb-2">四课 · Four Lessons</div>
