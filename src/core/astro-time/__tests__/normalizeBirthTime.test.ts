@@ -3,7 +3,7 @@ import { normalizeBirthTime } from '../normalizeBirthTime';
 
 describe('normalizeBirthTime', () => {
   const baseInput = {
-    birthLocalDateTime: { year: 1990, month: 6, day: 15, hour: 14, minute: 30 },
+    birthLocalDateTime: { year: 1995, month: 6, day: 15, hour: 14, minute: 30 },
     geoLatitude: 31.2304,
     geoLongitude: 121.4737,
     timezoneIana: 'Asia/Shanghai',
@@ -12,8 +12,16 @@ describe('normalizeBirthTime', () => {
   it('produces UTC = local − offset for non-DST zones', () => {
     const r = normalizeBirthTime(baseInput);
     expect(r.offsetMinutes).toBe(8 * 60);
-    // 1990-06-15 14:30 +08:00 = 06:30 UTC
-    expect(r.utcDateTime).toBe('1990-06-15T06:30:00.000Z');
+    // 1995-06-15 14:30 +08:00 = 06:30 UTC (China dropped DST after 1991)
+    expect(r.utcDateTime).toBe('1995-06-15T06:30:00.000Z');
+  });
+
+  it('correctly resolves historical China DST (1990-06-15 was UTC+9)', () => {
+    const r = normalizeBirthTime({
+      ...baseInput,
+      birthLocalDateTime: { year: 1990, month: 6, day: 15, hour: 14, minute: 30 },
+    });
+    expect(r.offsetMinutes).toBe(9 * 60);
   });
 
   it('produces a deterministic output for identical input', () => {
