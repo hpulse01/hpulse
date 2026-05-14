@@ -1,4 +1,6 @@
+import type { ReactNode } from 'react';
 import { formatPercent, formatScore } from '@/utils/displayFormat';
+import { getImplementationStatus } from '@/utils/engineOutputAccessors';
 import type { EngineOutput } from '@/types/prediction';
 import { SourceGradeBadge } from '@/components/hpulse/SourceGradeBadge';
 import { ImplementationStatusBadge } from '@/components/hpulse/ImplementationStatusBadge';
@@ -8,19 +10,18 @@ import { AlertTriangle, Info } from 'lucide-react';
 interface HeaderProps {
   engineOutput: EngineOutput;
   fallbackName?: string;
-  extraTags?: React.ReactNode;
+  extraTags?: ReactNode;
 }
 
 /** Shared header with status badges, version, confidence, completeness. */
 export function EnginePanelHeader({ engineOutput, fallbackName, extraTags }: HeaderProps) {
-  const norm = (engineOutput.normalizedOutput ?? {}) as Record<string, string>;
   return (
     <header className="flex flex-wrap items-center gap-2">
       <h3 className="text-sm font-serif tracking-[0.22em] text-gradient-gold">
         {engineOutput.engineNameCN ?? fallbackName ?? engineOutput.engineName}
       </h3>
       <span className="text-[10px] font-mono text-muted-foreground/70">v{engineOutput.engineVersion}</span>
-      <ImplementationStatusBadge status={norm.implementationStatus} />
+      <ImplementationStatusBadge status={getImplementationStatus(engineOutput)} />
       <SourceGradeBadge grade={engineOutput.sourceGrade} />
       {extraTags}
       <span className="ml-auto text-[10px] font-mono text-primary/85 tabular-nums">
