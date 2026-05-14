@@ -194,7 +194,7 @@ export function calculateBaziChart(input: BaziCoreInput): BaziChart {
   const supportDrain = calculateSupportDrainCounter(fp, dayStem);
   const rootStrength = rootStrengthScore(fp, dayStem);
   trace.push({ rule: 'bazi.wuxingBalance', detail: '月令权重×1.5；藏干 1/0.5/0.3。', data: { wuxingBalance } });
-  trace.push({ rule: 'bazi.yinyangBalance', detail: '阴阳计数（天干+地支）。', data: yinyangBalance });
+  trace.push({ rule: 'bazi.yinyangBalance', detail: '阴阳计数（天干+地支）。', data: { ...yinyangBalance } });
 
   // Step 5 — strength (re-use existing analyzer)
   const strength = analyzeStrength(coreChart);
