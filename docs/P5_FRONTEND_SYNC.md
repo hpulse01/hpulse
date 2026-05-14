@@ -71,3 +71,14 @@ Every component degrades gracefully: missing `engineOutputs`, empty trace, empty
 - Input page advanced settings: `dayBoundaryPolicy`, `useTrueSolarTime`, `targetYear`, `questionText`
 - Loading stages reflecting actual orchestration phases
 - Admin orchestration console: show implementationStatus matrix, missingRules, fallback usage count
+
+## P5.1 — 铁板神数 + 紫微斗数 UI 接入
+
+- 新增 7 个铁板组件:TiebanCorePanel / TiebanBaseTrace / ClauseLookupPanel / FamilyVerificationTrace / SystemOffsetPanel / TiebanDestinySections / TiebanAuditTrace
+- 新增 10 个紫微组件:ZiweiCorePanel / ZiweiPalaceChart / ZiweiPalaceCard / ZiweiStarMatrix / ZiweiSihuaPanel / ZiweiDaxianTimeline / ZiweiLiunianPanel / ZiweiPatternPanel / ZiweiStrengthPanel / ZiweiAuditTrace
+- 结果页新增 `tieban` / `ziwei` 选项卡
+- 条文展示规则:exact = 玉色,fallback = 琥珀色,unavailable = 暗红;fallback 视觉上绝不冒充精确命中
+- 紫微十二宫:桌面端 4×3 矩阵,移动端纵向卡片列表;命宫/身宫高亮
+- 复用 SourceGradeBadge / ImplementationStatusBadge / ExplanationTraceViewer / WarningCenter / MobileSectionAccordion
+- 文档总数:README + 8 个 docs 文档(共 9 个 Markdown 文件)
+- 算法层与 Supabase 未改动

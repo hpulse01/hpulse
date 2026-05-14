@@ -40,6 +40,8 @@ import {
 
 import { AuditTracePanel } from '@/components/results/audit/AuditTracePanel';
 import { BaziCorePanel } from '@/components/results/bazi/BaziCorePanel';
+import { TiebanCorePanel } from '@/components/results/tieban/TiebanCorePanel';
+import { ZiweiCorePanel } from '@/components/results/ziwei/ZiweiCorePanel';
 
 import { HeroMission } from '@/components/hpulse/HeroMission';
 import { SystemStatusBar } from '@/components/hpulse/SystemStatusBar';
@@ -74,6 +76,7 @@ const Index = () => {
   const [clauseCount, setClauseCount] = useState<number | null>(null);
   const [activeResultTab, setActiveResultTab] = useState('overview');
   const [unifiedReport, setUnifiedReport] = useState<ReturnType<typeof PredictionOrchestrator.execute> | null>(null);
+  const [selectedKaoKe, setSelectedKaoKe] = useState<KaoKeWithMatch | null>(null);
 
   const { isSuperAdmin } = useAdminAccess();
   const { profile } = useAuth();
@@ -107,6 +110,7 @@ const Index = () => {
     selectedOption: KaoKeWithMatch
   ) => {
     setStep('projecting');
+    setSelectedKaoKe(selectedOption);
     try {
       await new Promise(resolve => setTimeout(resolve, 2000));
       const systemOffset = TiebanEngine.calculateSystemOffset(theoreticalBase, selectedOption.clauseNumber);
@@ -144,12 +148,15 @@ const Index = () => {
     setQuantumResult(null);
     setUnifiedReport(null);
     setActiveResultTab('overview');
+    setSelectedKaoKe(null);
   }, []);
 
   const resultTabs = useMemo(() => {
     const tabs = [
       { id: 'overview', label: t('tab.overview'), icon: Sparkles },
       { id: 'bazi', label: lang === 'zh' ? '八字' : 'Bazi', icon: BookOpen },
+      { id: 'tieban', label: lang === 'zh' ? '铁板' : 'Tieban', icon: Scroll },
+      { id: 'ziwei', label: lang === 'zh' ? '紫微' : 'Ziwei', icon: Atom },
       { id: 'engines', label: t('tab.engines'), icon: Layers },
       { id: 'audit', label: lang === 'zh' ? '算法审计' : 'Audit', icon: Activity },
       { id: 'tree', label: t('tab.tree'), icon: TreePine },
@@ -370,6 +377,29 @@ const Index = () => {
                     <HolographicPanel innerPadding="md">
                       <BaziCorePanel
                         bazi={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'bazi')}
+                      />
+                    </HolographicPanel>
+                  </TabsContent>
+
+                  <TabsContent value="tieban" className="mt-5">
+                    <HolographicPanel innerPadding="md">
+                      <TiebanCorePanel
+                        engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'tieban')}
+                        fullReport={fullReport}
+                        calibration={calibrationResult}
+                        selectedKaoKe={selectedKaoKe}
+                        baseNumber={baseNumber}
+                        theoreticalBase={theoreticalBase}
+                        pillarsDisplay={ganZhiDisplay}
+                      />
+                    </HolographicPanel>
+                  </TabsContent>
+
+                  <TabsContent value="ziwei" className="mt-5">
+                    <HolographicPanel innerPadding="md">
+                      <ZiweiCorePanel
+                        engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'ziwei')}
+                        birthYear={birthInput.year}
                       />
                     </HolographicPanel>
                   </TabsContent>
