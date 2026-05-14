@@ -7,6 +7,7 @@ import { ALL_FATE_DIMENSIONS } from '@/types/prediction';
 import { useI18n } from '@/hooks/useI18n';
 import { Timer, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import { formatPercent, normalizePercent } from '@/utils/displayFormat';
 
 const DIM_BAR: Record<FateDimension, string> = {
   life: 'from-amber-500 to-amber-600', wealth: 'from-emerald-500 to-emerald-600',
