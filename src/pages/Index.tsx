@@ -166,16 +166,16 @@ const Index = () => {
     // Public tabs — visible to all users
     const publicTabs = [
       { id: 'overview', label: t('tab.overview'), icon: Sparkles },
-      { id: 'tieban', label: lang === 'zh' ? '铁板' : 'Tieban', icon: Scroll },
-      { id: 'destiny', label: lang === 'zh' ? '铁板命盘' : 'Destiny Chart', icon: Scroll },
       { id: 'engines', label: t('tab.engines'), icon: Layers },
       { id: 'tree', label: t('tab.tree'), icon: TreePine },
       { id: 'path', label: t('tab.path'), icon: Target },
       { id: 'quantum', label: t('tab.quantum'), icon: Atom },
       { id: 'quantumCollapse', label: lang === 'zh' ? '量子坍缩' : 'Quantum Collapse', icon: Atom },
     ];
-    // Super-admin-only algorithm tabs
+    // Super-admin-only algorithm tabs (含铁板，待算法修订)
     const adminAlgoTabs = [
+      { id: 'tieban', label: lang === 'zh' ? '铁板' : 'Tieban', icon: Scroll },
+      { id: 'destiny', label: lang === 'zh' ? '铁板命盘' : 'Destiny Chart', icon: Scroll },
       { id: 'bazi', label: lang === 'zh' ? '八字' : 'Bazi', icon: BookOpen },
       { id: 'ziwei', label: lang === 'zh' ? '紫微' : 'Ziwei', icon: Atom },
       { id: 'liuyao', label: lang === 'zh' ? '六爻' : 'Liu Yao', icon: Layers },
@@ -410,6 +410,7 @@ const Index = () => {
                   </TabsContent>
                   )}
 
+                  {isSuperAdmin && (
                   <TabsContent value="tieban" className="mt-5">
                     <HolographicPanel innerPadding="md">
                       <TiebanCorePanel
@@ -423,6 +424,7 @@ const Index = () => {
                       />
                     </HolographicPanel>
                   </TabsContent>
+                  )}
 
                   {isSuperAdmin && (
                   <TabsContent value="ziwei" className="mt-5">
@@ -509,6 +511,7 @@ const Index = () => {
                     )}
                   </TabsContent>
 
+                  {isSuperAdmin && (
                   <TabsContent value="destiny" className="mt-5">
                     <DestinyDashboard
                       report={fullReport}
@@ -525,6 +528,7 @@ const Index = () => {
                       onReset={handleReset}
                     />
                   </TabsContent>
+                  )}
                   <TabsContent value="quantum" className="mt-5">
                     <UnifiedQuantumPanel result={quantumResult} birthYear={birthInput.year} />
                   </TabsContent>
