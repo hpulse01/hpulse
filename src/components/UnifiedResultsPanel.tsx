@@ -393,7 +393,7 @@ function EngineVectorComparison({ result }: { result: UnifiedPredictionResult })
 function MeihuaDetail({ result }: { result: UnifiedPredictionResult }) {
   const meihua = result.engineOutputs.find(e => e.engineName === 'meihua');
   if (!meihua) return null;
-  const no = meihua.normalizedOutput;
+  const no = meihua.normalizedOutput as Record<string, string>;
   return (
     <div className="mt-4 space-y-2">
       <h3 className="text-sm font-serif text-blue-300 flex items-center gap-1.5"><Sparkles className="w-4 h-4" />梅花易数卦象 <Badge variant="outline" className="text-[8px] border-blue-500/20 text-blue-400">即时</Badge></h3>
@@ -428,7 +428,7 @@ function MeihuaDetail({ result }: { result: UnifiedPredictionResult }) {
 function QimenDetail({ result }: { result: UnifiedPredictionResult }) {
   const qimen = result.engineOutputs.find(e => e.engineName === 'qimen');
   if (!qimen) return null;
-  const no = qimen.normalizedOutput;
+  const no = qimen.normalizedOutput as Record<string, string>;
   return (
     <div className="mt-4 space-y-2">
       <h3 className="text-sm font-serif text-blue-300 flex items-center gap-1.5"><Shield className="w-4 h-4" />奇门遁甲盘面 <Badge variant="outline" className="text-[8px] border-blue-500/20 text-blue-400">即时</Badge></h3>
@@ -449,7 +449,7 @@ function QimenDetail({ result }: { result: UnifiedPredictionResult }) {
 function LiuRenDetail({ result }: { result: UnifiedPredictionResult }) {
   const liuren = result.engineOutputs.find(e => e.engineName === 'liuren');
   if (!liuren) return null;
-  const no = liuren.normalizedOutput;
+  const no = liuren.normalizedOutput as Record<string, string>;
   return (
     <div className="mt-4 space-y-2">
       <h3 className="text-sm font-serif text-blue-300 flex items-center gap-1.5"><Activity className="w-4 h-4" />大六壬课体 <Badge variant="outline" className="text-[8px] border-blue-500/20 text-blue-400">即时</Badge></h3>
@@ -480,7 +480,7 @@ function LiuRenDetail({ result }: { result: UnifiedPredictionResult }) {
 function TaiyiDetail({ result }: { result: UnifiedPredictionResult }) {
   const taiyi = result.engineOutputs.find(e => e.engineName === 'taiyi');
   if (!taiyi) return null;
-  const no = taiyi.normalizedOutput;
+  const no = taiyi.normalizedOutput as Record<string, string>;
   return (
     <div className="mt-4 space-y-2">
       <h3 className="text-sm font-serif text-blue-300 flex items-center gap-1.5"><Sun className="w-4 h-4" />太乙神数 <Badge variant="outline" className="text-[8px] border-blue-500/20 text-blue-400">即时</Badge></h3>
@@ -513,7 +513,7 @@ function TaiyiDetail({ result }: { result: UnifiedPredictionResult }) {
 function ZiweiDetail({ result }: { result: UnifiedPredictionResult }) {
   const ziwei = result.engineOutputs.find(e => e.engineName === 'ziwei');
   if (!ziwei) return null;
-  const no = ziwei.normalizedOutput;
+  const no = ziwei.normalizedOutput as Record<string, string>;
   return (
     <div className="mt-4 space-y-2">
       <h3 className="text-sm font-serif text-amber-300 flex items-center gap-1.5"><Sparkles className="w-4 h-4" />紫微斗数 <Badge variant="outline" className="text-[8px] border-amber-500/20 text-amber-400">本命</Badge></h3>
