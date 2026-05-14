@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { DisclaimerDialog, hasConsented } from '@/components/DisclaimerDialog';
 import { BirthDataForm, type BirthDataWithGeo } from '@/components/BirthDataForm';
 import { SixRelationsVerification } from '@/components/SixRelationsVerification';
@@ -31,11 +32,31 @@ import {
   QuantumPredictionEngine,
   type QuantumPredictionResult,
 } from '@/utils/quantumPredictionEngine';
-import { QuantumField } from '@/components/quantum/QuantumField';
 import { useToast } from '@/hooks/use-toast';
-import { Atom, RotateCcw, Sparkles, Scroll, TreePine, Target, Layers, Shield, AlertTriangle } from 'lucide-react';
+import {
+  Atom, RotateCcw, Sparkles, Scroll, TreePine, Target, Layers, Shield,
+  AlertTriangle, Archive, ArrowLeft, Database,
+} from 'lucide-react';
+
+import { HeroMission } from '@/components/hpulse/HeroMission';
+import { SystemStatusBar } from '@/components/hpulse/SystemStatusBar';
+import { EngineStatusGrid } from '@/components/hpulse/EngineStatusGrid';
+import { HolographicPanel } from '@/components/hpulse/HolographicPanel';
+import { SectionHeader } from '@/components/hpulse/SectionHeader';
+import { QuantumLoadingScreen } from '@/components/hpulse/QuantumLoadingScreen';
+import { CollapseLoadingScreen } from '@/components/hpulse/CollapseLoadingScreen';
+import { ResultShell } from '@/components/hpulse/ResultShell';
 
 type AppStep = 'input' | 'calculating' | 'verification' | 'projecting' | 'result';
+
+const FLOW_STEPS = [
+  { n: 1, label: '标准化出生时空', en: 'Standardize Birth Spacetime' },
+  { n: 2, label: '多引擎独立执行', en: 'Independent Engine Execution' },
+  { n: 3, label: '冲突检测与权重融合', en: 'Conflict Detection & Fusion' },
+  { n: 4, label: '世界树生成', en: 'Destiny Tree Generation' },
+  { n: 5, label: '唯一路径坍缩', en: 'Unique Path Collapse' },
+  { n: 6, label: '生命轨迹报告', en: 'Life Trajectory Report' },
+];
 
 const Index = () => {
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(() => hasConsented());
@@ -54,19 +75,10 @@ const Index = () => {
   const { isSuperAdmin } = useAdminAccess();
   const { profile } = useAuth();
   const { toast } = useToast();
-  const { t, engineLabel, lang } = useI18n();
-
-  // Engine labels (bilingual)
-  const allEngineLabels = useMemo(() => [
-    'tieban', 'bazi', 'ziwei', 'liuyao',
-    'western', 'vedic', 'numerology', 'mayan', 'kabbalah',
-    'meihua', 'qimen', 'liuren', 'taiyi',
-  ].map(e => engineLabel(e)), [engineLabel]);
+  const { t, lang } = useI18n();
 
   useEffect(() => {
-    getClauseCount().then(count => {
-      setClauseCount(count);
-    });
+    getClauseCount().then(count => setClauseCount(count));
   }, []);
 
   const handleBirthDataSubmit = useCallback(async (birthData: BirthDataWithGeo) => {
@@ -146,285 +158,306 @@ const Index = () => {
     return tabs;
   }, [isSuperAdmin, t]);
 
+  const isResultStep = step === 'result';
+
   return (
     <div className="min-h-screen flex flex-col bg-background bg-scroll-texture">
-      {/* Mandatory Disclaimer */}
       <DisclaimerDialog
         open={!disclaimerAccepted}
         onAccept={() => setDisclaimerAccepted(true)}
       />
+
       {/* Header */}
-      <header className="relative border-b border-border/50">
-        <div className="absolute inset-0 bg-gradient-to-b from-card/80 to-transparent" />
-        <div className="container max-w-6xl mx-auto px-4 py-4 md:py-5 relative z-10">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
+      <header className="relative border-b border-border/40 backdrop-blur-md bg-background/70 sticky top-0 z-30">
+        <div className="container max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            {/* Brand */}
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-lg border border-primary/30 bg-primary/[0.06] flex items-center justify-center shrink-0">
+                <Atom className="w-4 h-4 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-base md:text-lg font-serif text-gradient-gold tracking-[0.22em] leading-none">
+                  H-Pulse
+                </h1>
+                <p className="text-[9px] uppercase tracking-[0.32em] text-muted-foreground/65 font-mono mt-0.5 truncate">
+                  Quantum Prediction System
+                </p>
+              </div>
+            </div>
+
+            {/* Status (desktop) */}
+            <div className="hidden lg:flex">
+              <SystemStatusBar clauseCount={clauseCount} />
+            </div>
+
+            {/* Right cluster */}
+            <div className="flex items-center gap-1.5 md:gap-2">
               <LanguageToggle />
-            </div>
-            <div className="text-center flex-1">
-              <h1 className="text-2xl md:text-3xl font-serif text-gradient-gold tracking-[0.2em] font-semibold">
-                {t('ui.title')}
-              </h1>
-              <p className="text-muted-foreground text-[10px] md:text-xs tracking-widest mt-1 font-sans">
-                {t('ui.subtitle')}
-              </p>
-              {clauseCount !== null && clauseCount > 0 && (
-                <p className="text-muted-foreground/30 text-[10px] mt-1.5 font-sans">
-                  {clauseCount.toLocaleString()} {t('ui.clauses')} · 13 {t('ui.engines')}
-                </p>
+              <Button asChild variant="ghost" size="sm" className="h-9 px-2 hidden sm:inline-flex">
+                <Link to="/prediction-history">
+                  <Archive className="w-3.5 h-3.5 sm:mr-1.5" />
+                  <span className="hidden md:inline text-xs">预测档案</span>
+                </Link>
+              </Button>
+              {isSuperAdmin && (
+                <Button asChild variant="ghost" size="sm" className="h-9 px-2 hidden md:inline-flex">
+                  <Link to="/admin-users">
+                    <Shield className="w-3.5 h-3.5 mr-1.5 text-accent" />
+                    <span className="text-xs">Admin</span>
+                  </Link>
+                </Button>
               )}
-              {clauseCount === 0 && isSuperAdmin && (
-                <p className="text-accent/70 text-[10px] mt-1">
-                  {t('admin.clause_empty')} → <a href="/admin-import" className="underline hover:text-accent">{t('admin.import')}</a>
-                </p>
-              )}
-            </div>
-            <div className="flex-1 flex justify-end">
               <UserMenu />
             </div>
           </div>
+          {/* Status (mobile) */}
+          <div className="lg:hidden mt-2 flex justify-center">
+            <SystemStatusBar clauseCount={clauseCount} />
+          </div>
+          {clauseCount === 0 && isSuperAdmin && (
+            <div className="mt-2 text-center">
+              <span className="text-accent/80 text-[10px] font-mono">
+                {t('admin.clause_empty')} →{' '}
+                <Link to="/admin-import" className="underline hover:text-accent">
+                  {t('admin.import')}
+                </Link>
+              </span>
+            </div>
+          )}
         </div>
       </header>
 
       {/* Main */}
-      <main className="flex-1 py-8 md:py-12">
-        <div className={`container mx-auto px-4 ${step === 'result' ? 'max-w-6xl' : 'max-w-xl'}`}>
+      <main className="flex-1 py-6 md:py-10">
+        <div className={`container mx-auto px-4 ${isResultStep ? 'max-w-7xl' : 'max-w-6xl'}`}>
 
-          {/* Step: Input */}
+          {/* Step: Input — Prediction Console */}
           {step === 'input' && (
-            <div className="relative animate-fade-in-up">
-              <div className="absolute inset-0 -z-10 opacity-15 rounded-2xl overflow-hidden">
-                <QuantumField energy={25} dominantElement="金" />
-              </div>
-              <div className="glass-elevated rounded-2xl p-7 md:p-10 shadow-2xl shadow-black/30">
-                <BirthDataForm onSubmit={handleBirthDataSubmit} isLoading={false} />
+            <div className="space-y-6 animate-fade-in-up">
+              <HeroMission />
+              <div className="grid lg:grid-cols-5 gap-6">
+                {/* Left: 40% input */}
+                <div className="lg:col-span-2">
+                  <HolographicPanel variant="elevated" innerPadding="lg">
+                    <BirthDataForm onSubmit={handleBirthDataSubmit} isLoading={false} />
+                  </HolographicPanel>
+                </div>
+
+                {/* Right: 60% engines + flow */}
+                <div className="lg:col-span-3 space-y-6">
+                  <EngineStatusGrid status="ready" />
+
+                  <HolographicPanel innerPadding="md">
+                    <SectionHeader
+                      titleZh="推演流程"
+                      titleEn="Prediction Pipeline"
+                      icon={<Database className="w-4 h-4" />}
+                    />
+                    <ol className="mt-4 grid sm:grid-cols-2 gap-2.5">
+                      {FLOW_STEPS.map(s => (
+                        <li
+                          key={s.n}
+                          className="flex items-start gap-3 p-2.5 rounded-lg border border-border/25 bg-card/30 hover:border-primary/30 transition-colors"
+                        >
+                          <span className="shrink-0 w-7 h-7 rounded-md border border-primary/30 bg-primary/[0.06] text-primary font-mono text-xs flex items-center justify-center">
+                            {String(s.n).padStart(2, '0')}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="text-xs text-foreground/85 font-serif tracking-wider">
+                              {s.label}
+                            </div>
+                            <div className="text-[9px] text-muted-foreground/55 font-mono uppercase tracking-[0.18em] truncate">
+                              {s.en}
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  </HolographicPanel>
+                </div>
               </div>
             </div>
           )}
 
           {/* Step: Calculating */}
           {step === 'calculating' && (
-            <div className="relative animate-fade-in-up">
-              <div className="absolute inset-0 rounded-2xl overflow-hidden">
-                <QuantumField energy={50} dominantElement="水" />
-              </div>
-              <div className="relative glass rounded-2xl p-12 md:p-16 shadow-2xl shadow-black/40">
-                <div className="text-center space-y-8">
-                  <div className="relative w-20 h-20 mx-auto">
-                    <Atom className="w-20 h-20 text-primary/80 animate-spin" style={{ animationDuration: '3s' }} />
-                    <div className="absolute inset-0 rounded-full bg-primary/5 animate-pulse" />
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-lg font-serif text-foreground tracking-wider">
-                      {t('ui.initializing')}
-                    </p>
-                    <p className="text-xs text-muted-foreground font-sans tracking-widest uppercase">
-                      {t('ui.initializing_sub')}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap justify-center gap-2 max-w-md mx-auto">
-                    {allEngineLabels.map((sys, i) => (
-                      <span
-                        key={sys}
-                        className="text-[10px] px-2.5 py-1 rounded-full border border-border/40 text-muted-foreground animate-pulse font-sans"
-                        style={{ animationDelay: `${i * 100}ms` }}
-                      >
-                        {sys}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
+            <div className="max-w-2xl mx-auto animate-fade-in-up">
+              <QuantumLoadingScreen />
             </div>
           )}
 
           {/* Step: Verification */}
           {step === 'verification' && (
-            <div className="glass-elevated rounded-2xl p-6 md:p-8 shadow-xl shadow-black/30 animate-fade-in-up">
-              <SixRelationsVerification
-                baseNumber={baseNumber}
-                ganZhiDisplay={ganZhiDisplay}
-                onTimeLocked={handleTimeLocked}
-                isLoading={false}
-              />
+            <div className="max-w-3xl mx-auto animate-fade-in-up">
+              <HolographicPanel variant="elevated" innerPadding="lg">
+                <SectionHeader
+                  titleZh="六亲校时"
+                  titleEn="Temporal Lock Verification"
+                  description="通过六亲事实反向校准出生时辰偏移,锁定唯一时轨。"
+                  icon={<Target className="w-4 h-4" />}
+                  className="mb-5"
+                />
+                <SixRelationsVerification
+                  baseNumber={baseNumber}
+                  ganZhiDisplay={ganZhiDisplay}
+                  onTimeLocked={handleTimeLocked}
+                  isLoading={false}
+                />
+              </HolographicPanel>
             </div>
           )}
 
           {/* Step: Projecting */}
           {step === 'projecting' && (
-            <div className="relative animate-fade-in-up">
-              <div className="absolute inset-0 rounded-2xl overflow-hidden">
-                <QuantumField energy={85} dominantElement="火" />
-              </div>
-              <div className="relative glass rounded-2xl p-12 md:p-16 shadow-2xl shadow-black/40">
-                <div className="text-center space-y-8">
-                  <div className="relative w-20 h-20 mx-auto">
-                    <Atom className="w-20 h-20 text-primary animate-spin" style={{ animationDuration: '1s' }} />
-                    <div className="absolute inset-0 rounded-full animate-pulse-glow" />
-                  </div>
-                  <div className="space-y-3">
-                    <p className="text-lg font-serif text-foreground tracking-wider">
-                      {t('ui.collapsing')}
-                    </p>
-                    <p className="text-xs text-muted-foreground font-sans tracking-widest uppercase">
-                      {t('ui.collapsing_sub')}
-                    </p>
-                  </div>
-                  <div className="space-y-3">
-                    <p className="text-xs text-primary/70 font-mono animate-pulse">
-                      {t('ui.collapsing_sub')}
-                    </p>
-                    <div className="w-48 mx-auto h-1 bg-border/30 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-primary/60 via-primary to-primary/60 rounded-full animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="max-w-2xl mx-auto animate-fade-in-up">
+              <CollapseLoadingScreen
+                theoreticalBase={theoreticalBase}
+                systemOffset={
+                  calibrationResult?.systemOffset ??
+                  (theoreticalBase ? 0 : undefined)
+                }
+                lockedQuarter={calibrationResult?.lockedQuarterIndex}
+              />
             </div>
           )}
 
           {/* Step: Result */}
-          {step === 'result' && fullReport && birthInput && quantumResult && (
-            <div className="space-y-6 animate-fade-in-up">
-              {/* Quantum Signature Header */}
-              <div className="relative rounded-2xl overflow-hidden">
-                <div className="absolute inset-0 z-0">
-                  <QuantumField energy={quantumResult.overallCoherence * 100} dominantElement={quantumResult.dominantElement} />
-                </div>
-                <div className="relative z-10 glass-elevated rounded-2xl p-6 md:p-8">
-                  <div className="text-center space-y-4">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5">
-                      <Sparkles className="w-3.5 h-3.5 text-primary" />
-                      <span className="text-xs font-sans text-primary tracking-wider">{t('ui.destiny_resolved_badge')}</span>
-                    </div>
-                    <h2 className="text-2xl md:text-3xl font-serif text-gradient-gold tracking-wider">
-                      {t('ui.destiny_resolved')}
-                    </h2>
-                    <p className="text-[10px] font-mono text-muted-foreground/60 tracking-wider">
-                      {quantumResult.quantumSignature}
-                    </p>
-                    <div className="flex flex-wrap justify-center gap-x-6 gap-y-1 text-xs text-muted-foreground font-sans">
-                      <span>{t('ui.coherence')} <strong className="text-primary">{Math.round(quantumResult.overallCoherence * 100)}%</strong></span>
-                      <span>{t('ui.worlds')} <strong className="text-primary">{quantumResult.totalWorldsGenerated.toLocaleString()}</strong></span>
-                      <span>{t('ui.engines')} <strong className="text-primary">13</strong></span>
-                      <span>统一入口 <strong className="text-primary">H-Pulse</strong></span>
-                      <span>{t('ui.element')} <strong className="text-primary">{quantumResult.dominantElement}</strong></span>
-                      {quantumResult.collapseResult && (
-                        <span>{t('ui.lifespan')} <strong className="text-accent">{quantumResult.collapseResult.deathAge}{t('ui.years_old')}</strong></span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground max-w-2xl mx-auto leading-relaxed border-t border-border/30 pt-4 mt-2">
-                      {quantumResult.lifeSummary}
-                    </p>
-                    <div className="inline-block px-4 py-2 bg-card/50 rounded-lg border border-border/30">
-                      <span className="text-foreground/70 font-serif tracking-[0.3em] text-sm">
-                        {ganZhiDisplay}
+          {isResultStep && fullReport && birthInput && quantumResult && (
+            <div className="animate-fade-in-up">
+              <ResultShell
+                quantumSignature={quantumResult.quantumSignature}
+                coherence={quantumResult.overallCoherence}
+                worldsGenerated={quantumResult.totalWorldsGenerated}
+                engineCount={13}
+                dominantElement={quantumResult.dominantElement}
+                deathAge={quantumResult.collapseResult?.deathAge}
+                ganZhiDisplay={ganZhiDisplay}
+                lifeSummary={quantumResult.lifeSummary}
+              >
+                {/* Tabs */}
+                <Tabs value={activeResultTab} onValueChange={setActiveResultTab}>
+                  <div className="overflow-x-auto -mx-2 px-2 scrollbar-thin">
+                    <TabsList className="inline-flex w-auto min-w-full bg-card/40 border border-primary/15 h-auto p-1 rounded-xl gap-1">
+                      {resultTabs.map(tab => {
+                        const Icon = tab.icon;
+                        return (
+                          <TabsTrigger
+                            key={tab.id}
+                            value={tab.id}
+                            className="text-[11px] sm:text-xs py-2 px-3 rounded-lg font-sans whitespace-nowrap data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_12px_hsl(40_65%_55%_/_0.25)] data-[state=active]:border-b-2 data-[state=active]:border-primary transition-all"
+                          >
+                            <Icon className="w-3.5 h-3.5 mr-1.5 inline" />
+                            {tab.label}
+                          </TabsTrigger>
+                        );
+                      })}
+                    </TabsList>
+                  </div>
+
+                  <TabsContent value="overview" className="mt-5">
+                    {quantumResult.unifiedResult && (
+                      <PredictionOverview result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="engines" className="mt-5">
+                    {quantumResult.unifiedResult && (
+                      <EngineContributionPanel result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="tree" className="mt-5">
+                    {quantumResult.destinyTree && quantumResult.collapseResult ? (
+                      <DestinyTreeLayer tree={quantumResult.destinyTree} collapse={quantumResult.collapseResult} />
+                    ) : (
+                      <HolographicPanel innerPadding="lg" className="text-center text-xs text-muted-foreground">
+                        {lang === 'zh' ? '命运树数据加载中...' : 'Loading destiny tree...'}
+                      </HolographicPanel>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="path" className="mt-5">
+                    {quantumResult.collapseResult ? (
+                      <UniquePathLayer collapse={quantumResult.collapseResult} birthYear={birthInput.year} />
+                    ) : (
+                      <HolographicPanel innerPadding="lg" className="text-center text-xs text-muted-foreground">
+                        {lang === 'zh' ? '坍缩数据加载中...' : 'Loading collapse data...'}
+                      </HolographicPanel>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="destiny" className="mt-5">
+                    <DestinyDashboard
+                      report={fullReport}
+                      pillarsDisplay={ganZhiDisplay}
+                      birthYear={birthInput.year}
+                      birthData={{
+                        year: birthInput.year,
+                        month: birthInput.month,
+                        day: birthInput.day,
+                        hour: birthInput.hour,
+                        minute: birthInput.minute,
+                        gender: birthInput.gender,
+                      }}
+                      onReset={handleReset}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="quantum" className="mt-5">
+                    <UnifiedQuantumPanel result={quantumResult} birthYear={birthInput.year} />
+                  </TabsContent>
+
+                  {isSuperAdmin && unifiedReport && (
+                    <TabsContent value="orchestration" className="mt-5">
+                      <div className="space-y-4">
+                        <HolographicPanel innerPadding="md" className="border-accent/30">
+                          <div className="flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-accent" />
+                            <span className="text-xs text-accent/90 font-sans">{t('admin.super_admin')}</span>
+                          </div>
+                        </HolographicPanel>
+                        <AdminOrchestrationConsole profile={profile} snapshot={unifiedReport.adminSnapshot} />
+                      </div>
+                    </TabsContent>
+                  )}
+                </Tabs>
+
+                {/* Footer Actions */}
+                <div className="space-y-3 pt-4">
+                  <HolographicPanel innerPadding="sm" className="text-center">
+                    <div className="flex items-center justify-center gap-1.5 text-accent/85">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <span className="text-[11px] font-semibold tracking-[0.2em] uppercase">
+                        {t('disclaimer.title')}
                       </span>
                     </div>
+                    <p className="mt-1.5 text-[10px] text-muted-foreground/65 leading-relaxed font-sans max-w-3xl mx-auto">
+                      {t('disclaimer.text')}
+                    </p>
+                  </HolographicPanel>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="py-5 text-sm font-sans tracking-wider border-border/40 hover:border-primary/40 hover:bg-primary/5 rounded-xl"
+                    >
+                      <Link to="/prediction-history">
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        返回控制台 · 预测档案
+                      </Link>
+                    </Button>
+                    <Button
+                      onClick={handleReset}
+                      variant="outline"
+                      className="py-5 text-sm font-sans tracking-wider border-primary/30 hover:border-primary/60 hover:bg-primary/5 rounded-xl group"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
+                      重新启动推演
+                    </Button>
                   </div>
                 </div>
-              </div>
-
-              {/* Result Tabs */}
-              <Tabs value={activeResultTab} onValueChange={setActiveResultTab}>
-                <TabsList className={`grid w-full bg-card/60 border border-border/30 h-auto p-1 rounded-xl ${isSuperAdmin ? 'grid-cols-7' : 'grid-cols-6'}`}>
-                  {resultTabs.map(tab => {
-                    const Icon = tab.icon;
-                    return (
-                      <TabsTrigger
-                        key={tab.id}
-                        value={tab.id}
-                        className="text-[9px] sm:text-xs py-2.5 rounded-lg font-sans data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
-                      >
-                        <Icon className="w-3.5 h-3.5 mr-1 hidden sm:inline" />{tab.label}
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
-
-                <TabsContent value="overview" className="mt-6">
-                  {quantumResult.unifiedResult && (
-                    <PredictionOverview result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
-                  )}
-                </TabsContent>
-
-                <TabsContent value="engines" className="mt-6">
-                  {quantumResult.unifiedResult && (
-                    <EngineContributionPanel result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
-                  )}
-                </TabsContent>
-
-                <TabsContent value="tree" className="mt-6">
-                  {quantumResult.destinyTree && quantumResult.collapseResult ? (
-                    <DestinyTreeLayer tree={quantumResult.destinyTree} collapse={quantumResult.collapseResult} />
-                  ) : (
-                    <div className="p-12 text-center text-muted-foreground text-xs glass rounded-2xl">
-                      {lang === 'zh' ? '命运树数据加载中...' : 'Loading destiny tree...'}
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="path" className="mt-6">
-                  {quantumResult.collapseResult ? (
-                    <UniquePathLayer collapse={quantumResult.collapseResult} birthYear={birthInput.year} />
-                  ) : (
-                    <div className="p-12 text-center text-muted-foreground text-xs glass rounded-2xl">
-                      {lang === 'zh' ? '坍缩数据加载中...' : 'Loading collapse data...'}
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="destiny" className="mt-6">
-                  <DestinyDashboard
-                    report={fullReport}
-                    pillarsDisplay={ganZhiDisplay}
-                    birthYear={birthInput.year}
-                    birthData={{
-                      year: birthInput.year,
-                      month: birthInput.month,
-                      day: birthInput.day,
-                      hour: birthInput.hour,
-                      minute: birthInput.minute,
-                      gender: birthInput.gender,
-                    }}
-                    onReset={handleReset}
-                  />
-                </TabsContent>
-
-                <TabsContent value="quantum" className="mt-6">
-                  <UnifiedQuantumPanel result={quantumResult} birthYear={birthInput.year} />
-                </TabsContent>
-
-                {isSuperAdmin && unifiedReport && (
-                  <TabsContent value="orchestration" className="mt-6">
-                    <div className="space-y-4">
-                      <div className="p-3 rounded-xl bg-accent/10 border border-accent/20 flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-accent" />
-                        <span className="text-xs text-accent/90 font-sans">{t('admin.super_admin')}</span>
-                      </div>
-                      <AdminOrchestrationConsole profile={profile} snapshot={unifiedReport.adminSnapshot} />
-                    </div>
-                  </TabsContent>
-                )}
-              </Tabs>
-
-              {/* Footer Actions */}
-              <div className="space-y-4 pt-4 border-t border-border/20">
-                <div className="glass rounded-xl p-4 text-center space-y-2">
-                  <div className="flex items-center justify-center gap-1.5 text-accent/80">
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                    <span className="text-[11px] font-semibold tracking-wide">{t('disclaimer.title')}</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground/60 leading-relaxed font-sans">
-                    {t('disclaimer.text')}
-                  </p>
-                </div>
-                <Button onClick={handleReset} variant="outline"
-                  className="w-full py-5 text-sm font-sans tracking-wider border-border/30 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 rounded-xl group">
-                  <RotateCcw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
-                  {t('ui.reset')}
-                </Button>
-              </div>
+              </ResultShell>
             </div>
           )}
         </div>
