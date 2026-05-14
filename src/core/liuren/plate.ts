@@ -117,7 +117,7 @@ export function buildFourClasses(
   trace.push({
     rule: 'liuren.fourClasses',
     detail: `四课：1课(${dayStem}寄${ganJi})上神=${ke1H}；2课(${ke1H})上神=${ke2H}；3课(支${dayBranch})上神=${ke3H}；4课(${ke3H})上神=${ke4H}。`,
-    data: fc,
+    data: { ...fc } as Record<string, unknown>,
   });
   return fc;
 }
