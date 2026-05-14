@@ -35,26 +35,13 @@ function ageFromYear(year: number, birthYear: number): number {
   return Math.max(0, year - birthYear);
 }
 
-function ageWindowFromTimeWindow(tw: TimeWindow, birthYear: number): AgeWindow {
-  if (typeof tw.startAge === 'number' && typeof tw.endAge === 'number') {
-    const span = tw.endAge - tw.startAge;
-    const precision: AgeWindow['precision'] = span <= 1 ? 'exact' : span <= 5 ? 'narrow' : span <= 15 ? 'wide' : 'unknown';
-    return { earliestAge: tw.startAge, latestAge: tw.endAge, precision };
-  }
-  if (typeof tw.startYear === 'number' && typeof tw.endYear === 'number') {
-    const e1 = ageFromYear(tw.startYear, birthYear);
-    const e2 = ageFromYear(tw.endYear, birthYear);
-    const span = e2 - e1;
-    const precision: AgeWindow['precision'] = span <= 1 ? 'exact' : span <= 5 ? 'narrow' : span <= 15 ? 'wide' : 'unknown';
-    return { earliestAge: e1, latestAge: e2, precision };
-  }
-  return { earliestAge: 0, latestAge: 110, precision: 'unknown' };
+function ageWindowFromTimeWindow(tw: TimeWindow): AgeWindow {
+  const span = (tw.endAge ?? 0) - (tw.startAge ?? 0);
+  const precision: AgeWindow['precision'] = span <= 1 ? 'exact' : span <= 5 ? 'narrow' : span <= 15 ? 'wide' : 'unknown';
+  return { earliestAge: tw.startAge ?? 0, latestAge: tw.endAge ?? 110, precision };
 }
 
 function yearWindowFromTimeWindow(tw: TimeWindow, birthYear: number): YearWindow | undefined {
-  if (typeof tw.startYear === 'number' && typeof tw.endYear === 'number') {
-    return { earliestYear: tw.startYear, latestYear: tw.endYear };
-  }
   if (typeof tw.startAge === 'number' && typeof tw.endAge === 'number') {
     return { earliestYear: birthYear + tw.startAge, latestYear: birthYear + tw.endAge };
   }
@@ -149,9 +136,10 @@ function makeSeedFromTimeWindow(
   index: number,
   ctx: Context,
 ): EventSeed {
-  const text = `${tw.label ?? tw.theme ?? ''} ${tw.description ?? ''}`.trim() || `${output.engineNameCN} time window ${index + 1}`;
-  const category = inferCategory(text);
-  const ageWindow = ageWindowFromTimeWindow(tw, ctx.birthYear);
+  const evidence = (tw.evidence ?? '').trim();
+  const text = evidence || `${output.engineNameCN ?? output.engineName} ${tw.dimension} window ${index + 1} (${tw.trend})`;
+  const category = inferCategory(text + ' ' + tw.dimension);
+  const ageWindow = ageWindowFromTimeWindow(tw);
   const yearWindow = yearWindowFromTimeWindow(tw, ctx.birthYear);
   const status = statusFromOutput(output);
   const seedId = deterministicId('seed', output.engineName, 'timeWindow', index, text);
@@ -162,7 +150,7 @@ function makeSeedFromTimeWindow(
     sourceGrade: output.sourceGrade ?? 'C',
     implementationStatus: status,
     category,
-    subcategory: tw.theme ?? '',
+    subcategory: tw.dimension ?? '',
     ageWindow,
     yearWindow,
     description: text,
