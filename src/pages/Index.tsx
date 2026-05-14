@@ -42,6 +42,16 @@ import { AuditTracePanel } from '@/components/results/audit/AuditTracePanel';
 import { BaziCorePanel } from '@/components/results/bazi/BaziCorePanel';
 import { TiebanCorePanel } from '@/components/results/tieban/TiebanCorePanel';
 import { ZiweiCorePanel } from '@/components/results/ziwei/ZiweiCorePanel';
+import { LiuYaoCorePanel } from '@/components/results/liuyao/LiuYaoCorePanel';
+import { MeihuaCorePanel } from '@/components/results/meihua/MeihuaCorePanel';
+import { QimenCorePanel } from '@/components/results/qimen/QimenCorePanel';
+import { LiuRenCorePanel } from '@/components/results/liuren/LiuRenCorePanel';
+import { TaiyiCorePanel } from '@/components/results/taiyi/TaiyiCorePanel';
+import { WesternCorePanel } from '@/components/results/western/WesternCorePanel';
+import { VedicCorePanel } from '@/components/results/vedic/VedicCorePanel';
+import { NumerologyCorePanel } from '@/components/results/numerology/NumerologyCorePanel';
+import { MayanCorePanel } from '@/components/results/mayan/MayanCorePanel';
+import { KabbalahCorePanel } from '@/components/results/kabbalah/KabbalahCorePanel';
 
 import { HeroMission } from '@/components/hpulse/HeroMission';
 import { SystemStatusBar } from '@/components/hpulse/SystemStatusBar';
