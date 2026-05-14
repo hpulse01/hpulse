@@ -102,8 +102,8 @@ export function QuantumCollapsePanel({ quantumResult }: Props) {
         <Section title={`事件时间线 · Destiny Timeline (${timeline.length})`}>
           <ul className="space-y-1 text-[11px] font-mono text-foreground/80 max-h-64 overflow-y-auto">
             {timeline.slice(0, 60).map((e, i) => {
-              const age = (e as Record<string, unknown>).age;
-              const desc = (e as Record<string, unknown>).description;
+              const age = (e as unknown as Record<string, unknown>).age;
+              const desc = (e as unknown as Record<string, unknown>).description;
               const descText = typeof desc === 'string'
                 ? desc
                 : typeof desc === 'number' || typeof desc === 'boolean'
