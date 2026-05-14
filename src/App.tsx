@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import AdminImport from "./pages/AdminImport";
 import AdminUsers from "./pages/AdminUsers";
 import QuantumPrediction from "./pages/QuantumPrediction";
+import PredictionHistory from "./pages/PredictionHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
               <Route path="/admin-import" element={<AdminImport />} />
               <Route path="/admin-users" element={<AdminUsers />} />
               <Route path="/quantum-prediction" element={<QuantumPrediction />} />
+              <Route path="/prediction-history" element={<PredictionHistory />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
