@@ -381,6 +381,29 @@ const Index = () => {
                     </HolographicPanel>
                   </TabsContent>
 
+                  <TabsContent value="tieban" className="mt-5">
+                    <HolographicPanel innerPadding="md">
+                      <TiebanCorePanel
+                        engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'tieban')}
+                        fullReport={fullReport}
+                        calibration={calibrationResult}
+                        selectedKaoKe={selectedKaoKe}
+                        baseNumber={baseNumber}
+                        theoreticalBase={theoreticalBase}
+                        pillarsDisplay={ganZhiDisplay}
+                      />
+                    </HolographicPanel>
+                  </TabsContent>
+
+                  <TabsContent value="ziwei" className="mt-5">
+                    <HolographicPanel innerPadding="md">
+                      <ZiweiCorePanel
+                        engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'ziwei')}
+                        birthYear={birthInput.year}
+                      />
+                    </HolographicPanel>
+                  </TabsContent>
+
                   <TabsContent value="engines" className="mt-5">
                     {quantumResult.unifiedResult && (
                       <EngineContributionPanel result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
