@@ -66,23 +66,20 @@ export function fourPillarsFromAstro(astro: NormalizedAstroTime): FourPillars {
   const month = parseGanzhi(lunar.monthGanzhi);
   const day = parseGanzhi(lunar.dayGanzhi);
 
-  // Hour pillar: prefer TRUE SOLAR TIME at the birth location (canonical
-  // BaZi rule). Fall back to local civil hour, then Beijing as last resort.
-  let hourSource: 'trueSolar' | 'localCivil' | 'beijingCivil' = 'beijingCivil';
+  // Hour pillar: use LOCAL CIVIL HOUR at birthplace (matches lunar-typescript /
+  // Tieban convention). True solar time correction is NOT applied to the hour
+  // pillar by default — most schools and reference implementations use the
+  // local clock hour. Fall back to Beijing civil hour only if local missing.
+  let hourSource: 'localCivil' | 'beijingCivil' = 'beijingCivil';
   let hourForPillar: number = bj.getUTCHours();
-  if (Number.isFinite(astro.trueSolarTime)) {
-    // Wrap into [0,24)
-    const t = ((astro.trueSolarTime % 24) + 24) % 24;
-    hourForPillar = Math.floor(t);
-    hourSource = 'trueSolar';
-  } else if (Number.isFinite(localHour)) {
+  if (Number.isFinite(localHour)) {
     hourForPillar = localHour;
     hourSource = 'localCivil';
   }
   const hour = hourPillarOf(day.stem, hourForPillar);
   trace.push({
     rule: 'hourPillar.五鼠遁',
-    detail: '由日干 + 时辰地支推时柱（五鼠遁），时辰按真太阳时取。',
+    detail: '由日干 + 时辰地支推时柱（五鼠遁），时辰按出生地民用时（local civil hour）取，与铁板/lunar-typescript 一致。',
     data: { dayStem: day.stem, hourForPillar, hourSource, hour: hour.ganzhi },
   });
 
