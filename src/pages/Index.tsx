@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { SEO } from '@/components/SEO';
 import { DisclaimerDialog, hasConsented } from '@/components/DisclaimerDialog';
 import { BirthDataForm, type BirthDataWithGeo } from '@/components/BirthDataForm';
 import { SixRelationsVerification } from '@/components/SixRelationsVerification';
