@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+/* font-display: swap is set via the &display=swap query above on all @font-face rules */
 
 @tailwind base;
 @tailwind components;
