@@ -202,6 +202,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background bg-scroll-texture">
+      <SEO
+        title="H-Pulse — Quantum Prediction System"
+        description="Run a deterministic, multi-engine quantum destiny projection across BaZi, Ziwei, Liu Yao, Qi Men, Tieban, Vedic, Western, Kabbalah and more."
+        path="/"
+      />
       <DisclaimerDialog
         open={!disclaimerAccepted}
         onAccept={() => setDisclaimerAccepted(true)}
