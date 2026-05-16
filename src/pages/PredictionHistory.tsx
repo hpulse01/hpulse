@@ -4,10 +4,16 @@ import { Button } from '@/components/ui/button';
 import { HolographicPanel } from '@/components/hpulse/HolographicPanel';
 import { Footer } from '@/components/Footer';
 import { HPulseLogo } from '@/components/brand';
+import { SEO } from '@/components/SEO';
 
 const PredictionHistory = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background bg-scroll-texture">
+      <SEO
+        title="Prediction Ledger — H-Pulse"
+        description="Browse your archived H-Pulse quantum destiny reports. Past birth-input projections, Kao Ke calibrations and engine consensus runs in one ledger."
+        path="/prediction-history"
+      />
       <header className="border-b border-border/40">
         <div className="container max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" aria-label="H-Pulse">
