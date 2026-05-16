@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { SEO } from '@/components/SEO';
 import { DisclaimerDialog, hasConsented } from '@/components/DisclaimerDialog';
 import { BirthDataForm, type BirthDataWithGeo } from '@/components/BirthDataForm';
 import { SixRelationsVerification } from '@/components/SixRelationsVerification';
@@ -202,6 +203,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background bg-scroll-texture">
+      <SEO
+        title="H-Pulse — Quantum Prediction System"
+        description="Run a deterministic, multi-engine quantum destiny projection across BaZi, Ziwei, Liu Yao, Qi Men, Tieban, Vedic, Western, Kabbalah and more."
+        path="/"
+      />
       <DisclaimerDialog
         open={!disclaimerAccepted}
         onAccept={() => setDisclaimerAccepted(true)}
