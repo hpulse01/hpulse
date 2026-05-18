@@ -82,6 +82,7 @@ const Index = () => {
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(() => hasConsented());
   const [step, setStep] = useState<AppStep>('input');
   const [birthInput, setBirthInput] = useState<TiebanInput | null>(null);
+  const [rawBirthForm, setRawBirthForm] = useState<BirthDataWithGeo | null>(null);
   const [ganZhiDisplay, setGanZhiDisplay] = useState('');
   const [baseNumber, setBaseNumber] = useState(0);
   const [theoreticalBase, setTheoreticalBase] = useState(0);
