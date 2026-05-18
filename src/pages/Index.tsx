@@ -64,6 +64,8 @@ import { QuantumLoadingScreen } from '@/components/hpulse/QuantumLoadingScreen';
 import { CollapseLoadingScreen } from '@/components/hpulse/CollapseLoadingScreen';
 import { ResultShell } from '@/components/hpulse/ResultShell';
 import { HPulseLogo } from '@/components/brand';
+import { HPulseProjectionPanel } from '@/components/hpulse/HPulseProjectionPanel';
+import { useHPulsePipeline } from '@/hpulse/react';
 
 type AppStep = 'input' | 'calculating' | 'verification' | 'projecting' | 'result';
 
