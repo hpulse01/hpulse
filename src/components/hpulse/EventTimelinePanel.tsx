@@ -72,19 +72,32 @@ interface RenderRow {
   month: number;
   monthIsExplicit: boolean;
   age: number;
+  ageWindow?: [number, number];
+  yearWindow?: [number, number];
   title: string;
+  subcategory?: string;
   category: string;
   intensity: string;
   probability: number;
   causalChain: string[];
+  triggers: string[];
   engines: string[];
   isDeath: boolean;
   isRejected: boolean;
   reason?: string;
 }
 
+/** Compose a concrete title: "subcategory · description". Strip noise. */
+function buildTitle(category: string, subcategory: string | undefined, description: string | undefined): string {
+  const sub = (subcategory ?? '').trim();
+  const desc = (description ?? '').trim();
+  if (sub && desc && !desc.includes(sub)) return `${sub} · ${desc}`;
+  return desc || sub || category;
+}
+
 function buildRows(
   collapse: CollapseResult,
+  birthYear: number,
   birthMonth: number,
 ): RenderRow[] {
   const rows: RenderRow[] = [];
@@ -96,12 +109,15 @@ function buildRows(
     const monthIsExplicit = parsed != null;
     const month = parsed ?? deriveMonth(ev.id, birthMonth);
 
-    // Aggregate causal factors across all engine supports — dedup, cap 6.
+    // Aggregate causal factors + trigger conditions across engine supports.
     const causalSet = new Set<string>();
+    const triggerSet = new Set<string>();
     for (const sup of ev.engineSupports ?? []) {
       for (const cf of sup.causalFactors ?? []) causalSet.add(cf);
     }
+    // Trigger conditions live on the seeds, but aren't lifted here — leave empty unless surfaced later.
     const engines = Array.from(new Set((ev.engineSupports ?? []).map(s => s.engineName)));
+    const aw = ev.ageWindow as [number, number] | undefined;
 
     rows.push({
       key: `path-${node.age}-${ev.id}`,
@@ -109,11 +125,15 @@ function buildRows(
       month,
       monthIsExplicit,
       age: node.age,
-      title: ev.description || ev.subcategory || ev.id,
+      ageWindow: aw,
+      yearWindow: aw ? [birthYear + aw[0], birthYear + aw[1]] : undefined,
+      title: buildTitle(ev.category, ev.subcategory, ev.description),
+      subcategory: ev.subcategory,
       category: ev.category,
       intensity: ev.intensity,
       probability: ev.fusedProbability,
       causalChain: Array.from(causalSet).slice(0, 6),
+      triggers: Array.from(triggerSet).slice(0, 4),
       engines,
       isDeath: node.isDeath,
       isRejected: false,
@@ -144,6 +164,7 @@ function buildRejectedRows(
       intensity: 'moderate',
       probability: r.probability,
       causalChain: [r.rejectedReason || r.reason],
+      triggers: [],
       engines: [],
       isDeath: false,
       isRejected: true,
@@ -177,7 +198,7 @@ export function EventTimelinePanel({ collapseResult, birthYear, birthMonth, kaoK
   }
   if (!collapseResult || collapseResult.collapsedPath.length === 0) return null;
 
-  const mainRows = buildRows(collapseResult, birthMonth);
+  const mainRows = buildRows(collapseResult, birthYear, birthMonth);
   const rejRows = buildRejectedRows(collapseResult, birthYear, birthMonth);
 
   return (
@@ -202,17 +223,17 @@ export function EventTimelinePanel({ collapseResult, birthYear, birthMonth, kaoK
       <ScrollArea className="max-h-[520px] pr-2">
         <ol className="relative border-l border-primary/15 ml-2 space-y-2.5">
           {mainRows.map(row => <TimelineRow key={row.key} row={row} />)}
-          {rejRows.length > 0 && (
-            <li className="pl-4 pt-2">
-              <div className="text-[10px] text-muted-foreground font-serif mb-1.5 flex items-center gap-1">
-                <GitBranch className="w-3 h-3" /> 被拒分支（未发生但曾候选）
-              </div>
-              <div className="space-y-2">
-                {rejRows.map(row => <TimelineRow key={row.key} row={row} />)}
-              </div>
-            </li>
-          )}
         </ol>
+        {rejRows.length > 0 && (
+          <div className="pl-4 pt-3 mt-3 border-t border-border/20">
+            <div className="text-[10px] text-muted-foreground font-serif mb-1.5 flex items-center gap-1">
+              <GitBranch className="w-3 h-3" /> 被拒分支（未发生但曾候选）
+            </div>
+            <ol className="relative border-l border-rose-500/15 ml-2 space-y-2">
+              {rejRows.map(row => <TimelineRow key={row.key} row={row} />)}
+            </ol>
+          </div>
+        )}
       </ScrollArea>
 
       {collapseResult.collapseReasoning && (
@@ -272,9 +293,17 @@ function TimelineRow({ row }: { row: RenderRow }) {
         </div>
 
         {/* Event title */}
-        <div className="text-xs text-foreground/95 leading-snug mb-1.5">
+        <div className="text-xs text-foreground/95 leading-snug mb-1">
           {row.title}
         </div>
+
+        {/* Age + year window when wider than peak */}
+        {row.ageWindow && (row.ageWindow[0] !== row.ageWindow[1]) && (
+          <div className="text-[10px] text-muted-foreground mb-1 font-mono tabular-nums">
+            窗口：{row.ageWindow[0]}–{row.ageWindow[1]} 岁
+            {row.yearWindow && ` · ${row.yearWindow[0]}–${row.yearWindow[1]}`}
+          </div>
+        )}
 
         {/* Causal chain */}
         {row.causalChain.length > 0 && (
