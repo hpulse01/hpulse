@@ -65,6 +65,7 @@ import { CollapseLoadingScreen } from '@/components/hpulse/CollapseLoadingScreen
 import { ResultShell } from '@/components/hpulse/ResultShell';
 import { HPulseLogo } from '@/components/brand';
 import { HPulseProjectionPanel } from '@/components/hpulse/HPulseProjectionPanel';
+import { EventTimelinePanel } from '@/components/hpulse/EventTimelinePanel';
 import { useHPulsePipeline } from '@/hpulse/react';
 
 type AppStep = 'input' | 'calculating' | 'verification' | 'projecting' | 'result';
@@ -426,6 +427,11 @@ const Index = () => {
                       status={hpulse.status}
                       view={hpulse.view}
                       error={hpulse.error}
+                    />
+                    <EventTimelinePanel
+                      collapseResult={quantumResult.collapseResult}
+                      birthYear={birthInput?.year ?? new Date().getFullYear()}
+                      birthMonth={birthInput?.month ?? 1}
                     />
                     {quantumResult.unifiedResult && (
                       <PredictionOverview result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
