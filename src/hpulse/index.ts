@@ -9,3 +9,4 @@ export * from "./weights";
 export * from "./engines";
 export * from "./worldtree";
 export * from "./fusion";
+export * from "./orchestrator";
