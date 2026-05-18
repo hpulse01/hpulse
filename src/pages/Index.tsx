@@ -432,6 +432,7 @@ const Index = () => {
                       collapseResult={quantumResult.collapseResult}
                       birthYear={birthInput?.year ?? new Date().getFullYear()}
                       birthMonth={birthInput?.month ?? 1}
+                      kaoKeVerified={selectedKaoKe !== null}
                     />
                     {quantumResult.unifiedResult && (
                       <PredictionOverview result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
