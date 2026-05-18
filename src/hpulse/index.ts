@@ -8,3 +8,4 @@ export * from "./input/types";
 export * from "./weights";
 export * from "./engines";
 export * from "./worldtree";
+export * from "./fusion";
