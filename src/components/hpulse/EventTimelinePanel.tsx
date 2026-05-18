@@ -22,6 +22,8 @@ export interface EventTimelinePanelProps {
   collapseResult: CollapseResult | null | undefined;
   birthYear: number;
   birthMonth: number;
+  /** If false, render a waiting placeholder instead of any future events. */
+  kaoKeVerified?: boolean;
 }
 
 // ──────────────────────────── helpers ────────────────────────────
