@@ -53,7 +53,7 @@ function makeRunner(id: EngineId): EngineRunner {
       try {
         let output;
         if (id === "tieban") {
-          output = dispatchTieban(si, opts?.familyFacts as FamilyFacts | undefined);
+          output = dispatchTieban(si, opts?.familyFacts as unknown as FamilyFacts | undefined);
         } else {
           const legacyName = OVERLAY_NAME[id];
           if (!legacyName) throw new Error(`no_dispatcher_for_${id}`);
@@ -104,10 +104,9 @@ export function degradedFrom(results: EngineRunResult[]): {
   const degradedEngines: EngineId[] = [];
   const degradedReason: Partial<Record<EngineId, string>> = {};
   for (const r of results) {
-    if (!r.ok) {
-      degradedEngines.push(r.id);
-      degradedReason[r.id] = `${r.error.code}: ${r.error.message}`;
-    }
+    if (r.ok) continue;
+    degradedEngines.push(r.id);
+    degradedReason[r.id] = `${r.error.code}: ${r.error.message}`;
   }
   return { degradedEngines, degradedReason };
 }
