@@ -104,9 +104,10 @@ export function degradedFrom(results: EngineRunResult[]): {
   const degradedEngines: EngineId[] = [];
   const degradedReason: Partial<Record<EngineId, string>> = {};
   for (const r of results) {
-    if (r.ok) continue;
-    degradedEngines.push(r.id);
-    degradedReason[r.id] = `${r.error.code}: ${r.error.message}`;
+    if (r.ok === true) continue;
+    const failed = r as Extract<EngineRunResult, { ok: false }>;
+    degradedEngines.push(failed.id);
+    degradedReason[failed.id] = `${failed.error.code}: ${failed.error.message}`;
   }
   return { degradedEngines, degradedReason };
 }
