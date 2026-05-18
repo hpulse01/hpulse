@@ -64,6 +64,8 @@ import { QuantumLoadingScreen } from '@/components/hpulse/QuantumLoadingScreen';
 import { CollapseLoadingScreen } from '@/components/hpulse/CollapseLoadingScreen';
 import { ResultShell } from '@/components/hpulse/ResultShell';
 import { HPulseLogo } from '@/components/brand';
+import { HPulseProjectionPanel } from '@/components/hpulse/HPulseProjectionPanel';
+import { useHPulsePipeline } from '@/hpulse/react';
 
 type AppStep = 'input' | 'calculating' | 'verification' | 'projecting' | 'result';
 
@@ -80,6 +82,7 @@ const Index = () => {
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(() => hasConsented());
   const [step, setStep] = useState<AppStep>('input');
   const [birthInput, setBirthInput] = useState<TiebanInput | null>(null);
+  const [rawBirthForm, setRawBirthForm] = useState<BirthDataWithGeo | null>(null);
   const [ganZhiDisplay, setGanZhiDisplay] = useState('');
   const [baseNumber, setBaseNumber] = useState(0);
   const [theoreticalBase, setTheoreticalBase] = useState(0);
@@ -95,6 +98,7 @@ const Index = () => {
   const { profile } = useAuth();
   const { toast } = useToast();
   const { t, lang } = useI18n();
+  const hpulse = useHPulsePipeline();
 
   useEffect(() => {
     getClauseCount().then(count => setClauseCount(count));
@@ -105,6 +109,7 @@ const Index = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
       setBirthInput(birthData);
+      setRawBirthForm(birthData);
       const result = TiebanEngine.calculateBaseNumber(birthData);
       setBaseNumber(result.baseNumber);
       setGanZhiDisplay(result.pillars.fullDisplay);
@@ -141,6 +146,26 @@ const Index = () => {
       if (qResult.unifiedResult) {
         setUnifiedReport(PredictionOrchestrator.execute(qResult.unifiedResult.input));
       }
+
+      // HPU-2..9 pipeline (deterministic, parallel to legacy result).
+      if (rawBirthForm) {
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const raw = {
+          birth_date: `${rawBirthForm.year}-${pad(rawBirthForm.month)}-${pad(rawBirthForm.day)}`,
+          birth_time: `${pad(rawBirthForm.hour)}:${pad(rawBirthForm.minute)}`,
+          calendar: 'gregorian' as const,
+          location_name: rawBirthForm.normalizedLocationName,
+          latitude: rawBirthForm.geoLatitude,
+          longitude: rawBirthForm.geoLongitude,
+          timezone: rawBirthForm.timezoneIana,
+          gender: rawBirthForm.gender,
+          query_time_utc: new Date().toISOString(),
+          query_type: 'natal' as const,
+          granularity: 'year' as const,
+        };
+        void hpulse.run(raw, { event: 'general', granularity: 'year' });
+      }
+
       setStep('result');
       toast({ title: t('ui.prediction_complete'), description: t('ui.prediction_complete_desc') });
     } catch (error) {
@@ -148,11 +173,12 @@ const Index = () => {
       toast({ title: t('ui.proj_error'), description: t('ui.proj_error_desc'), variant: 'destructive' });
       setStep('verification');
     }
-  }, [theoreticalBase, birthInput, toast, t]);
+  }, [theoreticalBase, birthInput, rawBirthForm, hpulse, toast, t]);
 
   const handleReset = useCallback(() => {
     setStep('input');
     setBirthInput(null);
+    setRawBirthForm(null);
     setGanZhiDisplay('');
     setBaseNumber(0);
     setTheoreticalBase(0);
@@ -162,7 +188,8 @@ const Index = () => {
     setUnifiedReport(null);
     setActiveResultTab('overview');
     setSelectedKaoKe(null);
-  }, []);
+    hpulse.reset();
+  }, [hpulse]);
 
   const resultTabs = useMemo(() => {
     // Public tabs — visible to all users
@@ -394,7 +421,12 @@ const Index = () => {
                     </TabsList>
                   </div>
 
-                  <TabsContent value="overview" className="mt-5">
+                  <TabsContent value="overview" className="mt-5 space-y-5">
+                    <HPulseProjectionPanel
+                      status={hpulse.status}
+                      view={hpulse.view}
+                      error={hpulse.error}
+                    />
                     {quantumResult.unifiedResult && (
                       <PredictionOverview result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
                     )}
