@@ -28,8 +28,9 @@ let wasmPromise: Promise<WasmModule> | null = null;
 async function loadWasm(): Promise<WasmModule> {
   if (!wasmPromise) {
     wasmPromise = (async () => {
-      // @ts-expect-error — generated glue lacks proper types, see hpulse_input.d.ts
-      const mod = (await import("@/lib/wasm/hpulse-input/hpulse_input.js")) as WasmModule;
+      const mod = (await import(
+        /* @vite-ignore */ "@/lib/wasm/hpulse-input/hpulse_input.js"
+      )) as unknown as WasmModule;
       await mod.default();
       return mod;
     })();
