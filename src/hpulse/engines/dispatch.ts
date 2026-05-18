@@ -46,7 +46,7 @@ export function dispatchTieban(si: StandardizedInput, facts?: FamilyFacts): Engi
     calibration: calc.verification
       ? {
           confirmedClauseId: null,
-          systemOffset: calc.verification.locked.systemOffset ?? 0,
+          systemOffset: calc.verification.systemOffset ?? 0,
           calibrationTrace: calc.verification.explanationTrace,
           warnings: calc.verification.warnings,
         }
