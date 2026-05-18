@@ -72,19 +72,32 @@ interface RenderRow {
   month: number;
   monthIsExplicit: boolean;
   age: number;
+  ageWindow?: [number, number];
+  yearWindow?: [number, number];
   title: string;
+  subcategory?: string;
   category: string;
   intensity: string;
   probability: number;
   causalChain: string[];
+  triggers: string[];
   engines: string[];
   isDeath: boolean;
   isRejected: boolean;
   reason?: string;
 }
 
+/** Compose a concrete title: "subcategory · description". Strip noise. */
+function buildTitle(category: string, subcategory: string | undefined, description: string | undefined): string {
+  const sub = (subcategory ?? '').trim();
+  const desc = (description ?? '').trim();
+  if (sub && desc && !desc.includes(sub)) return `${sub} · ${desc}`;
+  return desc || sub || category;
+}
+
 function buildRows(
   collapse: CollapseResult,
+  birthYear: number,
   birthMonth: number,
 ): RenderRow[] {
   const rows: RenderRow[] = [];
@@ -96,12 +109,15 @@ function buildRows(
     const monthIsExplicit = parsed != null;
     const month = parsed ?? deriveMonth(ev.id, birthMonth);
 
-    // Aggregate causal factors across all engine supports — dedup, cap 6.
+    // Aggregate causal factors + trigger conditions across engine supports.
     const causalSet = new Set<string>();
+    const triggerSet = new Set<string>();
     for (const sup of ev.engineSupports ?? []) {
       for (const cf of sup.causalFactors ?? []) causalSet.add(cf);
     }
+    // Trigger conditions live on the seeds, but aren't lifted here — leave empty unless surfaced later.
     const engines = Array.from(new Set((ev.engineSupports ?? []).map(s => s.engineName)));
+    const aw = ev.ageWindow as [number, number] | undefined;
 
     rows.push({
       key: `path-${node.age}-${ev.id}`,
@@ -109,11 +125,15 @@ function buildRows(
       month,
       monthIsExplicit,
       age: node.age,
-      title: ev.description || ev.subcategory || ev.id,
+      ageWindow: aw,
+      yearWindow: aw ? [birthYear + aw[0], birthYear + aw[1]] : undefined,
+      title: buildTitle(ev.category, ev.subcategory, ev.description),
+      subcategory: ev.subcategory,
       category: ev.category,
       intensity: ev.intensity,
       probability: ev.fusedProbability,
       causalChain: Array.from(causalSet).slice(0, 6),
+      triggers: Array.from(triggerSet).slice(0, 4),
       engines,
       isDeath: node.isDeath,
       isRejected: false,
