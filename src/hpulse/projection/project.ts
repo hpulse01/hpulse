@@ -133,7 +133,9 @@ function buildEngines(
       observationCount,
       degradedReason:
         degradedReason ??
-        (r && !r.ok ? `${r.error.code}: ${r.error.message}` : undefined),
+        (r && r.ok === false
+          ? `${r.error.code}: ${r.error.message}`
+          : undefined),
     });
   }
   return out;
@@ -204,11 +206,11 @@ function buildDeath(fusion: DeathFusionResult): DeathProjection {
 function collectWarnings(results: EngineRunResult[]): string[] {
   const out: string[] = [];
   for (const r of results) {
-    if (r.ok && r.output.warnings) {
-      for (const w of r.output.warnings) {
+    if (r.ok === true) {
+      for (const w of r.output.warnings ?? []) {
         out.push(`[${r.id}] ${w}`);
       }
-    } else if (!r.ok) {
+    } else {
       out.push(`[${r.id}] ${r.error.code}: ${r.error.message}`);
     }
   }
@@ -217,7 +219,8 @@ function collectWarnings(results: EngineRunResult[]): string[] {
 
 /** Public entry: PipelineReport → ProjectionView. Pure & deterministic. */
 export function projectReport(report: PipelineReport): ProjectionView {
-  if (!report.ok) {
+  if (report.ok === false) {
+    const reason = report.reason;
     // Minimal degraded view.
     const empty: FateVector = ALL_FATE_DIMENSIONS.reduce((acc, d) => {
       acc[d] = 0;
