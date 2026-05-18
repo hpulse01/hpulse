@@ -88,7 +88,7 @@ export interface DynamicWeights {
   degradedReason: Partial<Record<EngineId, string>>;
 }
 
-export const MATRIX_VERSION = "wmat-1.0.0";
+export const MATRIX_VERSION = "wmat-1.1.0";
 
 export function lifeStageOf(ageYears: number): LifeStage {
   if (ageYears <= 12) return "childhood";

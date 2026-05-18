@@ -27,7 +27,10 @@ const OVERLAY_NAME: Partial<Record<EngineId, string>> = {
   taiyi: "taiyi",
   meihua: "meihua",
   astrology: "western",
+  vedic: "vedic",
   numerology: "numerology",
+  mayan: "mayan",
+  kabbalah: "kabbalah",
   // tieban handled separately
 };
 
@@ -41,7 +44,10 @@ const META: Record<EngineId, EngineMeta> = {
   tieban:     { id: "tieban",     labelCN: "铁板神数",       labelEN: "Tieban Shenshu",        timingBasis: "hybrid", requires: ["kaoke", "clauseProvider"] },
   meihua:     { id: "meihua",     labelCN: "梅花易数",       labelEN: "Meihua Yi Shu",         timingBasis: "query"  },
   astrology:  { id: "astrology",  labelCN: "西方占星",       labelEN: "Western Astrology",     timingBasis: "birth"  },
+  vedic:      { id: "vedic",      labelCN: "印度占星",       labelEN: "Vedic Astrology",       timingBasis: "birth"  },
   numerology: { id: "numerology", labelCN: "数字命理",       labelEN: "Numerology",            timingBasis: "birth"  },
+  mayan:      { id: "mayan",      labelCN: "玛雅历法",       labelEN: "Mayan Tzolkin",         timingBasis: "birth"  },
+  kabbalah:   { id: "kabbalah",   labelCN: "卡巴拉",         labelEN: "Kabbalah Gematria",     timingBasis: "birth"  },
 };
 
 function makeRunner(id: EngineId): EngineRunner {
