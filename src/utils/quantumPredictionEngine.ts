@@ -899,11 +899,10 @@ function orchestrate(
       age: currentAge,
       activeEngines: executedNames,
     });
-    const weightsUsed: WeightEntry[] = dynamicResult.weights.map(w => {
+    const rawWeighted: WeightEntry[] = dynamicResult.weights.map(w => {
       const eo = engineOutputs.find(e => e.engineName === w.engineName);
       if (!eo) return { engineName: w.engineName, weight: w.weight, reason: w.reason };
       const { multiplier, reason } = computeQualityMultiplier(eo);
-      // attach to matching trace entry
       const tr = executionTrace.find(t => t.engineName === w.engineName && t.success);
       if (tr) tr.qualityMultiplier = multiplier;
       return {
@@ -912,6 +911,12 @@ function orchestrate(
         reason: `${w.reason} | p4Quality(x${multiplier.toFixed(2)}): ${reason}`,
       };
     });
+    // Renormalize so Σ weights = 1.0 after quality multipliers (preserves
+    // relative proportions; required by orchestrator invariant).
+    const totalWeight = rawWeighted.reduce((s, w) => s + w.weight, 0);
+    const weightsUsed: WeightEntry[] = totalWeight > 0
+      ? rawWeighted.map(w => ({ ...w, weight: w.weight / totalWeight }))
+      : rawWeighted;
 
   // Conflict detection & fusion
   const conflicts = detectConflicts(engineOutputs, weightsUsed);
