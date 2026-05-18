@@ -198,7 +198,7 @@ export function EventTimelinePanel({ collapseResult, birthYear, birthMonth, kaoK
   }
   if (!collapseResult || collapseResult.collapsedPath.length === 0) return null;
 
-  const mainRows = buildRows(collapseResult, birthMonth);
+  const mainRows = buildRows(collapseResult, birthYear, birthMonth);
   const rejRows = buildRejectedRows(collapseResult, birthYear, birthMonth);
 
   return (
