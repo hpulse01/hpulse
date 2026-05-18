@@ -146,6 +146,26 @@ const Index = () => {
       if (qResult.unifiedResult) {
         setUnifiedReport(PredictionOrchestrator.execute(qResult.unifiedResult.input));
       }
+
+      // HPU-2..9 pipeline (deterministic, parallel to legacy result).
+      if (rawBirthForm) {
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const raw = {
+          birth_date: `${rawBirthForm.year}-${pad(rawBirthForm.month)}-${pad(rawBirthForm.day)}`,
+          birth_time: `${pad(rawBirthForm.hour)}:${pad(rawBirthForm.minute)}`,
+          calendar: 'gregorian' as const,
+          location_name: rawBirthForm.normalizedLocationName,
+          latitude: rawBirthForm.geoLatitude,
+          longitude: rawBirthForm.geoLongitude,
+          timezone: rawBirthForm.timezoneIana,
+          gender: rawBirthForm.gender,
+          query_time_utc: new Date().toISOString(),
+          query_type: 'natal' as const,
+          granularity: 'year' as const,
+        };
+        void hpulse.run(raw, { event: 'general', granularity: 'year' });
+      }
+
       setStep('result');
       toast({ title: t('ui.prediction_complete'), description: t('ui.prediction_complete_desc') });
     } catch (error) {
@@ -153,11 +173,12 @@ const Index = () => {
       toast({ title: t('ui.proj_error'), description: t('ui.proj_error_desc'), variant: 'destructive' });
       setStep('verification');
     }
-  }, [theoreticalBase, birthInput, toast, t]);
+  }, [theoreticalBase, birthInput, rawBirthForm, hpulse, toast, t]);
 
   const handleReset = useCallback(() => {
     setStep('input');
     setBirthInput(null);
+    setRawBirthForm(null);
     setGanZhiDisplay('');
     setBaseNumber(0);
     setTheoreticalBase(0);
@@ -167,7 +188,8 @@ const Index = () => {
     setUnifiedReport(null);
     setActiveResultTab('overview');
     setSelectedKaoKe(null);
-  }, []);
+    hpulse.reset();
+  }, [hpulse]);
 
   const resultTabs = useMemo(() => {
     // Public tabs — visible to all users
