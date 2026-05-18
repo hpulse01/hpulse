@@ -40,7 +40,8 @@ export function useHPulsePipeline() {
       const report = await runPipeline(rawInput, opts);
       if (myId !== runIdRef.current) return null;
       if (!report.ok) {
-        setState({ status: "error", error: report.reason, report, view: null });
+        const failed = report as Extract<PipelineReport, { ok: false }>;
+        setState({ status: "error", error: failed.reason, report, view: null });
         return report;
       }
       const view = projectReport(report);
