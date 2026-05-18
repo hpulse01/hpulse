@@ -223,17 +223,17 @@ export function EventTimelinePanel({ collapseResult, birthYear, birthMonth, kaoK
       <ScrollArea className="max-h-[520px] pr-2">
         <ol className="relative border-l border-primary/15 ml-2 space-y-2.5">
           {mainRows.map(row => <TimelineRow key={row.key} row={row} />)}
-          {rejRows.length > 0 && (
-            <li className="pl-4 pt-2">
-              <div className="text-[10px] text-muted-foreground font-serif mb-1.5 flex items-center gap-1">
-                <GitBranch className="w-3 h-3" /> 被拒分支（未发生但曾候选）
-              </div>
-              <div className="space-y-2">
-                {rejRows.map(row => <TimelineRow key={row.key} row={row} />)}
-              </div>
-            </li>
-          )}
         </ol>
+        {rejRows.length > 0 && (
+          <div className="pl-4 pt-3 mt-3 border-t border-border/20">
+            <div className="text-[10px] text-muted-foreground font-serif mb-1.5 flex items-center gap-1">
+              <GitBranch className="w-3 h-3" /> 被拒分支（未发生但曾候选）
+            </div>
+            <ol className="relative border-l border-rose-500/15 ml-2 space-y-2">
+              {rejRows.map(row => <TimelineRow key={row.key} row={row} />)}
+            </ol>
+          </div>
+        )}
       </ScrollArea>
 
       {collapseResult.collapseReasoning && (
