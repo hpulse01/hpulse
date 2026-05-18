@@ -63,7 +63,7 @@ export async function runPipeline(
 
   const legacy = toLegacyInput(normalize.input);
   const engineResults = runAll(legacy, {
-    familyFacts: opts.familyFacts as Record<string, unknown> | undefined,
+    familyFacts: opts.familyFacts as unknown as Record<string, unknown> | undefined,
   });
 
   const worldTree = buildWorldTree(engineResults, normalize, {
