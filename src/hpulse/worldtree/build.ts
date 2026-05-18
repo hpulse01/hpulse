@@ -237,7 +237,7 @@ export function buildWorldTree(
   return {
     kind: "root",
     meta: {
-      seedMaterial: opts.seedMaterial ?? outcome?.seedMaterial ?? null,
+      seedMaterial: opts.seedMaterial ?? outcome?.input?.seed_material ?? null,
       matrixVersion: "wmat-1.1.0",
       enginesConsidered: results.length,
       enginesSucceeded: successById.size,
