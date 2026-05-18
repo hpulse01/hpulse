@@ -7,3 +7,4 @@ export * from "./input/normalize";
 export * from "./input/types";
 export * from "./weights";
 export * from "./engines";
+export * from "./worldtree";
