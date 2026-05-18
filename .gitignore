@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Rust build artifacts
+crates/*/target/
+crates/*/Cargo.lock
