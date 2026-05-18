@@ -229,7 +229,7 @@ export function projectReport(report: PipelineReport): ProjectionView {
     return {
       version: PROJECTION_VERSION,
       ok: false,
-      reason: report.reason,
+      reason,
       header: {
         quantumSignature: "HPU·invalid",
         overallScore: 0,
@@ -240,7 +240,7 @@ export function projectReport(report: PipelineReport): ProjectionView {
         enginesDegraded: 0,
         deathAge: null,
         dominantStage: "prime",
-        summary: `输入未通过校验：${report.reason}`,
+        summary: `输入未通过校验：${reason}`,
       },
       fateDimensions: buildFateDimensions(empty),
       engines: ALL_ENGINES.map((id) => ({
