@@ -293,9 +293,17 @@ function TimelineRow({ row }: { row: RenderRow }) {
         </div>
 
         {/* Event title */}
-        <div className="text-xs text-foreground/95 leading-snug mb-1.5">
+        <div className="text-xs text-foreground/95 leading-snug mb-1">
           {row.title}
         </div>
+
+        {/* Age + year window when wider than peak */}
+        {row.ageWindow && (row.ageWindow[0] !== row.ageWindow[1]) && (
+          <div className="text-[10px] text-muted-foreground mb-1 font-mono tabular-nums">
+            窗口：{row.ageWindow[0]}–{row.ageWindow[1]} 岁
+            {row.yearWindow && ` · ${row.yearWindow[0]}–${row.yearWindow[1]}`}
+          </div>
+        )}
 
         {/* Causal chain */}
         {row.causalChain.length > 0 && (
