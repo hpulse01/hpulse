@@ -20,7 +20,7 @@ import { ALL_FATE_DIMENSIONS } from "@/types/prediction";
 import type { EngineRunResult } from "@/hpulse/engines/runner";
 import { ALL_ENGINES, type EngineId, type EventType, type Granularity } from "@/hpulse/weights/types";
 import { computeDynamicWeights } from "@/hpulse/weights/calculator";
-import type { NormalizationOutcome } from "@/hpulse/input/types";
+import type { NormalizeOutcome } from "@/hpulse/input/types";
 import {
   STAGE_WINDOWS,
   WORLD_TREE_VERSION,
@@ -163,8 +163,11 @@ function indexSuccesses(results: EngineRunResult[]): {
   const byId = new Map<EngineId, EngineOutput>();
   const degradedAll = new Map<EngineId, string>();
   for (const r of results) {
-    if (r.ok) byId.set(r.id, r.output);
-    else degradedAll.set(r.id, `${r.error.code}: ${r.error.message}`);
+    if (r.ok === true) {
+      byId.set(r.id, r.output);
+    } else {
+      degradedAll.set(r.id, `${r.error.code}: ${r.error.message}`);
+    }
   }
   return { byId, degradedAll };
 }
@@ -177,7 +180,7 @@ function indexSuccesses(results: EngineRunResult[]): {
  */
 export function buildWorldTree(
   results: EngineRunResult[],
-  outcome?: NormalizationOutcome,
+  outcome?: NormalizeOutcome,
   opts: BuildWorldTreeOptions = {},
 ): WorldTree {
   const event: EventType = opts.event ?? "general";
