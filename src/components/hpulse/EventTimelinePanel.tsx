@@ -154,7 +154,27 @@ function buildRejectedRows(
 
 // ──────────────────────────── component ────────────────────────────
 
-export function EventTimelinePanel({ collapseResult, birthYear, birthMonth }: EventTimelinePanelProps) {
+export function EventTimelinePanel({ collapseResult, birthYear, birthMonth, kaoKeVerified = true }: EventTimelinePanelProps) {
+  if (!kaoKeVerified) {
+    return (
+      <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-card/50 to-background/30 p-6 space-y-3">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-primary/60" />
+          <span className="font-serif text-sm text-primary/80">明确事件时间线</span>
+          <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-300 font-mono">
+            等待考刻验证
+          </Badge>
+        </div>
+        <div className="flex flex-col items-center justify-center py-10 text-center space-y-2">
+          <span className="text-3xl text-primary/40 animate-pulse">☯</span>
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-md">
+            未来事件需先锁定时刻坐标。请在「考刻验证」中选择与家族历史相符的条文，
+            完成后此处将渲染年份+月份+诱因链的完整时间线。
+          </p>
+        </div>
+      </div>
+    );
+  }
   if (!collapseResult || collapseResult.collapsedPath.length === 0) return null;
 
   const mainRows = buildRows(collapseResult, birthMonth);
