@@ -32,7 +32,7 @@ export type Granularity =
   | "year"
   | "decade";
 
-/** Registered metaphysical engines, v1.0.0. */
+/** Registered metaphysical engines, v1.1.0 — 13 systems. */
 export type EngineId =
   | "bazi"
   | "ziwei"
@@ -42,8 +42,11 @@ export type EngineId =
   | "taiyi"
   | "tieban"
   | "meihua"
-  | "astrology"
-  | "numerology";
+  | "astrology"   // Western astrology
+  | "vedic"       // Vedic / Jyotish
+  | "numerology"  // Pythagorean numerology
+  | "mayan"       // Mayan Tzolkin
+  | "kabbalah";   // Kabbalistic gematria
 
 export const ALL_ENGINES: readonly EngineId[] = [
   "bazi",
@@ -55,7 +58,10 @@ export const ALL_ENGINES: readonly EngineId[] = [
   "tieban",
   "meihua",
   "astrology",
+  "vedic",
   "numerology",
+  "mayan",
+  "kabbalah",
 ] as const;
 
 export interface WeightQuery {
