@@ -421,7 +421,12 @@ const Index = () => {
                     </TabsList>
                   </div>
 
-                  <TabsContent value="overview" className="mt-5">
+                  <TabsContent value="overview" className="mt-5 space-y-5">
+                    <HPulseProjectionPanel
+                      status={hpulse.status}
+                      view={hpulse.view}
+                      error={hpulse.error}
+                    />
                     {quantumResult.unifiedResult && (
                       <PredictionOverview result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
                     )}
