@@ -109,6 +109,7 @@ const Index = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
       setBirthInput(birthData);
+      setRawBirthForm(birthData);
       const result = TiebanEngine.calculateBaseNumber(birthData);
       setBaseNumber(result.baseNumber);
       setGanZhiDisplay(result.pillars.fullDisplay);
