@@ -97,6 +97,7 @@ const Index = () => {
   const { profile } = useAuth();
   const { toast } = useToast();
   const { t, lang } = useI18n();
+  const hpulse = useHPulsePipeline();
 
   useEffect(() => {
     getClauseCount().then(count => setClauseCount(count));
