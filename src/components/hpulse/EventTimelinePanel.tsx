@@ -164,6 +164,7 @@ function buildRejectedRows(
       intensity: 'moderate',
       probability: r.probability,
       causalChain: [r.rejectedReason || r.reason],
+      triggers: [],
       engines: [],
       isDeath: false,
       isRejected: true,
