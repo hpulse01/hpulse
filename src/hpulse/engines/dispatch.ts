@@ -57,6 +57,7 @@ export function dispatchTieban(si: StandardizedInput, facts?: FamilyFacts): Engi
           warnings: calc.warnings,
         },
     destinySections: [],
+    clauseLookups: [],
     validationFlags: {
       passed: [],
       failed: calc.verification ? [] : ["KAOKE_NOT_RUN"],
