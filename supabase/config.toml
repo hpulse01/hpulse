@@ -1,7 +1,5 @@
 project_id = "hlenwvmehbidfpjhbcqu"
 
-[functions.ai-interpret]
-verify_jwt = false
 
 [functions.import-clauses]
 verify_jwt = false

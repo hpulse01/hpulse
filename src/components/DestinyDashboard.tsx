@@ -20,7 +20,7 @@ import {
   type FlowYearClause,
   type DestinyProjection,
 } from '@/utils/tiebanAlgorithm';
-import { AIInterpretation } from '@/components/AIInterpretation';
+
 import { BaZiDetailedDisplay } from '@/components/BaZiDetailedDisplay';
 import { LiuYaoDeepAnalysis } from '@/components/LiuYaoDeepAnalysis';
 import { ZiweiDisplay } from '@/components/ZiweiDisplay';
@@ -316,22 +316,8 @@ function DaYunExpandedPanel({
             : '运势平稳，顺其自然。'}
       </p>
       
-      {/* AI Interpretation for Da Yun */}
-      {canUseAI ? (
-        <AIInterpretation
-          clauseContent={`${daYun.ganZhi}大运，${daYun.startAge}-${daYun.endAge}岁，${daYun.element}气当令。${baziProfile.favorableElements.includes(daYun.element) ? '喜用神得力。' : baziProfile.unfavorableElements.includes(daYun.element) ? '忌神临运。' : ''}`}
-          aspectLabel={`第${daYunIndex + 1}步大运 (${daYun.startAge}-${daYun.endAge}岁)`}
-          pillarsDisplay={pillarsDisplay}
-          baziProfile={baziProfile}
-          hexagram={hexagramResult}
-          ziweiProfile={ziweiProfile}
-        />
-      ) : (
-        <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/30 text-xs sm:text-sm text-muted-foreground flex items-center gap-1 sm:gap-2">
-          <Lock className="w-3 h-3 sm:w-4 sm:h-4" />
-          {isAuthenticated ? '升级会员解锁AI解读' : '登录并升级会员解锁AI解读'}
-        </div>
-      )}
+      {/* AI interpretation removed */}
+
 
       {/* BaZi Flow Years with Ten Gods Analysis */}
       <div className="mt-4 pt-4 border-t border-primary/20">
@@ -469,23 +455,8 @@ function FlowYearItem({
               {flowYear.content}
             </p>
             
-            {/* AI Interpretation for flow year */}
-            {canUseAI ? (
-              <AIInterpretation
-                clauseContent={flowYear.content}
-                aspectLabel={`${flowYear.year}年 (${flowYear.age}岁) 流年`}
-                pillarsDisplay={pillarsDisplay}
-                baziProfile={baziProfile}
-                isFlowYear={true}
-                ziweiProfile={ziweiProfile}
-                hexagram={hexagram}
-              />
-            ) : (
-              <div className="mt-2 text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
-                <Lock className="w-3 h-3" />
-                AI解读需升级会员
-              </div>
-            )}
+            {/* AI interpretation removed */}
+
           </>
         ) : (
           <Skeleton className="h-4 w-full bg-muted/30" />
@@ -803,24 +774,8 @@ export function DestinyDashboard({
 
         {/* Tab 3: General Verdict */}
         <TabsContent value="verdict" className="space-y-3 sm:space-y-4 mt-4 sm:mt-6">
-          {/* Overall AI Summary */}
-          {canUseAI && loadedAspects.length > 0 && (
-            <div className="bg-gradient-to-b from-primary/10 to-transparent border border-primary/30 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-              <h3 className="text-base sm:text-lg font-serif text-primary mb-2 sm:mb-3 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-                命运总览 · AI深度解读
-              </h3>
-              <AIInterpretation
-                clauseContent={loadedAspects.map(a => `【${a.label}】${a.content}`).join('\n')}
-                aspectLabel="终身总评全览"
-                pillarsDisplay={pillarsDisplay}
-                baziProfile={report.baziProfile}
-                hexagram={hexagramResult}
-                ziweiProfile={ziweiProfile}
-                allAspects={loadedAspects.map(a => ({ label: a.label, content: a.content }))}
-              />
-            </div>
-          )}
+          {/* AI interpretation removed */}
+
 
           {isLoadingAspects ? (
             <div className="space-y-3 sm:space-y-4">
@@ -854,22 +809,8 @@ export function DestinyDashboard({
                       <p className="font-serif text-foreground/90 leading-relaxed text-xs sm:text-sm">
                         {aspect.content}
                       </p>
-                      {canUseAI ? (
-                        <AIInterpretation
-                          clauseContent={aspect.content}
-                          aspectLabel={aspect.label}
-                          pillarsDisplay={pillarsDisplay}
-                          baziProfile={report.baziProfile}
-                          hexagram={hexagramResult}
-                          ziweiProfile={ziweiProfile}
-                          allAspects={loadedAspects.map(a => ({ label: a.label, content: a.content }))}
-                        />
-                      ) : (
-                        <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/30 text-xs sm:text-sm text-muted-foreground flex items-center gap-1 sm:gap-2">
-                          <Lock className="w-3 h-3 sm:w-4 sm:h-4" />
-                          {isAuthenticated ? '升级会员解锁AI解读' : '登录并升级会员解锁AI解读'}
-                        </div>
-                      )}
+                      {/* AI interpretation removed */}
+
                     </div>
                   </div>
                 );

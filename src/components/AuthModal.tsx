@@ -37,13 +37,13 @@ const LEVEL_CONFIG: Record<UserLevel, { label: string; icon: typeof User; color:
     label: '二级用户', 
     icon: Star, 
     color: 'text-yellow-500 border-yellow-500/50',
-    description: 'AI解读 x 1次' 
+    description: '进阶功能'
   },
-  level_3: { 
-    label: '三级用户', 
-    icon: Crown, 
+  level_3: {
+    label: '三级用户',
+    icon: Crown,
     color: 'text-primary border-primary/50',
-    description: 'AI解读 10次/周' 
+    description: '尊享会员'
   },
   level_4: { 
     label: '超级管理员', 

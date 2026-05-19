@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,12 +18,12 @@ import {
 import { useAuth, UserLevel } from '@/hooks/useAuth';
 import { AuthModal, UserLevelBadge } from '@/components/AuthModal';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  User, LogOut, Sparkles, Crown, Star, ChevronDown, Shield, Settings
+import {
+  User, LogOut, Crown, Star, ChevronDown, Shield, Settings
 } from 'lucide-react';
 
 export function UserMenu() {
-  const { user, profile, isAuthenticated, isLoading, signOut, canUseAI } = useAuth();
+  const { user, profile, isAuthenticated, isLoading, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
@@ -91,40 +91,8 @@ export function UserMenu() {
         </DropdownMenuLabel>
         
         <DropdownMenuSeparator />
-        
-        <div className="px-2 py-2 text-xs">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-muted-foreground">AI解读权限</span>
-            {canUseAI ? (
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-xs">
-                <Sparkles className="w-3 h-3 mr-1" />
-                可用
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="text-muted-foreground text-xs">
-                不可用
-              </Badge>
-            )}
-          </div>
-          {profile?.level === 'level_2' && (
-            <div className="text-muted-foreground">
-              剩余次数: {profile.ai_uses_remaining}
-            </div>
-          )}
-          {profile?.level === 'level_3' && (
-            <div className="text-muted-foreground">
-              本周剩余: {profile.ai_uses_remaining}/10
-            </div>
-          )}
-          {profile?.level === 'level_4' && (
-            <div className="text-primary flex items-center gap-1">
-              <Crown className="w-3 h-3" />
-              无限使用
-            </div>
-          )}
-        </div>
-        
-        <DropdownMenuSeparator />
+
+
         
         {isAdmin && (
           <>
