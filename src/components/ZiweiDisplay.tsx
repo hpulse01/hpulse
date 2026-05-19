@@ -82,45 +82,6 @@ const SIHUA_COLORS: Record<string, string> = {
   '忌': 'text-rose-400 bg-rose-500/20',
 };
 
-// Parse AI interpretation with markdown-like formatting
-function formatInterpretation(text: string) {
-  const lines = text.split('\n');
-  const elements: JSX.Element[] = [];
-  
-  lines.forEach((line, idx) => {
-    const trimmed = line.trim();
-    
-    if (trimmed.startsWith('## ')) {
-      elements.push(
-        <h4 key={idx} className="text-sm font-medium text-primary flex items-center gap-2 mt-3 mb-2 first:mt-0">
-          <Star className="w-3 h-3" />
-          {trimmed.replace('## ', '')}
-        </h4>
-      );
-    } else if (trimmed.startsWith('**') && trimmed.includes('**')) {
-      const content = trimmed.replace(/\*\*/g, '');
-      elements.push(
-        <p key={idx} className="text-xs text-foreground/90 leading-relaxed mb-1.5 font-medium">
-          {content}
-        </p>
-      );
-    } else if (trimmed.startsWith('- ')) {
-      elements.push(
-        <li key={idx} className="text-xs text-foreground/80 leading-relaxed ml-3 list-disc">
-          {trimmed.substring(2)}
-        </li>
-      );
-    } else if (trimmed) {
-      elements.push(
-        <p key={idx} className="text-xs text-foreground/80 leading-relaxed mb-1.5">
-          {trimmed}
-        </p>
-      );
-    }
-  });
-  
-  return elements;
-}
 
 // Star display component with Sihua
 function StarBadge({ star }: { star: ZiweiStar }) {
