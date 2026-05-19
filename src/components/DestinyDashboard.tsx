@@ -455,23 +455,8 @@ function FlowYearItem({
               {flowYear.content}
             </p>
             
-            {/* AI Interpretation for flow year */}
-            {canUseAI ? (
-              <AIInterpretation
-                clauseContent={flowYear.content}
-                aspectLabel={`${flowYear.year}年 (${flowYear.age}岁) 流年`}
-                pillarsDisplay={pillarsDisplay}
-                baziProfile={baziProfile}
-                isFlowYear={true}
-                ziweiProfile={ziweiProfile}
-                hexagram={hexagram}
-              />
-            ) : (
-              <div className="mt-2 text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
-                <Lock className="w-3 h-3" />
-                AI解读需升级会员
-              </div>
-            )}
+            {/* AI interpretation removed */}
+
           </>
         ) : (
           <Skeleton className="h-4 w-full bg-muted/30" />
