@@ -869,10 +869,10 @@ export default function AdminUsers() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-primary">
                 <Gift className="w-5 h-5" />
-                增加临时AI次数
+                增加临时次数
               </DialogTitle>
               <DialogDescription>
-                为用户 <strong>{userToGrant?.display_name || userToGrant?.email}</strong> 增加临时AI解读次数，有效期3天。
+                为用户 <strong>{userToGrant?.display_name || userToGrant?.email}</strong> 增加临时使用次数，有效期3天。
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
