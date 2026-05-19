@@ -774,24 +774,8 @@ export function DestinyDashboard({
 
         {/* Tab 3: General Verdict */}
         <TabsContent value="verdict" className="space-y-3 sm:space-y-4 mt-4 sm:mt-6">
-          {/* Overall AI Summary */}
-          {canUseAI && loadedAspects.length > 0 && (
-            <div className="bg-gradient-to-b from-primary/10 to-transparent border border-primary/30 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-              <h3 className="text-base sm:text-lg font-serif text-primary mb-2 sm:mb-3 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-                命运总览 · AI深度解读
-              </h3>
-              <AIInterpretation
-                clauseContent={loadedAspects.map(a => `【${a.label}】${a.content}`).join('\n')}
-                aspectLabel="终身总评全览"
-                pillarsDisplay={pillarsDisplay}
-                baziProfile={report.baziProfile}
-                hexagram={hexagramResult}
-                ziweiProfile={ziweiProfile}
-                allAspects={loadedAspects.map(a => ({ label: a.label, content: a.content }))}
-              />
-            </div>
-          )}
+          {/* AI interpretation removed */}
+
 
           {isLoadingAspects ? (
             <div className="space-y-3 sm:space-y-4">
