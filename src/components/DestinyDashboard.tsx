@@ -20,7 +20,7 @@ import {
   type FlowYearClause,
   type DestinyProjection,
 } from '@/utils/tiebanAlgorithm';
-import { AIInterpretation } from '@/components/AIInterpretation';
+
 import { BaZiDetailedDisplay } from '@/components/BaZiDetailedDisplay';
 import { LiuYaoDeepAnalysis } from '@/components/LiuYaoDeepAnalysis';
 import { ZiweiDisplay } from '@/components/ZiweiDisplay';
