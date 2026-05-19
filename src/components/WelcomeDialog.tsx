@@ -106,7 +106,7 @@ export function WelcomeDialog({ open, onOpenChange, displayName }: WelcomeDialog
         {/* Upgrade Hint */}
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <Crown className="w-4 h-4 text-primary" />
-          <span>升级尊享会员可获得每周10次AI解读额度</span>
+          <span>升级尊享会员解锁更多深度内容</span>
           <Zap className="w-4 h-4 text-yellow-500" />
         </div>
 
