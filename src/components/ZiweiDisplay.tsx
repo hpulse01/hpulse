@@ -565,71 +565,8 @@ ${palacesSummary}
         含十四主星 · 辅星 · 煞星 · 四化飞星
       </p>
 
-      {/* AI Interpretation Section */}
-      <div className="mt-3 pt-3 border-t border-border/30">
-        {canUseAI ? (
-          <>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleInterpret}
-              disabled={isLoading}
-              className="w-full justify-between text-muted-foreground hover:text-primary hover:bg-primary/10"
-            >
-              <span className="flex items-center gap-2">
-                {isLoading ? (
-                  <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
-                ) : (
-                  <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
-                )}
-                <span className="text-xs sm:text-sm">
-                  {isLoading ? '正在解读...' : interpretation ? '紫微命盘解读' : '获取AI命盘解读'}
-                </span>
-              </span>
-              {interpretation && (
-                isExpanded ? <ChevronUp className="w-3 h-3 sm:w-4 sm:h-4" /> : <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
-              )}
-            </Button>
+      {/* AI interpretation removed */}
 
-            {error && (
-              <div className="mt-2 p-2 bg-destructive/10 border border-destructive/30 rounded text-[10px] sm:text-xs text-destructive">
-                {error}
-              </div>
-            )}
-
-            {isLoading && (
-              <div className="mt-3 space-y-2 p-3 bg-purple-500/5 rounded-lg border border-purple-500/10">
-                <div className="flex items-center gap-2 text-[10px] sm:text-xs text-purple-400/70">
-                  <Sparkles className="w-3 h-3 animate-pulse" />
-                  正在分析紫微命盘格局、四化飞星与辅星配置...
-                </div>
-                <Skeleton className="h-3 w-full bg-purple-500/10" />
-                <Skeleton className="h-3 w-5/6 bg-purple-500/10" />
-                <Skeleton className="h-3 w-4/5 bg-purple-500/10" />
-              </div>
-            )}
-
-            {interpretation && isExpanded && (
-              <div className="mt-3 p-3 sm:p-4 bg-gradient-to-b from-purple-500/10 via-purple-500/5 to-transparent border border-purple-500/20 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="flex items-center justify-between mb-3">
-                  <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/30 text-[10px] sm:text-xs">
-                    <Crown className="w-3 h-3 mr-1" />
-                    紫微命盘解读
-                  </Badge>
-                </div>
-                <div className="prose prose-sm prose-invert max-w-none">
-                  {formatInterpretation(interpretation)}
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="text-[10px] sm:text-xs text-muted-foreground flex items-center justify-center gap-1 sm:gap-2 py-2">
-            <Lock className="w-3 h-3" />
-            {isAuthenticated ? '升级会员解锁AI命盘解读' : '登录并升级会员解锁AI解读'}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
