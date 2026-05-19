@@ -194,11 +194,7 @@ function SihuaSummary({ sihua }: { sihua: SihuaInfo[] }) {
 }
 
 export function ZiweiDisplay({ year, month, day, hour, gender }: ZiweiDisplayProps) {
-  const { canUseAI, isAuthenticated, profile, consumeAIUse } = useAuth();
-  const [interpretation, setInterpretation] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
 
   const report = useMemo(() => {
     return ZiweiEngine.generateReport({ year, month, day, hour, gender });
