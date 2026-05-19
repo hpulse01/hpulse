@@ -18,8 +18,8 @@ import {
 import { useAuth, UserLevel } from '@/hooks/useAuth';
 import { AuthModal, UserLevelBadge } from '@/components/AuthModal';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  User, LogOut, Sparkles, Crown, Star, ChevronDown, Shield, Settings
+import {
+  User, LogOut, Crown, Star, ChevronDown, Shield, Settings
 } from 'lucide-react';
 
 export function UserMenu() {
