@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 export function UserMenu() {
-  const { user, profile, isAuthenticated, isLoading, signOut, canUseAI } = useAuth();
+  const { user, profile, isAuthenticated, isLoading, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
