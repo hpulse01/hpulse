@@ -809,22 +809,8 @@ export function DestinyDashboard({
                       <p className="font-serif text-foreground/90 leading-relaxed text-xs sm:text-sm">
                         {aspect.content}
                       </p>
-                      {canUseAI ? (
-                        <AIInterpretation
-                          clauseContent={aspect.content}
-                          aspectLabel={aspect.label}
-                          pillarsDisplay={pillarsDisplay}
-                          baziProfile={report.baziProfile}
-                          hexagram={hexagramResult}
-                          ziweiProfile={ziweiProfile}
-                          allAspects={loadedAspects.map(a => ({ label: a.label, content: a.content }))}
-                        />
-                      ) : (
-                        <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/30 text-xs sm:text-sm text-muted-foreground flex items-center gap-1 sm:gap-2">
-                          <Lock className="w-3 h-3 sm:w-4 sm:h-4" />
-                          {isAuthenticated ? '升级会员解锁AI解读' : '登录并升级会员解锁AI解读'}
-                        </div>
-                      )}
+                      {/* AI interpretation removed */}
+
                     </div>
                   </div>
                 );
