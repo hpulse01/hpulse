@@ -316,22 +316,8 @@ function DaYunExpandedPanel({
             : '运势平稳，顺其自然。'}
       </p>
       
-      {/* AI Interpretation for Da Yun */}
-      {canUseAI ? (
-        <AIInterpretation
-          clauseContent={`${daYun.ganZhi}大运，${daYun.startAge}-${daYun.endAge}岁，${daYun.element}气当令。${baziProfile.favorableElements.includes(daYun.element) ? '喜用神得力。' : baziProfile.unfavorableElements.includes(daYun.element) ? '忌神临运。' : ''}`}
-          aspectLabel={`第${daYunIndex + 1}步大运 (${daYun.startAge}-${daYun.endAge}岁)`}
-          pillarsDisplay={pillarsDisplay}
-          baziProfile={baziProfile}
-          hexagram={hexagramResult}
-          ziweiProfile={ziweiProfile}
-        />
-      ) : (
-        <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/30 text-xs sm:text-sm text-muted-foreground flex items-center gap-1 sm:gap-2">
-          <Lock className="w-3 h-3 sm:w-4 sm:h-4" />
-          {isAuthenticated ? '升级会员解锁AI解读' : '登录并升级会员解锁AI解读'}
-        </div>
-      )}
+      {/* AI interpretation removed */}
+
 
       {/* BaZi Flow Years with Ten Gods Analysis */}
       <div className="mt-4 pt-4 border-t border-primary/20">
