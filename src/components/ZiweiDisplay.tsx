@@ -4,19 +4,16 @@
  * Integrated into the BaZi Profile tab with AI interpretation
  */
 
-import { useState, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
+import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ZiweiEngine, type ZiweiReport, type ZiweiStar, type SihuaInfo, type DaxianInfo } from '@/utils/ziweiAlgorithm';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { 
-  Star, Home, Users, Heart, Baby, Coins, Activity, 
+import {
+  Star, Home, Users, Heart, Baby, Coins, Activity,
   Plane, UserCheck, Briefcase, Building, Smile, UserPlus,
-  Sparkles, ChevronDown, ChevronUp, Loader2, Lock, Crown, Zap, Calendar
+  Crown, Zap, Calendar
 } from 'lucide-react';
+
 
 interface ZiweiDisplayProps {
   year: number;
