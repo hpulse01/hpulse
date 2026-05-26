@@ -33,13 +33,13 @@ const DIM_ICONS: Record<FateDimension, typeof Sun> = {
 
 const DIM_COLORS: Record<FateDimension, string> = {
   life: 'text-amber-400', wealth: 'text-emerald-400', relation: 'text-rose-400',
-  health: 'text-purple-400', wisdom: 'text-blue-400', spirit: 'text-indigo-400',
+  health: 'text-fuchsia-300', wisdom: 'text-blue-400', spirit: 'text-indigo-400',
   socialStatus: 'text-orange-400', creativity: 'text-cyan-400', luck: 'text-yellow-400', homeStability: 'text-pink-400',
 };
 
 const DIM_BAR_COLORS: Record<FateDimension, string> = {
   life: 'bg-amber-500', wealth: 'bg-emerald-500', relation: 'bg-rose-500',
-  health: 'bg-purple-500', wisdom: 'bg-blue-500', spirit: 'bg-indigo-500',
+  health: 'bg-fuchsia-500', wisdom: 'bg-blue-500', spirit: 'bg-indigo-500',
   socialStatus: 'bg-orange-500', creativity: 'bg-cyan-500', luck: 'bg-yellow-500', homeStability: 'bg-pink-500',
 };
 
@@ -145,13 +145,13 @@ function EngineStatusDisplay({ result }: { result: UnifiedPredictionResult }) {
       {/* Hybrid engines */}
       {hybridEngines.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-serif text-purple-300 flex items-center gap-1.5">
+          <h4 className="text-xs font-serif text-primary flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5" />混合引擎 ({hybridEngines.length})
           </h4>
           <div className="grid grid-cols-2 gap-1.5">
             {hybridEngines.map(eo => (
               <div key={eo.engineName} className="flex items-center gap-1.5 text-xs p-1.5 rounded bg-card/30 border border-border/10">
-                <Layers className="w-3 h-3 text-purple-400 shrink-0" />
+                <Layers className="w-3 h-3 text-fuchsia-300 shrink-0" />
                 <span className="text-foreground truncate">{eo.engineNameCN}</span>
               </div>
             ))}
@@ -202,7 +202,7 @@ function ExecutionTraceDisplay({ trace }: { trace: ExecutionTraceEntry[] }) {
 
   const totalMs = trace.reduce((s, t) => s + t.durationMs, 0);
   const timingBasisLabel: Record<string, string> = { birth: '本命', query: '即时', hybrid: '混合' };
-  const timingBasisColor: Record<string, string> = { birth: 'text-amber-400', query: 'text-blue-400', hybrid: 'text-purple-400' };
+  const timingBasisColor: Record<string, string> = { birth: 'text-amber-400', query: 'text-blue-400', hybrid: 'text-fuchsia-300' };
 
   return (
     <div className="space-y-3">
@@ -254,7 +254,7 @@ function EngineConfidenceList({ result }: { result: UnifiedPredictionResult }) {
         const w = result.weightsUsed.find(w => w.engineName === eo.engineName);
         const weightPct = Math.round((w?.weight ?? 0) * 100);
         const basisLabel = eo.timingBasis === 'birth' ? '本命' : eo.timingBasis === 'query' ? '即时' : '混合';
-        const basisColor = eo.timingBasis === 'birth' ? 'border-amber-500/30 text-amber-400' : eo.timingBasis === 'query' ? 'border-blue-500/30 text-blue-400' : 'border-purple-500/30 text-purple-400';
+        const basisColor = eo.timingBasis === 'birth' ? 'border-amber-500/30 text-amber-400' : eo.timingBasis === 'query' ? 'border-blue-500/30 text-blue-400' : 'border-primary/40 text-fuchsia-300';
         return (
           <div key={eo.engineName} className="p-2.5 rounded-lg bg-card/30 border border-border/20">
             <div className="flex items-center justify-between mb-1">
