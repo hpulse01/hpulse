@@ -577,6 +577,147 @@ function UncertaintyNotes({ result }: { result: UnifiedPredictionResult }) {
   );
 }
 
+// ── Engine Focus View (chip selector + single engine detail) ──
+
+const DETAIL_RENDERERS: Record<string, (p: { result: UnifiedPredictionResult }) => JSX.Element | null> = {
+  ziwei: ZiweiDetail,
+  meihua: MeihuaDetail,
+  qimen: QimenDetail,
+  liuren: LiuRenDetail,
+  taiyi: TaiyiDetail,
+};
+
+function basisMeta(basis: string) {
+  if (basis === 'birth')  return { label: '本命', chip: 'border-amber-500/40 text-amber-300 bg-amber-500/5' };
+  if (basis === 'query')  return { label: '即时', chip: 'border-sky-500/40 text-sky-300 bg-sky-500/5' };
+  return { label: '混合', chip: 'border-primary/40 text-primary bg-primary/5' };
+}
+
+function EngineFocusView({ result }: { result: UnifiedPredictionResult }) {
+  const engines = result.engineOutputs;
+  const [selected, setSelected] = useState<string>(engines[0]?.engineName ?? '');
+  const [showAllConfidence, setShowAllConfidence] = useState(false);
+
+  const focused = engines.find(e => e.engineName === selected) ?? engines[0];
+
+  if (!focused) {
+    return <div className="text-xs text-muted-foreground p-4 text-center">无执行的引擎输出。</div>;
+  }
+
+  const weight = result.weightsUsed.find(w => w.engineName === focused.engineName);
+  const weightPct = Math.round((weight?.weight ?? 0) * 100);
+  const conf = normalizePercent(focused.confidence) ?? 0;
+  const meta = basisMeta(focused.timingBasis);
+  const Detail = DETAIL_RENDERERS[focused.engineName];
+
+  // Group engines for chip rail
+  const groups = [
+    { label: '本命', items: engines.filter(e => e.timingBasis === 'birth') },
+    { label: '即时', items: engines.filter(e => e.timingBasis === 'query') },
+    { label: '混合', items: engines.filter(e => e.timingBasis === 'hybrid') },
+  ].filter(g => g.items.length > 0);
+
+  return (
+    <div className="space-y-4">
+      {/* Chip rail */}
+      <div className="space-y-2">
+        {groups.map(g => (
+          <div key={g.label} className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 w-10 shrink-0">{g.label}</span>
+            <div className="flex flex-wrap gap-1.5">
+              {g.items.map(e => {
+                const active = e.engineName === focused.engineName;
+                const c = normalizePercent(e.confidence) ?? 0;
+                return (
+                  <button
+                    key={e.engineName}
+                    onClick={() => setSelected(e.engineName)}
+                    className={`group flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-serif transition-all ${
+                      active
+                        ? 'border-primary/60 bg-primary/15 text-primary shadow-[0_0_18px_-8px_hsl(var(--primary)/0.5)]'
+                        : 'border-border/40 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                    }`}
+                  >
+                    <span>{e.engineNameCN}</span>
+                    <span className={`text-[9px] font-mono ${active ? 'text-primary/80' : 'text-muted-foreground/60'}`}>
+                      {Math.round(c)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Focused engine header */}
+      <div className="p-4 rounded-xl border border-primary/25 bg-gradient-to-br from-primary/10 via-card/40 to-card/20">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="text-base font-serif text-primary truncate">{focused.engineNameCN}</h4>
+              <Badge variant="outline" className={`text-[9px] px-1.5 ${meta.chip}`}>{meta.label}</Badge>
+              <Badge variant="outline" className="text-[9px] px-1.5 border-border/30 text-muted-foreground">
+                {focused.sourceGrade}级 · v{focused.engineVersion}
+              </Badge>
+              <Badge variant="outline" className="text-[9px] px-1.5 border-border/30 text-muted-foreground">
+                {focused.ruleSchool}
+              </Badge>
+            </div>
+            <p className="text-[10px] text-muted-foreground/80 mt-1 font-mono">{focused.engineName} · {focused.computationTimeMs}ms</p>
+          </div>
+          <div className="text-right shrink-0">
+            <div className={`text-2xl font-mono font-bold leading-none ${scoreColor(conf)}`}>{Math.round(conf)}</div>
+            <div className="text-[9px] text-muted-foreground mt-1">置信 · 权重 {weightPct}%</div>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
+            <span className="w-8">置信</span>
+            <div className="flex-1 h-1.5 bg-secondary/30 rounded-full overflow-hidden">
+              <div className="h-full rounded-full bg-primary/80" style={{ width: `${conf}%` }} />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
+            <span className="w-8">权重</span>
+            <div className="flex-1 h-1.5 bg-secondary/30 rounded-full overflow-hidden">
+              <div className="h-full rounded-full bg-primary/40" style={{ width: `${weightPct}%` }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Focused engine detail (renderer if any) */}
+      <div className="p-4 rounded-xl border border-border/30 bg-card/30">
+        {Detail ? (
+          <Detail result={result} />
+        ) : (
+          <div className="text-[11px] text-muted-foreground leading-relaxed">
+            <p className="mb-2">该引擎暂无结构化盘面渲染,以下为归一化输出键值:</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {Object.entries(focused.normalizedOutput).slice(0, 12).map(([k, v]) => (
+                <div key={k} className="p-1.5 rounded bg-card/40 border border-border/20">
+                  <div className="text-[9px] text-muted-foreground">{k}</div>
+                  <div className="text-[10px] font-serif text-foreground truncate">{String(v) || '—'}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Optional: full confidence list */}
+      <button
+        onClick={() => setShowAllConfidence(!showAllConfidence)}
+        className="w-full text-center text-[10px] text-primary/70 hover:text-primary py-1.5 border-t border-border/20 transition-colors"
+      >
+        {showAllConfidence ? '收起全部引擎置信度' : `展开全部 ${engines.length} 个引擎置信度`}
+      </button>
+      {showAllConfidence && <EngineConfidenceList result={result} />}
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════
 // Main Component
 // ═══════════════════════════════════════════════
@@ -643,12 +784,7 @@ export function UnifiedResultsPanel({ result }: UnifiedResultsPanelProps) {
         <TabsContent value="engines" className="mt-4">
           <div className="bg-card/40 border border-primary/20 rounded-xl p-4">
             <ScrollArea className="h-[600px] pr-2">
-              <EngineConfidenceList result={result} />
-              <ZiweiDetail result={result} />
-              <MeihuaDetail result={result} />
-              <QimenDetail result={result} />
-              <LiuRenDetail result={result} />
-              <TaiyiDetail result={result} />
+              <EngineFocusView result={result} />
             </ScrollArea>
           </div>
         </TabsContent>
