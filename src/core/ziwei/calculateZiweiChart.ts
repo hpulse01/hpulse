@@ -22,14 +22,17 @@ import {
   calculateTianfuPosition,
   placeMajorStars,
 } from './starPlacement';
-import { calculateSihua, buildSihuaMap } from './fourTransformations';
+import { calculateSihua, buildSihuaMap, detectSelfSihua } from './fourTransformations';
 import { placeAuxiliaryStars } from './auxiliaryStars';
 import { scorePalace, evaluatePalace } from './brightness';
 import { calculateDaxian } from './daxian';
 import { calculateLiunian, resolveTargetYear } from './liunian';
 import { detectPatterns } from './patterns';
+import { detectExtendedPatterns, mergePatterns } from './extendedPatterns';
 import { analyzeZiweiStrength } from './strength';
 import { analyzePalaces } from './analyzePalaces';
+import { getPalaceStem } from './palaceStem';
+import { EARTHLY_BRANCHES } from './constants';
 
 export function calculateZiweiChart(input: ZiweiCoreInput): ZiweiChart {
   const trace: ExplanationStep[] = [];
@@ -89,19 +92,23 @@ export function calculateZiweiChart(input: ZiweiCoreInput): ZiweiChart {
     }
   }
 
-  // 10. Build palaces with scoring + evaluation
+  // 10. Build palaces with scoring + evaluation + structural fields
   const palaces: ZiweiPalace[] = layout.palaces.map((entry) => {
     const stars = starsByBranch[entry.index] ?? [];
     const strength = scorePalace({ stars });
     const evalRes = evaluatePalace({ stars });
-    return {
+    const palaceStem = getPalaceStem(lunarCtx.yearGan, entry.branch);
+    const branchIdx = EARTHLY_BRANCHES.indexOf(entry.branch);
+    const oppositeBranch = EARTHLY_BRANCHES[(branchIdx + 6) % 12];
+    const majorStarsArr = stars.filter(s => s.type === 'major');
+    const palace: ZiweiPalace = {
       name: entry.name,
       branch: entry.branch,
       index: entry.index,
       isMing: entry.isMing,
       isShen: entry.isShen,
       stars,
-      majorStars: stars.filter(s => s.type === 'major'),
+      majorStars: majorStarsArr,
       minorStars: stars.filter(s => s.type === 'minor'),
       auxiliaryStars: stars.filter(s => s.type === 'auxiliary'),
       shaStars: stars.filter(s => s.type === 'sha'),
@@ -110,8 +117,26 @@ export function calculateZiweiChart(input: ZiweiCoreInput): ZiweiChart {
       strengthScore: strength.score,
       evaluation: evalRes.evaluation,
       interpretationKeys: evalRes.interpretationKeys,
+      stem: palaceStem,
+      oppositeBranch,
+      isEmpty: majorStarsArr.length === 0,
     };
+    return palace;
   });
+
+  // 10b. Backfill borrowed (空宫 借对宫主星) + self-sihua
+  for (const p of palaces) {
+    if (p.isEmpty && p.oppositeBranch) {
+      const opp = palaces.find(q => q.branch === p.oppositeBranch);
+      if (opp) {
+        p.borrowedFromBranch = opp.branch;
+        p.borrowedFromName = opp.name;
+        p.borrowedStars = opp.majorStars.map(s => s.name);
+      }
+    }
+    const selfSh = detectSelfSihua(p);
+    if (selfSh.length > 0) p.selfSihua = selfSh;
+  }
 
   // 11. Backfill sihua palaces
   for (const sh of sihuaRes.sihua) {
@@ -148,9 +173,40 @@ export function calculateZiweiChart(input: ZiweiCoreInput): ZiweiChart {
   trace.push(...liunian.explanationTrace);
   warnings.push(...liunian.warnings);
 
-  // 14. Patterns
+  // 14. Patterns — built-in + external 100+ ruleset (倪师/hpulse01)
   const patternRes = detectPatterns(palaces, sihuaRes.sihua);
   trace.push(...patternRes.explanationTrace);
+
+  // 14b. Extended patterns
+  let mergedPatterns = patternRes.patterns;
+  try {
+    // build a draft chart for adapter (we only need the fields adaptToExternal reads)
+    const draftChart = {
+      solarDate: lunarCtx.solarDate,
+      hourBranchIndex: lunarCtx.hourBranchIndex,
+      lunarYear: lunarCtx.lunarYear,
+      lunarMonth: lunarCtx.lunarMonth,
+      lunarDay: lunarCtx.lunarDay,
+      isLeapMonth: lunarCtx.isLeapMonth,
+      yearGan: lunarCtx.yearGan,
+      yearZhi: lunarCtx.yearZhi,
+      mingGongBranch: mingShen.mingGongBranch,
+      shenGongBranch: mingShen.shenGongBranch,
+      wuxingJu,
+      ziweiPosition,
+      palaces,
+      daxian: daxian.steps,
+    } as unknown as ZiweiChart;
+    const extRes = detectExtendedPatterns(draftChart);
+    trace.push(...extRes.explanationTrace);
+    mergedPatterns = mergePatterns(patternRes.patterns, extRes.patterns);
+  } catch (err) {
+    warnings.push({
+      code: 'ZIWEI_EXTENDED_PATTERNS_FAILED',
+      message: `extended patterns failed: ${(err as Error)?.message ?? err}`,
+      severity: 'warning',
+    });
+  }
 
   // 15. Palace analysis
   const palaceAnalysis = analyzePalaces(palaces);
