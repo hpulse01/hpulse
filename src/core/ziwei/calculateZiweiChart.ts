@@ -212,7 +212,7 @@ export function calculateZiweiChart(input: ZiweiCoreInput): ZiweiChart {
   const palaceAnalysis = analyzePalaces(palaces);
 
   // 16. Strength
-  const strength = analyzeZiweiStrength(palaces, patternRes.patterns, wuxingJu);
+  const strength = analyzeZiweiStrength(palaces, mergedPatterns, wuxingJu);
   trace.push(...strength.explanationTrace);
 
   // ── Validation flags ──
