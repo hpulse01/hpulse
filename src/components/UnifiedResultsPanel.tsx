@@ -18,10 +18,12 @@ import { ALL_FATE_DIMENSIONS, FATE_DIMENSION_LABELS } from '@/types/prediction';
 import {
   BarChart3, AlertTriangle, Sparkles, Shield, Info, ChevronRight,
   TrendingUp, Activity, Brain, Heart, Coins, Sun, CheckCircle, XCircle,
-  Clock, Zap, Timer, Layers,
+  Clock, Zap, Timer, Layers, BookOpen, Loader2,
 } from 'lucide-react';
 import { useState } from 'react';
 import { formatPercent, normalizePercent } from '@/utils/displayFormat';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 // ── Dimension icons & colors ──
 
