@@ -80,6 +80,11 @@ export interface PalaceStrength {
   shaDelta: number;
 }
 
+export interface SelfSihuaMark {
+  transform: SihuaTransform;
+  star: string;
+}
+
 export interface ZiweiPalace {
   name: PalaceName;
   branch: Branch;
@@ -100,6 +105,21 @@ export interface ZiweiPalace {
   evaluation: string;
   /** Stable structured keys describing what's in this palace, for downstream UI/AI. */
   interpretationKeys: string[];
+  /** ── Structural extensions (P4.4b) ── */
+  /** 宫干 — derived via 五虎遁 from the year-stem. */
+  stem?: Stem;
+  /** 对宫地支 (always the 6-th apart on the 12-branch ring). */
+  oppositeBranch?: Branch;
+  /** True when this palace contains no major (主星) star. */
+  isEmpty?: boolean;
+  /** When isEmpty, branch of the 对宫 from which stars are borrowed. */
+  borrowedFromBranch?: Branch;
+  /** When isEmpty, palace-name of the 对宫. */
+  borrowedFromName?: PalaceName;
+  /** When isEmpty, list of major-star names borrowed from the 对宫. */
+  borrowedStars?: string[];
+  /** 宫干自化 — sihua emitted by this palace's own stem, where the target star is in this palace. */
+  selfSihua?: SelfSihuaMark[];
 }
 
 // ───────── Sihua / Daxian / Liunian / Patterns ─────────
