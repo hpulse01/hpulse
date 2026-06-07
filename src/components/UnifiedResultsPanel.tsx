@@ -516,7 +516,18 @@ function TaiyiDetail({ result }: { result: UnifiedPredictionResult }) {
 function ZiweiDetail({ result }: { result: UnifiedPredictionResult }) {
   const ziwei = result.engineOutputs.find(e => e.engineName === 'ziwei');
   if (!ziwei) return null;
-  const no = ziwei.normalizedOutput as Record<string, string>;
+  const no = ziwei.normalizedOutput as Record<string, any>;
+  // Extract structured pattern names + main stars for RAG
+  const patternNames: string[] = Array.isArray(no.patterns)
+    ? no.patterns.map((p: any) => p?.name).filter(Boolean).slice(0, 8)
+    : [];
+  const starNames: string[] = Array.isArray(no.palaces)
+    ? Array.from(new Set(
+        no.palaces.flatMap((p: any) =>
+          [...(p?.mainStars ?? [])].map((s: any) => s?.name).filter(Boolean)
+        )
+      )).slice(0, 12)
+    : [];
   return (
     <div className="mt-4 space-y-2">
       <h3 className="text-sm font-serif text-amber-300 flex items-center gap-1.5"><Sparkles className="w-4 h-4" />紫微斗数 <Badge variant="outline" className="text-[8px] border-amber-500/20 text-amber-400">本命</Badge></h3>
@@ -524,7 +535,7 @@ function ZiweiDetail({ result }: { result: UnifiedPredictionResult }) {
         {(['命宫', '身宫', '五行局'] as const).map(label => (
           <div key={label} className="p-2.5 rounded-lg bg-card/30 border border-border/20 text-center">
             <div className="text-[10px] text-muted-foreground mb-1">{label}</div>
-            <div className="text-xs font-serif text-foreground">{no[label] || '—'}</div>
+            <div className="text-xs font-serif text-foreground">{(no as any)[label] || '—'}</div>
           </div>
         ))}
       </div>
@@ -532,20 +543,90 @@ function ZiweiDetail({ result }: { result: UnifiedPredictionResult }) {
         {(['主星', '辅星摘要', '煞星摘要', '四化摘要'] as const).map(label => (
           <div key={label} className="p-2 rounded-lg bg-card/30 border border-border/20">
             <div className="text-[10px] text-muted-foreground mb-1">{label}</div>
-            <div className="text-[10px] font-serif text-foreground leading-relaxed">{no[label] || '—'}</div>
+            <div className="text-[10px] font-serif text-foreground leading-relaxed">{(no as any)[label] || '—'}</div>
           </div>
         ))}
       </div>
-      {(no['大限摘要'] || no['流年摘要'] || no['关键格局摘要']) && (
+      {((no as any)['大限摘要'] || (no as any)['流年摘要'] || (no as any)['关键格局摘要']) && (
         <div className="space-y-2">
-          {(['大限摘要', '流年摘要', '关键格局摘要'] as const).map(label => no[label] ? (
+          {(['大限摘要', '流年摘要', '关键格局摘要'] as const).map(label => (no as any)[label] ? (
             <div key={label} className="p-2 rounded-lg bg-card/30 border border-border/20">
               <div className="text-[10px] text-muted-foreground mb-1">{label}</div>
-              <div className="text-[10px] text-foreground leading-relaxed">{no[label]}</div>
+              <div className="text-[10px] text-foreground leading-relaxed">{(no as any)[label]}</div>
             </div>
           ) : null)}
         </div>
       )}
+      <ZiweiRagPanel patterns={patternNames} stars={starNames} />
+    </div>
+  );
+}
+
+// ── Ziwei RAG (古籍/格局检索 + AI 综合) ──
+function ZiweiRagPanel({ patterns, stars }: { patterns: string[]; stars: string[] }) {
+  const [loading, setLoading] = useState(false);
+  const [evidence, setEvidence] = useState<Array<{ id: number; category: string; subcategory: string | null; title: string | null; content: string; source: string | null }> | null>(null);
+  const [interpretation, setInterpretation] = useState<string>('');
+  const [err, setErr] = useState<string>('');
+
+  const run = async (synthesize: boolean) => {
+    setLoading(true); setErr(''); setInterpretation('');
+    try {
+      const { data, error } = await supabase.functions.invoke('ziwei-rag-explain', {
+        body: { patterns, stars, synthesize, topK: 8 },
+      });
+      if (error) throw error;
+      setEvidence(data?.evidence ?? []);
+      if (synthesize) setInterpretation(data?.interpretation ?? '');
+    } catch (e: any) {
+      setErr(e?.message ?? String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (patterns.length === 0 && stars.length === 0) return null;
+
+  return (
+    <div className="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[11px] font-serif text-amber-300 flex items-center gap-1.5">
+          <BookOpen className="w-3.5 h-3.5" />古籍语料 · RAG 检索
+        </div>
+        <div className="flex gap-1">
+          <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] border-amber-500/30 text-amber-300" disabled={loading} onClick={() => run(false)}>
+            {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : '检索证据'}
+          </Button>
+          <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] border-amber-500/40 text-amber-200" disabled={loading} onClick={() => run(true)}>
+            {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'AI 综合'}
+          </Button>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {patterns.map(p => <Badge key={p} variant="outline" className="text-[9px] border-amber-500/30 text-amber-300">{p}</Badge>)}
+      </div>
+      {err && <div className="text-[10px] text-rose-400">{err}</div>}
+      {interpretation && (
+        <div className="p-2 rounded bg-background/40 border border-amber-500/20 text-[11px] leading-relaxed text-foreground whitespace-pre-wrap">
+          {interpretation}
+        </div>
+      )}
+      {evidence && evidence.length > 0 && (
+        <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+          {evidence.map((r, i) => (
+            <div key={r.id} className="p-2 rounded bg-card/30 border border-border/20">
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-[9px] text-amber-400">【{i + 1}】</span>
+                <span className="text-[9px] text-muted-foreground">{r.category}{r.subcategory ? ` / ${r.subcategory}` : ''}</span>
+                {r.title && <span className="text-[10px] font-serif text-foreground">{r.title}</span>}
+              </div>
+              <div className="text-[10px] text-foreground/80 leading-relaxed line-clamp-4">{r.content}</div>
+              {r.source && <div className="text-[9px] text-muted-foreground/70 mt-1">— {r.source}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+      {evidence && evidence.length === 0 && <div className="text-[10px] text-muted-foreground">未命中语料</div>}
     </div>
   );
 }
