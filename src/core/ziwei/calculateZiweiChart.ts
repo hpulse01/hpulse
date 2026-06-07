@@ -279,7 +279,7 @@ export function calculateZiweiChart(input: ZiweiCoreInput): ZiweiChart {
     startDaxianAge: daxian.startAge,
     daxianDirection: daxian.direction,
     liunian: liunian.steps,
-    patterns: patternRes.patterns,
+    patterns: mergedPatterns,
     palaceAnalysis,
     strengthAnalysis: strength,
     implementationStatus: 'partial',
