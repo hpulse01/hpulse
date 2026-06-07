@@ -174,6 +174,4 @@ export function buildOverlayForStar(
   };
 }
 
-// expose constants for callers
-export { HEAVENLY_STEMS, EARTHLY_BRANCHES };
-export type { Branch };
+// (HEAVENLY_STEMS / EARTHLY_BRANCHES are re-exported via constants.ts)
