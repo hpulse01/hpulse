@@ -134,6 +134,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ziwei_corpus: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          id: number
+          source: string | null
+          subcategory: string | null
+          tags: string[] | null
+          title: string | null
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string
+          id?: number
+          source?: string | null
+          subcategory?: string | null
+          tags?: string[] | null
+          title?: string | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          id?: number
+          source?: string | null
+          subcategory?: string | null
+          tags?: string[] | null
+          title?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -212,6 +245,8 @@ export type Database = {
         Args: { p_ip: string; p_user_id: string }
         Returns: undefined
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "user"
