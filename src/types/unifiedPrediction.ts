@@ -5,6 +5,7 @@ import type {
   UnifiedEventCandidate as BaseUnifiedEventCandidate,
 } from '@/types/destinyTree';
 import type { UnifiedPredictionResult } from '@/types/prediction';
+import type { HolographicFateMap } from '@/types/holisticFateMap';
 
 export type UnifiedPredictionInput = StandardizedInput;
 
@@ -108,4 +109,6 @@ export interface FullPredictionReport {
   explanationTrace: string[];
   dashboardPayload: UnifiedPredictionResult;
   adminSnapshot: AdminOrchestrationSnapshot;
+  /** v5.1 — 三层全息命盘（宏观/中观/微观）。当世界树坍缩失败时为 null。 */
+  holographicFateMap: HolographicFateMap | null;
 }
