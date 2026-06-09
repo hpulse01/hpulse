@@ -63,6 +63,20 @@ export function ZiweiPalaceCard({ palace, compact }: Props) {
           <span key={s} className="px-1.5 py-0.5 text-[10px] font-serif rounded border border-destructive/35 text-destructive/85 bg-destructive/[0.04]">{s}</span>
         ))}
       </div>
+      {palace.isEmpty && palace.borrowedFromName && (
+        <div className="text-[10px] font-mono text-amber-300/80">
+          借自 {palace.borrowedFromName} · {(palace.borrowedStars ?? []).join(' ')}
+        </div>
+      )}
+      {palace.selfSihua && palace.selfSihua.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {palace.selfSihua.map((sh, i) => (
+            <span key={i} className={`px-1.5 py-0.5 text-[10px] font-mono rounded border ${SIHUA_COLOR[sh.transform] ?? 'text-muted-foreground border-muted-foreground/30'}`}>
+              自化·{sh.star}·{sh.transform}
+            </span>
+          ))}
+        </div>
+      )}
       {palace.sihua && palace.sihua.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {palace.sihua.map((sh, i) => (
