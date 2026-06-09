@@ -3,14 +3,19 @@ import { Star } from 'lucide-react';
 export interface ZiweiPalaceCardData {
   name: string;
   branch?: string;
+  stem?: string;
   isMing?: boolean;
   isShen?: boolean;
+  isEmpty?: boolean;
   strengthScore?: number;
   majorStars?: string[];
   minorStars?: string[];
   auxiliaryStars?: string[];
   shaStars?: string[];
+  borrowedFromName?: string;
+  borrowedStars?: string[];
   sihua?: { star: string; transform: string }[];
+  selfSihua?: { star: string; transform: string }[];
 }
 
 interface Props {
@@ -37,6 +42,8 @@ export function ZiweiPalaceCard({ palace, compact }: Props) {
         <div className="flex items-center gap-1 min-w-0">
           <span className="font-serif text-sm tracking-wider text-foreground/95 truncate">{palace.name}</span>
           {palace.branch && <span className="text-[10px] font-mono text-muted-foreground/70">{palace.branch}</span>}
+          {palace.stem && <span className="text-[10px] font-mono text-primary/60">{palace.stem}</span>}
+          {palace.isEmpty && <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-amber-300 px-1 py-0.5 border border-amber-400/40 rounded">空</span>}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {palace.isMing && <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-primary px-1 py-0.5 border border-primary/40 rounded">命</span>}
