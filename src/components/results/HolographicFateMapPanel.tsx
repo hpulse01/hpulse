@@ -10,7 +10,7 @@
 import { useMemo, useState } from 'react';
 import type { HolographicFateMap, MacroPhaseOverview, MesoEvent } from '@/types/holisticFateMap';
 import { FATE_DIMENSION_LABELS, ALL_FATE_DIMENSIONS, type FateDimension } from '@/types/prediction';
-import { HolographicPanel } from '@/components/HolographicPanel';
+import { HolographicPanel } from '@/components/hpulse/HolographicPanel';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus, Activity, Sparkles, Layers, Sun } from 'lucide-react';
