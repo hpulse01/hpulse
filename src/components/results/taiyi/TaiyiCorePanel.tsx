@@ -1,6 +1,6 @@
 import type { EngineOutput } from '@/types/prediction';
 import { MobileSectionAccordion } from '@/components/hpulse/MobileSectionAccordion';
-import { EnginePanelHeader, EngineMissingNotice, EngineAuditTrace } from '../_shared/EnginePanelShell';
+import { EnginePanelHeader, EngineMissingNotice, EngineAuditTrace, EngineWarningStrip } from '../_shared/EnginePanelShell';
 import { TaiyiJuPanel } from './TaiyiJuPanel';
 import { TaiyiPalacePanel } from './TaiyiPalacePanel';
 import { TaiyiGodPositionsPanel } from './TaiyiGodPositionsPanel';
@@ -50,6 +50,7 @@ export function TaiyiCorePanel({ engineOutput }: Props) {
   return (
     <div className="space-y-5">
       <EnginePanelHeader engineOutput={engineOutput} fallbackName="太乙神数" />
+      <EngineWarningStrip warnings={engineOutput.warnings} uncertainty={engineOutput.uncertaintyNotes} />
       <div className="hidden lg:grid lg:grid-cols-[1fr_1fr] gap-5">
         <div className="space-y-3">{palace}{ju}{gods}</div>
         <div className="space-y-3">{hg}{judge}</div>
