@@ -36,7 +36,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import {
   Atom, RotateCcw, Sparkles, Scroll, TreePine, Target, Layers, Shield,
-  AlertTriangle, Archive, ArrowLeft, Database, Activity, BookOpen,
+  AlertTriangle, Archive, ArrowLeft, Database, Activity, BookOpen, CalendarDays,
 } from 'lucide-react';
 
 import { AuditTracePanel } from '@/components/results/audit/AuditTracePanel';
@@ -54,6 +54,7 @@ import { NumerologyCorePanel } from '@/components/results/numerology/NumerologyC
 import { MayanCorePanel } from '@/components/results/mayan/MayanCorePanel';
 import { KabbalahCorePanel } from '@/components/results/kabbalah/KabbalahCorePanel';
 import { QuantumCollapsePanel } from '@/components/results/quantum-collapse/QuantumCollapsePanel';
+import { YearByYearPanel } from '@/components/results/YearByYearPanel';
 
 import { HeroMission } from '@/components/hpulse/HeroMission';
 import { SystemStatusBar } from '@/components/hpulse/SystemStatusBar';
@@ -202,6 +203,7 @@ const Index = () => {
       { id: 'engines', label: t('tab.engines'), icon: Layers },
       { id: 'tree', label: t('tab.tree'), icon: TreePine },
       { id: 'path', label: t('tab.path'), icon: Target },
+      { id: 'yearly', label: lang === 'zh' ? '逐年详批' : 'Yearly Detail', icon: CalendarDays },
       { id: 'destiny', label: lang === 'zh' ? '铁板命盘' : 'Destiny Chart', icon: Scroll },
       { id: 'quantum', label: t('tab.quantum'), icon: Atom },
       { id: 'quantumCollapse', label: lang === 'zh' ? '量子坍缩' : 'Quantum Collapse', icon: Atom },
@@ -515,6 +517,14 @@ const Index = () => {
                         {lang === 'zh' ? '坍缩数据加载中...' : 'Loading collapse data...'}
                       </HolographicPanel>
                     )}
+                  </TabsContent>
+
+                  <TabsContent value="yearly" className="mt-5">
+                    <YearByYearPanel
+                      report={fullReport}
+                      birth={birthInput}
+                      collapse={quantumResult.collapseResult}
+                    />
                   </TabsContent>
 
                   <TabsContent value="destiny" className="mt-5">

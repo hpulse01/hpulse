@@ -21,6 +21,8 @@ export {
 } from './analyzeStrength';
 export * from './calculateDaYun';
 export * from './calculateBaziChart';
+export * from './analyzeFlowYear';
+export * from './analyzeFlowMonth';
 export * from './tiaohou';
 export * from './congHua';
 export * from './toEngineOutput';
