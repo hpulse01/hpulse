@@ -188,6 +188,68 @@ export function baziChartToEngineOutput(chart: BaziChart, input: BaziCoreInput):
       pattern: chart.selectedPattern?.type ?? '未定格',
       usefulGod: chart.selectedUsefulGod ?? '',
       implementationStatus: chart.implementationStatus,
+      // ── P4.4c — rich fields exposed for UI panel ──
+      kongWangPillars: chart.fourPillars
+        ? ['year', 'month', 'day', 'hour']
+            .filter((k) => chart.fourPillars[k as 'year'].kongWang)
+            .join(',')
+        : '',
+      tiaohouJson: chart.tiaohou
+        ? JSON.stringify({
+            primary: chart.tiaohou.primary,
+            stems: chart.tiaohou.stems,
+            elements: chart.tiaohou.elements,
+            presentInStems: chart.tiaohou.presentInStems,
+            description: chart.tiaohou.description,
+          })
+        : '',
+      flowYearJson: chart.flowYear
+        ? JSON.stringify({
+            year: chart.flowYear.year,
+            age: chart.flowYear.age,
+            ganZhi: chart.flowYear.ganZhi,
+            tenGod: chart.flowYear.tenGod,
+            clashes: chart.flowYear.clashes,
+            combinations: chart.flowYear.combinations,
+            riskFlags: chart.flowYear.riskFlags,
+            opportunityFlags: chart.flowYear.opportunityFlags,
+          })
+        : '',
+      flowMonthJson: chart.flowMonth
+        ? JSON.stringify({
+            year: chart.flowMonth.year,
+            month: chart.flowMonth.month,
+            ganZhi: chart.flowMonth.ganZhi,
+            tenGod: chart.flowMonth.tenGod,
+            clashes: chart.flowMonth.clashes,
+            combinations: chart.flowMonth.combinations,
+            riskFlags: chart.flowMonth.riskFlags,
+            opportunityFlags: chart.flowMonth.opportunityFlags,
+          })
+        : '',
+      domainScoresJson: JSON.stringify({
+        career: chart.careerAnalysis.score,
+        wealth: chart.wealthAnalysis.score,
+        relationship: chart.relationshipAnalysis.score,
+        health: chart.healthAnalysis.score,
+        family: chart.familyAnalysis.score,
+      }),
+      domainSignalsJson: JSON.stringify({
+        career: chart.careerAnalysis.signals,
+        wealth: chart.wealthAnalysis.signals,
+        relationship: chart.relationshipAnalysis.signals,
+        health: chart.healthAnalysis.signals,
+        family: chart.familyAnalysis.signals,
+      }),
+      usefulGodCandidatesJson: JSON.stringify(
+        chart.usefulGodCandidates.map((c) => ({
+          element: c.element,
+          reason: c.reason,
+          score: c.score,
+        })),
+      ),
+      currentDaYunGZ: chart.currentDaYun?.ganZhi ?? '',
+      currentDaYunTenGod: chart.currentDaYun ? String(chart.currentDaYun.tenGod) : '',
     },
     warnings: chart.warnings.map(w => `${w.code}: ${w.message}`),
     uncertaintyNotes: chart.uncertaintyNotes,
