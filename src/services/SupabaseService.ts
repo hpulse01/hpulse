@@ -342,7 +342,7 @@ export async function findDetailedFamilyMatches(
 
   // Helper to run a search and capture result
   const runSearch = async (
-    query: PromiseLike<{ data: any[] | null }>,
+    query: PromiseLike<{ data: Clause[] | null }>,
     priority: number
   ): Promise<SearchResult> => {
     const { data } = await query;

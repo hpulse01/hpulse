@@ -120,8 +120,8 @@ export default function AdminUsers() {
 
       try {
         const [adminResult, superAdminResult] = await Promise.all([
-          (supabase as any).rpc('is_admin', { _user_id: user.id }),
-          (supabase as any).rpc('has_role', { _user_id: user.id, _role: 'super_admin' }),
+          supabase.rpc('is_admin', { _user_id: user.id }),
+          supabase.rpc('has_role', { _user_id: user.id, _role: 'super_admin' }),
         ]);
 
         setIsAdmin(adminResult.data === true);
@@ -144,12 +144,12 @@ export default function AdminUsers() {
     if (!isAdmin || !user?.id) return;
 
     try {
-      const { data, error } = await (supabase as any).rpc('admin_get_all_users', {
+      const { data, error } = await supabase.rpc('admin_get_all_users', {
         p_admin_id: user.id,
       });
 
       if (error) throw error;
-      setUsers(data || []);
+      setUsers((data ?? []).map((u) => ({ ...u, status: u.status as UserStatus })));
     } catch (err) {
       console.error('Error fetching users:', err);
       toast.error('获取用户列表失败');
@@ -190,7 +190,7 @@ export default function AdminUsers() {
 
     setUpdatingUser(targetUserId);
     try {
-      const { error } = await (supabase as any).rpc('admin_update_user_level', {
+      const { error } = await supabase.rpc('admin_update_user_level', {
         p_admin_id: user.id,
         p_target_user_id: targetUserId,
         p_new_level: newLevel,
@@ -209,9 +209,9 @@ export default function AdminUsers() {
       ));
 
       toast.success('用户等级已更新');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error updating user level:', err);
-      toast.error(err.message || '更新用户等级失败');
+      toast.error(err instanceof Error && err.message ? err.message : '更新用户等级失败');
     }
     setUpdatingUser(null);
   };
@@ -221,7 +221,7 @@ export default function AdminUsers() {
 
     setUpdatingUser(targetUserId);
     try {
-      const { error } = await (supabase as any).rpc('admin_update_user_status', {
+      const { error } = await supabase.rpc('admin_update_user_status', {
         p_admin_id: user.id,
         p_target_user_id: targetUserId,
         p_new_status: newStatus,
@@ -239,9 +239,9 @@ export default function AdminUsers() {
         disabled: '已停用',
       };
       toast.success(`用户${statusLabels[newStatus]}`);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error updating user status:', err);
-      toast.error(err.message || '更新用户状态失败');
+      toast.error(err instanceof Error && err.message ? err.message : '更新用户状态失败');
     }
     setUpdatingUser(null);
   };
@@ -251,7 +251,7 @@ export default function AdminUsers() {
 
     setUpdatingUser(userToDelete.user_id);
     try {
-      const { error } = await (supabase as any).rpc('admin_delete_user', {
+      const { error } = await supabase.rpc('admin_delete_user', {
         p_admin_id: user.id,
         p_target_user_id: userToDelete.user_id,
       });
@@ -265,9 +265,9 @@ export default function AdminUsers() {
         return next;
       });
       toast.success('用户已删除');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error deleting user:', err);
-      toast.error(err.message || '删除用户失败');
+      toast.error(err instanceof Error && err.message ? err.message : '删除用户失败');
     }
     setUpdatingUser(null);
     setDeleteDialogOpen(false);
@@ -279,7 +279,7 @@ export default function AdminUsers() {
 
     setUpdatingUser(userToGrant.user_id);
     try {
-      const { error } = await (supabase as any).rpc('admin_grant_temp_ai_uses', {
+      const { error } = await supabase.rpc('admin_grant_temp_ai_uses', {
         p_admin_id: user.id,
         p_target_user_id: userToGrant.user_id,
         p_uses: grantAmount,
@@ -303,9 +303,9 @@ export default function AdminUsers() {
       ));
 
       toast.success(`已为 ${userToGrant.display_name || userToGrant.email} 增加 ${grantAmount} 次临时AI次数（3天有效期）`);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error granting temp AI uses:', err);
-      toast.error(err.message || '增加临时AI次数失败');
+      toast.error(err instanceof Error && err.message ? err.message : '增加临时AI次数失败');
     }
     setUpdatingUser(null);
     setGrantAIDialogOpen(false);
@@ -342,15 +342,15 @@ export default function AdminUsers() {
       const userIds = Array.from(selectedUsers);
       
       if (batchAction.type === 'level') {
-        const { data, error } = await (supabase as any).rpc('admin_batch_update_level', {
+        const { data, error } = await supabase.rpc('admin_batch_update_level', {
           p_admin_id: user.id,
           p_user_ids: userIds,
-          p_new_level: batchAction.value,
+          p_new_level: batchAction.value as UserLevel,
         });
         if (error) throw error;
         toast.success(`已批量更新 ${data} 个用户的等级`);
       } else if (batchAction.type === 'status') {
-        const { data, error } = await (supabase as any).rpc('admin_batch_update_status', {
+        const { data, error } = await supabase.rpc('admin_batch_update_status', {
           p_admin_id: user.id,
           p_user_ids: userIds,
           p_new_status: batchAction.value,
@@ -361,9 +361,9 @@ export default function AdminUsers() {
 
       await fetchUsers();
       setSelectedUsers(new Set());
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error batch updating:', err);
-      toast.error(err.message || '批量操作失败');
+      toast.error(err instanceof Error && err.message ? err.message : '批量操作失败');
     }
     setIsBatchProcessing(false);
     setBatchActionDialogOpen(false);

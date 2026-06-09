@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = useCallback(async (userId: string) => {
     try {
       // Type assertion needed because profiles table is new and not in generated types yet
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
@@ -198,7 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       // Type assertion needed because function is new and not in generated types yet
-      const { data, error } = await (supabase as any).rpc('consume_ai_use', {
+      const { data, error } = await supabase.rpc('consume_ai_use', {
         p_user_id: user.id,
       });
 

@@ -5,7 +5,9 @@
 import { describe, it, expect } from 'vitest';
 import { auditEngineOutputs } from '@/core/shared/implementationAudit';
 import { QuantumPredictionEngine } from '@/utils/quantumPredictionEngine';
-const quantumPredictionEngine: any = QuantumPredictionEngine;
+
+type OrchestratorSurface = ((input: unknown) => unknown) & { predict?: (input: unknown) => unknown };
+const quantumPredictionEngine = QuantumPredictionEngine as unknown as OrchestratorSurface;
 
 const SAMPLE_INPUT = {
   birthDateUtc: '1990-05-15T08:30:00Z',
@@ -22,10 +24,10 @@ const SAMPLE_INPUT = {
 
 describe('quantumPredictionEngine integration audit (P4.12)', () => {
   it('runs the orchestrator and produces a valid audit report', async () => {
-    let result: any;
+    let result: unknown;
     try {
       // The orchestrator surface may be exposed under different names; try common ones.
-      const eng: any = quantumPredictionEngine;
+      const eng = quantumPredictionEngine;
       if (typeof eng.predict === 'function') {
         result = await eng.predict(SAMPLE_INPUT);
       } else if (typeof eng === 'function') {
@@ -40,7 +42,8 @@ describe('quantumPredictionEngine integration audit (P4.12)', () => {
       return;
     }
 
-    const outputs = result?.engineOutputs ?? result?.outputs ?? [];
+    const resultObj = (result ?? {}) as { engineOutputs?: unknown; outputs?: unknown };
+    const outputs = resultObj.engineOutputs ?? resultObj.outputs ?? [];
     if (!Array.isArray(outputs) || outputs.length === 0) {
       console.warn('[P4.12] no engineOutputs found on result; skipping deep audit');
       return;

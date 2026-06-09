@@ -237,8 +237,8 @@ function analyzeDaatGateway(activeSephiroth: SephirahInfo[]): DaatGateway {
   const isActive = strength > 60;
   
   const interpretation = isActive
-    ? `知识之门(Da\'at)开启(强度${strength})：智慧与理解汇聚，超越二元对立的洞见力显现。`
-    : `知识之门(Da\'at)未完全开启(强度${strength})：需进一步发展智慧与理解的平衡。`;
+    ? `知识之门(Da'at)开启(强度${strength})：智慧与理解汇聚，超越二元对立的洞见力显现。`
+    : `知识之门(Da'at)未完全开启(强度${strength})：需进一步发展智慧与理解的平衡。`;
   
   return { isActive, strength, interpretation };
 }

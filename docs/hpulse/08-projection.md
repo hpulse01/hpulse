@@ -35,7 +35,7 @@ import { runPipeline, projectReport } from "@/hpulse";
 
 const report = await runPipeline(rawInput, { event: "general" });
 const view = projectReport(report);
-// view → feeds UnifiedResultsPanel / DestinyDashboard / EngineStatusGrid.
+// view → feeds DestinyDashboard / EngineStatusGrid and the result tabs in Index.tsx.
 ```
 
 ## Version

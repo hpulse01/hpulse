@@ -13,7 +13,7 @@ describe('fourTransformations', () => {
   });
 
   it('warns and returns empty list for invalid stem', () => {
-    // @ts-expect-error
+    // @ts-expect-error invalid stem on purpose to exercise the warning path
     const r = calculateSihua('X');
     expect(r.sihua).toHaveLength(0);
     expect(r.warnings.length).toBeGreaterThan(0);

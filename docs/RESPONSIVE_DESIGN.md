@@ -35,7 +35,7 @@
 ## Component-Specific Rules
 
 ### Tabs
-`ResponsiveResultTabs` always wraps the tab strip in `overflow-x-auto` and sets `whitespace-nowrap` on each trigger.
+The result tab strip (in `src/pages/Index.tsx`) is wrapped in `overflow-x-auto` and sets `whitespace-nowrap` on each trigger.
 
 ### Cards
 Audit metric cards never exceed `text-lg` for the value to keep wrap short; hint text uses `truncate` with a `title` attribute for full content on hover.

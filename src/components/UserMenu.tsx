@@ -36,7 +36,7 @@ export function UserMenu() {
         return;
       }
       try {
-        const { data } = await (supabase as any).rpc('is_admin', { _user_id: user.id });
+        const { data } = await supabase.rpc('is_admin', { _user_id: user.id });
         setIsAdmin(data === true);
       } catch {
         setIsAdmin(false);

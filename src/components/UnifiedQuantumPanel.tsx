@@ -297,7 +297,7 @@ export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelPr
 // ─── Helpers ───
 
 function buildCoherenceData(result: QuantumPredictionResult, aspect: LifeAspect) {
-  const contribs: Record<LifeAspect, { system: string; weight: number; rawScore: number; normalizedScore: number; detail: string }[]> = {} as any;
+  const contribs = {} as Record<LifeAspect, { system: string; weight: number; rawScore: number; normalizedScore: number; detail: string }[]>;
   for (const a of QuantumPredictionEngine.getAllAspects()) {
     contribs[a] = result.systems.map(sys => ({
       system: sys.nameCN,

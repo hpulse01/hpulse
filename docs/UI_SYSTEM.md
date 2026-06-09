@@ -45,9 +45,16 @@ Never use raw color classes (`text-white`, `bg-black`). Use semantic tokens.
 
 ## Result Page Structure
 
-`Overview` · `Bazi` · `Engines` · **`Audit`** · `Tree` · `Path` · `Destiny` · `Quantum` · `Orchestration (super admin)`
+Public tabs: `Overview` · `Engines` · `Tree` · `Path` · `Destiny` · `Quantum` · `QuantumCollapse`.
+Super-admin tabs: the 13 per-engine algorithm panels (data-driven map in `Index.tsx`), **`Audit`**, and `Orchestration`.
 
 Tabs are horizontally scrollable on every viewport.
+
+## Frontend Hygiene
+
+- The app flow is single-purpose: `input → calculating → verification (六亲校时) → projecting → result` (`AppStep` in `src/pages/Index.tsx`).
+- Legacy/unreferenced result components (e.g. `UnifiedResultsPanel`, `ResponsiveResultTabs`, `QuantumField`, `KaoKeVerification`) have been removed; the result page is composed only from live components under `src/components/`.
+- `npm run lint` must stay at **0 errors** (`@typescript-eslint/no-explicit-any` enforced — use real types from engine modules instead of `any`).
 
 ## Sensitive Content
 

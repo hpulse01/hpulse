@@ -41,6 +41,7 @@ function toQuantumInput(input: UnifiedPredictionInput): QuantumInput {
     geoLatitude: input.geoLatitude,
     geoLongitude: input.geoLongitude,
     timezoneOffsetMinutes: input.timezoneOffsetMinutesAtBirth,
+    queryTimeUtc: input.queryTimeUtc,
   };
 }
 

@@ -25,14 +25,14 @@ export function FateVectorDashboard({ engineOutputs, className }: Props) {
       const fv = e.fateVector;
       if (!fv) continue;
       for (const d of ALL_FATE_DIMENSIONS) {
-        const v = (fv as any)[d];
+        const v = fv[d];
         if (typeof v === 'number') acc[d] = (acc[d] ?? 0) + v * w;
       }
     }
     if (totalW === 0) return null;
     const out = {} as FateVector;
     for (const d of ALL_FATE_DIMENSIONS) {
-      (out as any)[d] = Math.max(0, Math.min(100, (acc[d] ?? 0) / totalW));
+      out[d] = Math.max(0, Math.min(100, (acc[d] ?? 0) / totalW));
     }
     return out;
   }, [engineOutputs]);
@@ -55,7 +55,7 @@ export function FateVectorDashboard({ engineOutputs, className }: Props) {
       </header>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {ALL_FATE_DIMENSIONS.map(d => {
-          const v = (fused as any)[d] as number;
+          const v = fused[d];
           const tone = v >= 70 ? 'bg-emerald-400/70' : v >= 50 ? 'bg-primary/70' : v >= 30 ? 'bg-amber-400/70' : 'bg-destructive/60';
           return (
             <div key={d} className="rounded-md border border-primary/15 bg-card/30 px-3 py-2">

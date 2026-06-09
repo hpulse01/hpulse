@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
 
     let imported = 0;
     let skipped = 0;
-    let errors: string[] = [];
+    const errors: string[] = [];
 
     // Process in batches of 500 for efficiency
     const BATCH_SIZE = 500;
