@@ -8,6 +8,7 @@ import { BodyUsePanel } from './BodyUsePanel';
 import { TrigramRelationPanel } from './TrigramRelationPanel';
 import { MeihuaJudgementPanel } from './MeihuaJudgementPanel';
 import { MeihuaAuditTrace } from './MeihuaAuditTrace';
+import { EngineWarningStrip } from '../_shared/EnginePanelShell';
 
 interface Props { engineOutput?: EngineOutput | null }
 
@@ -35,6 +36,9 @@ export function MeihuaCorePanel({ engineOutput }: Props) {
           conf {formatPercent(engineOutput.confidence)} · compl {formatScore(engineOutput.completenessScore)}
         </span>
       </header>
+
+      <EngineWarningStrip warnings={engineOutput.warnings} uncertainty={engineOutput.uncertaintyNotes} />
+
 
       <MeihuaHexagramTrio
         bengua={{ name: norm.benGua, upper: { name: norm.upperTrigram }, lower: { name: norm.lowerTrigram } }}
