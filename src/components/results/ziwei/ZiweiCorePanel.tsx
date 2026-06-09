@@ -11,6 +11,7 @@ import { ZiweiPatternPanel } from './ZiweiPatternPanel';
 import { ZiweiStrengthPanel } from './ZiweiStrengthPanel';
 import { ZiweiStarMatrix } from './ZiweiStarMatrix';
 import { ZiweiAuditTrace } from './ZiweiAuditTrace';
+import { EngineWarningStrip } from '../_shared/EnginePanelShell';
 import { asText, formatPercent, formatScore } from '@/utils/displayFormat';
 
 interface Props {
@@ -145,6 +146,9 @@ export function ZiweiCorePanel({ engineOutput, birthYear }: Props) {
           conf {formatPercent(engineOutput.confidence)} · compl {formatScore(engineOutput.completenessScore)}
         </span>
       </header>
+
+      <EngineWarningStrip warnings={engineOutput.warnings} uncertainty={engineOutput.uncertaintyNotes} />
+
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
         <Cell label="年柱" value={asText(norm.yearGanZhi)} />

@@ -1,6 +1,7 @@
 import type { EngineOutput } from '@/types/prediction';
 import { SourceGradeBadge } from '@/components/hpulse/SourceGradeBadge';
 import { ImplementationStatusBadge } from '@/components/hpulse/ImplementationStatusBadge';
+import { EngineWarningStrip } from '../_shared/EnginePanelShell';
 import { asText, formatPercent, formatScore } from '@/utils/displayFormat';
 
 interface Props {
