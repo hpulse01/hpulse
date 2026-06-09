@@ -271,7 +271,7 @@ function distributeEarthStems(juNumber: number, dunType: DunType): string[] {
   const stems = [...SAN_QI_LIU_YI]; // 9 stems
   const finalResult: string[] = new Array(9).fill('');
 
-  let currentPalace = juNumber;
+  const currentPalace = juNumber;
   for (let i = 0; i < 9; i++) {
     if (i === 4) {
       // 中5宫固定放天禽对应的干

@@ -610,7 +610,7 @@ function runWestern(si: StandardizedInput): { eo: EngineOutput; westernReport: W
   const t1 = performance.now();
 
   // v2.0: enriched output
-  const patterns = (westernReport as any).patterns?.map((p: any) => p.name).join('、') || '';
+  const patterns = westernReport.patterns?.map((p) => p.name).join('、') || '';
 
   return {
     eo: {
@@ -652,7 +652,7 @@ function runVedic(si: StandardizedInput): { eo: EngineOutput; vedicReport: Vedic
   const vedicReport = VedicAstrologyEngine.calculate(input);
   const t1 = performance.now();
 
-  const yogaNames = vedicReport.yogas.slice(0, 3).map((y: any) => typeof y === 'string' ? y : y.name).join('、');
+  const yogaNames = vedicReport.yogas.slice(0, 3).map((y) => y.name).join('、');
 
   return {
     eo: {
@@ -667,7 +667,7 @@ function runVedic(si: StandardizedInput): { eo: EngineOutput; vedicReport: Vedic
         '月亮星座': vedicReport.rashiSignCN,
         '月宿': vedicReport.moonNakshatra.nameCN,
         'Yoga': yogaNames,
-        'Dasha': vedicReport.dashas.slice(0, 2).map((d: any) => `${d.planet}(${d.startAge}-${d.endAge})`).join('、'),
+        'Dasha': vedicReport.dashas.slice(0, 2).map((d) => `${d.planet}(${d.startAge}-${d.endAge})`).join('、'),
       },
       warnings: [], uncertaintyNotes: ['含月宿体系·Dasha大运·瑜伽组合检测'],
       timingBasis: 'birth',
@@ -676,11 +676,11 @@ function runVedic(si: StandardizedInput): { eo: EngineOutput; vedicReport: Vedic
         `月亮星座: ${vedicReport.rashiSignCN}`,
         `月宿: ${vedicReport.moonNakshatra.nameCN}`,
         `瑜伽: ${yogaNames}`,
-        `Dasha周期: ${vedicReport.dashas.slice(0, 2).map((d: any) => d.planet).join('→')}`,
+        `Dasha周期: ${vedicReport.dashas.slice(0, 2).map((d) => d.planet).join('→')}`,
       ],
       completenessScore: 78,
       validationFlags: { passed: ['sidereal-conversion', 'nakshatra', 'dasha-calculation', 'yoga-detection'], failed: [], warnings: ['no-ashtakavarga'] },
-      timeWindows: vedicReport.dashas.slice(0, 5).map((d: any) => ({ dimension: 'life' as const, startAge: d.startAge, endAge: d.endAge, confidence: 0.7, trend: d.quality === 'benefic' ? 'rising' as const : 'declining' as const, evidence: `${d.planet} Dasha` })),
+      timeWindows: vedicReport.dashas.slice(0, 5).map((d) => ({ dimension: 'life' as const, startAge: d.startAge, endAge: d.endAge, confidence: 0.7, trend: d.quality === 'benefic' ? 'rising' as const : 'declining' as const, evidence: `${d.planet} Dasha` })),
       aspectScores: Object.fromEntries(Object.entries(vedicReport.lifeVectors).map(([k, v]) => [k, v as number])),
       eventCandidates: [`${vedicReport.moonNakshatra.nameCN}月宿`, `${yogaNames}瑜伽`, `Dasha周期转换`],
     },
@@ -705,9 +705,9 @@ function runNumerology(si: StandardizedInput): { eo: EngineOutput; numerologyRep
       normalizedOutput: {
         '生命数': String(numerologyReport.lifePath),
         '含义': numerologyReport.lifePathMeaning.slice(0, 20),
-        '灵魂数': String((numerologyReport as any).soulNumber ?? ''),
-        '人格数': String((numerologyReport as any).personalityNumber ?? ''),
-        '成熟数': String((numerologyReport as any).maturityNumber ?? ''),
+        '生日数': String(numerologyReport.birthdayNumber),
+        '隐藏激情': String(numerologyReport.hiddenPassion),
+        '成熟数': String(numerologyReport.maturityNumber),
       },
       warnings: [], uncertaintyNotes: ['含业力债数·成熟数·生命路径周期'],
       timingBasis: 'birth',
@@ -759,7 +759,7 @@ function runMayan(si: StandardizedInput): { eo: EngineOutput; mayanReport: Mayan
         `Gregorian→Julian Day转换`,
         `Tzolkin: ${mayanReport.daySignCN}(Tone ${mayanReport.galacticTone})`,
         `Kin: ${mayanReport.kin}`,
-        `Haab: ${(mayanReport as any).haabMonth || ''}`,
+        `Haab: ${mayanReport.haabMonth || ''}`,
         `Dreamspell Cross完成`,
       ],
       completenessScore: 76,
@@ -789,8 +789,10 @@ function runKabbalah(si: StandardizedInput): { eo: EngineOutput; kabbalahReport:
       normalizedOutput: {
         '灵魂质点': kabbalahReport.soulSephirah.nameCN,
         '人格质点': kabbalahReport.personalitySephirah.nameCN,
-        'Gematria': String((kabbalahReport as any).gematria?.totalValue ?? ''),
-        '四界平衡': (kabbalahReport as any).fourWorldsBalance ? Object.entries((kabbalahReport as any).fourWorldsBalance).map(([k, v]) => `${k}${v}`).join('·') : '',
+        'Gematria': String(kabbalahReport.gematria.totalValue),
+        '四界平衡': kabbalahReport.fourWorlds
+          ? (['atziluth', 'briah', 'yetzirah', 'assiah'] as const).map((k) => `${k}${kabbalahReport.fourWorlds[k]}`).join('·')
+          : '',
       },
       warnings: [], uncertaintyNotes: ['含Gematria数值·四界平衡·Klipah阴影分析'],
       timingBasis: 'birth',

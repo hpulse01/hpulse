@@ -253,7 +253,7 @@ export const SixRelationsVerification = ({
     } finally {
       setIsCalibrating(false);
     }
-  }, [fatherZodiac, motherZodiac]);
+  }, [fatherZodiac, motherZodiac, siblingsCount]);
 
   /**
    * Confirm the selected quarter

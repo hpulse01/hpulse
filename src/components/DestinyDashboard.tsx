@@ -19,14 +19,23 @@ import {
   type FullDestinyReport, 
   type FlowYearClause,
   type DestinyProjection,
+  type BaZiProfile,
 } from '@/utils/tiebanAlgorithm';
 
 import { BaZiDetailedDisplay } from '@/components/BaZiDetailedDisplay';
 import { LiuYaoDeepAnalysis } from '@/components/LiuYaoDeepAnalysis';
 import { ZiweiDisplay } from '@/components/ZiweiDisplay';
 import { useAuth } from '@/hooks/useAuth';
-import { calculateLiuYaoHexagram } from '@/utils/liuYaoAlgorithm';
+import { calculateLiuYaoHexagram, type LiuYaoResult } from '@/utils/liuYaoAlgorithm';
 import { ZiweiEngine } from '@/utils/ziweiAlgorithm';
+
+interface ZiweiProfileSummary {
+  mingGong: string;
+  shenGong: string;
+  mingElement: string;
+  shenElement: string;
+  palaces: Array<{ name: string; branch: string }>;
+}
 import { 
   RotateCcw, Scroll, Sparkles, Heart, Coins, Briefcase, 
   Activity, Baby, Calendar, Zap, Mountain, Flame, Droplet, 
@@ -157,10 +166,10 @@ function DaYunExpandedPanel({
 }: {
   daYun: { startAge: number; endAge: number; ganZhi: string; element: string; startYear: number };
   daYunIndex: number;
-  baziProfile: any;
+  baziProfile: BaZiProfile;
   pillarsDisplay: string;
-  hexagramResult: any;
-  ziweiProfile: any;
+  hexagramResult: LiuYaoResult;
+  ziweiProfile: ZiweiProfileSummary;
   canUseAI: boolean;
   isAuthenticated: boolean;
   birthYear: number;
@@ -410,10 +419,10 @@ function FlowYearItem({
   flowYear: FlowYearClause & { content?: string }; 
   currentAge: number;
   pillarsDisplay: string;
-  baziProfile: any;
+  baziProfile: BaZiProfile;
   canUseAI: boolean;
-  ziweiProfile?: any;
-  hexagram?: any;
+  ziweiProfile?: ZiweiProfileSummary;
+  hexagram?: LiuYaoResult;
 }) {
   const isCurrentAge = flowYear.age === currentAge;
   const isPast = flowYear.age < currentAge;
@@ -528,7 +537,7 @@ export function DestinyDashboard({
       shenGong: ziweiReport.shenGong,
       mingElement: branchElements[ziweiReport.mingGong] || '',
       shenElement: branchElements[ziweiReport.shenGong] || '',
-      palaces: ziweiReport.palaces.map((p: any) => ({ name: p.name, branch: p.branch })),
+      palaces: ziweiReport.palaces.map((p) => ({ name: p.name, branch: p.branch })),
     };
   }, [birthData]);
 

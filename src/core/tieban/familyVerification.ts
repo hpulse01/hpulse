@@ -38,7 +38,7 @@ export function familyVerification(
   const legacyRanked = TiebanEngine.calculateSixRelationsMatch(legacyBaseNumber, facts);
   const legacyByQuarter = new Map(legacyRanked.map((r) => [r.quarterIndex, r]));
 
-  const ranked: FamilyVerificationCandidate[] = quarter.candidates.map((c) => {
+  const scored: Array<FamilyVerificationCandidate & { rawScore: number }> = quarter.candidates.map((c) => {
     const legacy = legacyByQuarter.get(c.quarterIndex)!;
     const predFather = legacy.predictedFatherZodiac;
     const predMother = legacy.predictedMotherZodiac;
@@ -85,17 +85,22 @@ export function familyVerification(
       }
     }
 
-    const matchScore = Math.min(100, father + mother + parentsStatus + siblings + (spouse ?? 0));
+    // Raw score may exceed 100 when the optional spouse bonus applies (max 115);
+    // ranking and tie detection use the raw score so the bonus is never truncated.
+    const rawScore = father + mother + parentsStatus + siblings + (spouse ?? 0);
 
     return {
       ...c,
       predictedFatherZodiac: predFather,
       predictedMotherZodiac: predMother,
-      matchScore,
+      matchScore: Math.min(100, rawScore),
+      rawScore,
       scoreBreakdown: { father, mother, parentsStatus, siblings, ...(spouse != null ? { spouse } : {}) },
     };
-  }).sort((a, b) => b.matchScore - a.matchScore);
+  }).sort((a, b) => b.rawScore - a.rawScore);
 
+  const lockedRaw = scored[0];
+  const ranked: FamilyVerificationCandidate[] = scored.map(({ rawScore: _rawScore, ...rest }) => rest);
   const locked = ranked[0];
   const systemOffset = TiebanEngine.calculateSystemOffset(base.theoreticalBase, locked.clauseNumber);
 
@@ -106,10 +111,10 @@ export function familyVerification(
       message: '六亲校时分数为 0：用户输入与所有 8 刻预测都不吻合，请人工复核家庭事实输入。',
       severity: 'error',
     });
-  } else if (ranked.length > 1 && locked.matchScore - ranked[1].matchScore < 5) {
+  } else if (scored.length > 1 && lockedRaw.rawScore - scored[1].rawScore < 5) {
     warnings.push({
       code: 'KAOKE_TIE_RISK',
-      message: `Top-1 与 Top-2 分差 ${locked.matchScore - ranked[1].matchScore}，时间锁定置信度低，建议补充输入。`,
+      message: `Top-1 与 Top-2 分差 ${lockedRaw.rawScore - scored[1].rawScore}，时间锁定置信度低，建议补充输入。`,
       severity: 'warning',
     });
   }

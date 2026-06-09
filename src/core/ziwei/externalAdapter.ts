@@ -27,13 +27,13 @@ function mapStarType(t: ExternalStar['type'] | string): ExternalStar['type'] {
 
 function branchToIndex(branchChar: string): number {
   // external uses 0=子..11=亥
-  return Math.max(0, EARTHLY_BRANCHES.indexOf(branchChar as any));
+  return Math.max(0, (EARTHLY_BRANCHES as readonly string[]).indexOf(branchChar));
 }
 
 function adaptPalace(p: InternalPalace): ExternalPalace {
   const stars: ExternalStar[] = p.stars.map((s) => ({
     name: s.name,
-    type: mapStarType(s.type as any),
+    type: mapStarType(s.type),
     siHua: s.sihua,
     brightness: mapBrightness(s.brightness),
   }));

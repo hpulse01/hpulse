@@ -20,7 +20,6 @@ This phase syncs the React UI with the new `EngineOutput` metadata produced by P
 | `WarningCenter` | never-hidden warnings, uncertainty notes, failed flags |
 | `FateVectorDashboard` | confidence-weighted fused 10-dim semantic bars |
 | `MobileSectionAccordion` | mobile-friendly collapsible section |
-| `ResponsiveResultTabs` | horizontally-scrollable tab strip wrapper |
 
 ## New Engine Result Components
 
