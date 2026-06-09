@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateKabbalah, kabbalahToEngineOutput,
   gematria, isHebrewInput, sephirahFromNumber, SEPHIROT,
+  TREE_PATHS, pathFromLetter, pathFromNumber,
 } from '../index';
 
 describe('kabbalah/gematria', () => {
@@ -18,6 +19,30 @@ describe('kabbalah/gematria', () => {
     const g = gematria('John');
     expect(g.source).toBe('transliterated');
     expect(g.total).toBeGreaterThan(0);
+  });
+  it('computes extended gematria (katan, siduri)', () => {
+    const g = gematria('שלום');
+    // katan: ש 300→3, ל 30→3, ו 6, ם 40→4 = 16
+    expect(g.katan).toBe(16);
+    // siduri: ש=21, ל=12, ו=6, ם(מ)=13 = 52
+    expect(g.siduri).toBe(52);
+  });
+});
+
+describe('kabbalah/paths', () => {
+  it('has all 22 paths numbered 11..32', () => {
+    expect(TREE_PATHS).toHaveLength(22);
+    expect(TREE_PATHS[0].number).toBe(11);
+    expect(TREE_PATHS[21].number).toBe(32);
+  });
+  it('maps letters (incl. final forms) to paths', () => {
+    expect(pathFromLetter('א')?.letterName).toBe('Aleph');
+    expect(pathFromLetter('ם')?.letterName).toBe('Mem');
+  });
+  it('maps numbers to paths deterministically', () => {
+    expect(pathFromNumber(1).number).toBe(11);
+    expect(pathFromNumber(22).number).toBe(32);
+    expect(pathFromNumber(23).number).toBe(11);
   });
 });
 
@@ -63,9 +88,22 @@ describe('kabbalah/calculate', () => {
     expect(b.gematria?.total).toBe(a.gematria?.total);
     expect(b.primarySephirah?.name).toBe(a.primarySephirah?.name);
   });
+  it('derives primary path from name first letter', () => {
+    const r = calculateKabbalah(FULL);
+    // שלום first letter ש → path 31 (Shin)
+    expect(r.primaryPath?.number).toBe(31);
+    expect(r.primaryPath?.letterName).toBe('Shin');
+    expect(r.implementationStatus).toBe('complete');
+  });
+  it('falls back path from birth-date number without name', () => {
+    const r = calculateKabbalah({ birthYear: 1990, birthMonth: 5, birthDay: 14 });
+    expect(r.primaryPath).not.toBeNull();
+    expect(r.implementationStatus).toBe('partial');
+  });
   it('produces a valid EngineOutput', () => {
     const out = kabbalahToEngineOutput(calculateKabbalah(FULL));
     expect(out.engineName).toBe('kabbalah');
     expect(Object.keys(out.fateVector)).toHaveLength(10);
+    expect(out.normalizedOutput.pathNumber).toBe('31');
   });
 });

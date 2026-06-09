@@ -4,6 +4,12 @@
 import { julianDayFromUtc } from '../astro-time/julianDay';
 import { tzolkinFromJulianDay } from './tzolkin';
 import { longCountFromJulianDay, formatLongCount } from './longCount';
+import {
+  haabFromDaysSinceEpoch,
+  lordOfNightFromDaysSinceEpoch,
+  calendarRoundFromDaysSinceEpoch,
+  formatHaab,
+} from './haab';
 import type { MayanInput, MayanResult, MayanWarning, ExplanationStep } from './types';
 
 export function calculateMayan(input: MayanInput): MayanResult {
@@ -37,12 +43,26 @@ export function calculateMayan(input: MayanInput): MayanResult {
     });
   }
 
-  // Haab (vague solar 365-day calendar), Lord of the Night (G1..G9), and
-  // Calendar Round are intentionally NOT yet implemented.
-  warnings.push({
-    code: 'haab_not_implemented',
-    message: 'Haab calendar and Calendar Round are not yet computed in this version.',
-    level: 'info',
+  const haab = haabFromDaysSinceEpoch(lc.daysSinceEpoch);
+  trace.push({
+    rule: 'mayan.haab',
+    detail: `Haab = ${formatHaab(haab)} (monthIndex=${haab.monthIndex}, dayOfYear=${haab.dayOfYear}${haab.isWayeb ? ', Wayeb' : ''})`,
+  });
+  if (haab.isWayeb) {
+    warnings.push({
+      code: 'wayeb_day',
+      message: 'Date falls within the 5 Wayeb days, classically considered inauspicious.',
+      level: 'info',
+    });
+  }
+
+  const lordOfNight = lordOfNightFromDaysSinceEpoch(lc.daysSinceEpoch);
+  trace.push({ rule: 'mayan.lordOfNight', detail: `Lord of the Night = ${lordOfNight.name}` });
+
+  const calendarRound = calendarRoundFromDaysSinceEpoch(lc.daysSinceEpoch, tz, haab);
+  trace.push({
+    rule: 'mayan.calendarRound',
+    detail: `Calendar Round = ${calendarRound.designation} (position ${calendarRound.position}/${calendarRound.cycleDays})`,
   });
 
   return {
@@ -50,10 +70,13 @@ export function calculateMayan(input: MayanInput): MayanResult {
     julianDay: jd,
     tzolkin: tz,
     longCount: lc,
-    confidence: 75,
-    completenessScore: 70,
+    haab,
+    lordOfNight,
+    calendarRound,
+    confidence: 85,
+    completenessScore: 92,
     sourceGrade: 'B',
-    implementationStatus: 'partial',
+    implementationStatus: 'complete',
     warnings,
     explanationTrace: trace,
   };

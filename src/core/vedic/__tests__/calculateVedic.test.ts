@@ -5,6 +5,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateVedicChart, vedicChartToEngineOutput,
   lahiriAyanamsaDeg, nakshatraOf, NAKSHATRAS, RASHIS,
+  meanLunarNodeTropicalDeg, navamsaRashiOf,
 } from '../index';
 
 const INPUT = {
@@ -79,6 +80,65 @@ describe('vedic/calculateChart', () => {
     });
     expect(c.lagna).toBeNull();
     expect(c.warnings.some((w) => w.code === 'no_geo_lagna')).toBe(true);
+  });
+});
+
+describe('vedic/nodes', () => {
+  it('mean node at J2000 ≈ 125.04°', () => {
+    expect(meanLunarNodeTropicalDeg(2451545.0)).toBeCloseTo(125.04452, 3);
+  });
+  it('Rahu and Ketu are 180° apart and included in chart', () => {
+    const c = calculateVedicChart(INPUT);
+    const diff = (c.nodes.ketu.longitude - c.nodes.rahu.longitude + 360) % 360;
+    expect(diff).toBeCloseTo(180, 6);
+    expect(RASHIS).toContain(c.nodes.rahu.rashi);
+    expect(NAKSHATRAS).toContain(c.nodes.rahu.nakshatra);
+  });
+});
+
+describe('vedic/navamsa', () => {
+  it('0° Mesha → Mesha navamsa, last segment of Mesha → Dhanu', () => {
+    expect(navamsaRashiOf(0).rashi).toBe('Mesha');
+    expect(navamsaRashiOf(0).navamsaNumber).toBe(1);
+    expect(navamsaRashiOf(29.99).rashi).toBe('Dhanu');
+    expect(navamsaRashiOf(29.99).navamsaNumber).toBe(9);
+  });
+  it('0° Vrishabha → Makara navamsa (movable/fixed/dual rule emerges)', () => {
+    expect(navamsaRashiOf(30).rashi).toBe('Makara');
+  });
+  it('chart planets and lagna include navamsaRashi', () => {
+    const c = calculateVedicChart(INPUT);
+    for (const p of c.planets) expect(RASHIS).toContain(p.navamsaRashi);
+    expect(RASHIS).toContain(c.lagna!.navamsaRashi);
+  });
+});
+
+describe('vedic/antardasha', () => {
+  it('every mahadasha has antardashas starting with its own lord', () => {
+    const c = calculateVedicChart(INPUT);
+    for (let i = 1; i < c.vimshottariMahadasha.length; i++) {
+      const d = c.vimshottariMahadasha[i];
+      expect(d.antardashas).toHaveLength(9);
+      expect(d.antardashas![0].lord).toBe(d.lord);
+      expect(d.antardashas![0].startUtc).toBe(d.startUtc);
+      const total = d.antardashas!.reduce((s, a) => s + a.years, 0);
+      expect(total).toBeCloseTo(d.years, 6);
+      for (let j = 1; j < 9; j++) {
+        expect(d.antardashas![j].startUtc).toBe(d.antardashas![j - 1].endUtc);
+      }
+    }
+  });
+  it('birth mahadasha antardashas drop pre-birth sub-periods', () => {
+    const c = calculateVedicChart(INPUT);
+    const first = c.vimshottariMahadasha[0];
+    expect(first.antardashas!.length).toBeGreaterThan(0);
+    expect(first.antardashas!.length).toBeLessThanOrEqual(9);
+    const birthMs = new Date(INPUT.birthUtcDateTime).getTime();
+    for (const a of first.antardashas!) {
+      expect(new Date(a.endUtc).getTime()).toBeGreaterThan(birthMs);
+    }
+    const lastEnd = first.antardashas![first.antardashas!.length - 1].endUtc;
+    expect(Math.abs(new Date(lastEnd).getTime() - new Date(first.endUtc).getTime())).toBeLessThan(1000);
   });
 });
 

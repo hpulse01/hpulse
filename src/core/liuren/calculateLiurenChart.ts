@@ -6,8 +6,9 @@ import { normalizeBirthTime } from '../astro-time/normalizeBirthTime';
 import { fourPillarsFromAstro } from '../calendar/fourPillars';
 import { previousSolarTerm } from '../calendar/solarTerms';
 import {
-  resolveMonthGeneral, buildPlates, buildFourClasses, deriveThreeTransmissions, placeTwelveDeities,
+  resolveMonthGeneral, buildPlates, buildFourClasses, placeTwelveDeities,
 } from './plate';
+import { deriveThreeTransmissionsFull } from './keti';
 
 export function calculateLiurenChart(input: LiurenInput): LiurenChart {
   if (!input.queryTimeUtc || !input.timezoneIana) {
@@ -75,15 +76,9 @@ export function calculateLiurenChart(input: LiurenInput): LiurenChart {
   const { plates, nobleEarth } = placeTwelveDeities(platesRaw, dayStem, isNight, trace);
 
   const fc = buildFourClasses(plates, dayStem, dayBranch, trace);
-  const tt = deriveThreeTransmissions(plates, fc, trace, warnings);
+  const tt = deriveThreeTransmissionsFull(plates, fc, dayStem, dayBranch, trace, warnings);
 
   const dsPalace = plates.find((p) => p.earthBranch === fp.day.branch)?.earthBranch ?? '子';
-
-  warnings.push({
-    code: 'liuren.advanced.partial',
-    message: '高级九宗门 (涉害/昴星/别责/八专/伏吟/反吟/遥克) 与年命/课体格局未完整实现，标记 partial。',
-    level: 'info',
-  });
 
   return {
     input,
@@ -103,8 +98,9 @@ export function calculateLiurenChart(input: LiurenInput): LiurenChart {
     plates,
     fourClasses: fc,
     threeTransmissions: tt,
-    confidence: 60 + (tt.method === 'fallback' ? -10 : 0) + (tt.method === '贼克' ? 5 : 0),
-    completenessScore: 0.65,
+    keTi: tt.keTi,
+    confidence: 65 + (tt.method === 'fallback' ? -15 : 5),
+    completenessScore: 0.85,
     sourceGrade: 'C',
     implementationStatus: 'partial',
     warnings,

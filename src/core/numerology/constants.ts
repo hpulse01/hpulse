@@ -24,3 +24,16 @@ export const VOWELS = new Set(['A', 'E', 'I', 'O', 'U']);
  *  that yields stable results). Documented in uncertaintyNotes. */
 
 export const MASTER_NUMBERS = new Set([11, 22, 33]);
+
+/** Karmic Debt numbers — flagged when an UNREDUCED core total equals one of these. */
+export const KARMIC_DEBT_NUMBERS = new Set([13, 14, 16, 19]);
+
+/**
+ * Chaldean letter → digit mapping (1..8; 9 is sacred and never assigned).
+ * Sound-based ancient Babylonian system.
+ */
+export const CHALDEAN_MAP: Record<string, number> = {
+  A: 1, B: 2, C: 3, D: 4, E: 5, F: 8, G: 3, H: 5, I: 1,
+  J: 1, K: 2, L: 3, M: 4, N: 5, O: 7, P: 8, Q: 1, R: 2,
+  S: 3, T: 4, U: 6, V: 6, W: 6, X: 5, Y: 1, Z: 7,
+};

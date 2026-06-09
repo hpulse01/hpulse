@@ -80,6 +80,42 @@ describe('calculateBaziChart', () => {
   });
 });
 
+describe('调候用神 / 化气格 / 从格 / 流月细化', () => {
+  it('每张命盘都给出调候用神（表查找）', () => {
+    const c = calculateBaziChart(baseInput);
+    expect(c.tiaohou).not.toBeNull();
+    expect(c.tiaohou!.stems.length).toBeGreaterThan(0);
+    expect(c.tiaohou!.primary).toBe(c.tiaohou!.stems[0]);
+    expect(c.tiaohou!.elements.length).toBeGreaterThan(0);
+    expect(typeof c.tiaohou!.presentInStems).toBe('boolean');
+  });
+
+  it('调候结果确定且可追溯', () => {
+    const a = calculateBaziChart(baseInput);
+    const b = calculateBaziChart(baseInput);
+    expect(a.tiaohou).toEqual(b.tiaohou);
+    expect(a.explanationTrace.some((s) => s.rule === 'bazi.tiaohou')).toBe(true);
+    expect(a.explanationTrace.some((s) => s.rule === 'bazi.congHua')).toBe(true);
+  });
+
+  it('流月细化：含十神/冲合/影响柱', () => {
+    const c = calculateBaziChart({ ...baseInput, targetYear: 2026, targetMonth: 6 });
+    expect(c.flowMonth).not.toBeNull();
+    expect(c.flowMonth!.tenGod).toBeTruthy();
+    expect(Array.isArray(c.flowMonth!.clashes)).toBe(true);
+    expect(Array.isArray(c.flowMonth!.combinations)).toBe(true);
+    expect(Array.isArray(c.flowMonth!.affectedPillars)).toBe(true);
+  });
+
+  it('格局候选排序且 selected 阈值 >= 50', () => {
+    const c = calculateBaziChart(baseInput);
+    for (let i = 1; i < c.patternCandidates.length; i++) {
+      expect(c.patternCandidates[i - 1].confidence).toBeGreaterThanOrEqual(c.patternCandidates[i].confidence);
+    }
+    if (c.selectedPattern) expect(c.selectedPattern.confidence).toBeGreaterThanOrEqual(50);
+  });
+});
+
 describe('flowYear forbids implicit system clock', () => {
   it('throws when neither targetYear nor queryTimeUtc supplied to analyzeFlowYear directly', async () => {
     const { analyzeFlowYear } = await import('../analyzeFlowYear');

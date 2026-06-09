@@ -107,6 +107,14 @@ export interface UsefulGodCandidate {
   score: number;
 }
 
+export interface TiaohouInfo {
+  stems: Stem[];
+  elements: Element[];
+  primary: Stem;
+  presentInStems: boolean;
+  description: string;
+}
+
 export interface PatternCandidate {
   name: string;
   type:
@@ -159,7 +167,13 @@ export interface FlowMonthInfo {
   ganZhi: string;
   stem: Stem;
   branch: Branch;
+  tenGod: TenGod | '日主';
   relationToNatal: string[];
+  clashes: string[];
+  combinations: string[];
+  affectedPillars: ('year' | 'month' | 'day' | 'hour')[];
+  riskFlags: string[];
+  opportunityFlags: string[];
   explanationTrace: ExplanationStep[];
 }
 
@@ -217,6 +231,9 @@ export interface BaziChart {
 
   patternCandidates: PatternCandidate[];
   selectedPattern: PatternCandidate | null;
+
+  /** 调候用神（穷通宝鉴表） */
+  tiaohou: TiaohouInfo | null;
 
   daYun: DaYunStepInfo[];
   currentDaYun: DaYunStepInfo | null;

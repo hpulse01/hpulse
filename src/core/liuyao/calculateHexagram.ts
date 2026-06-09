@@ -19,6 +19,7 @@ import { BRANCH_ELEMENTS, BRANCHES, STEMS } from './constants';
 import { annotateChangingLineTargets, buildChangedHexagram } from './changingLines';
 import { analyzeYongShen } from './yongshen';
 import { detectClashCombine } from './clashCombine';
+import { findFuShen, detectJinTuiShen, detectFanFuYin, deriveYingQi } from './advancedRules';
 import { normalizeBirthTime } from '../astro-time/normalizeBirthTime';
 import { fourPillarsFromAstro } from '../calendar/fourPillars';
 
@@ -100,11 +101,18 @@ function buildCalendarContext(input: LiuyaoCoreInput, warnings: AstroWarning[], 
     return null;
   }
   try {
+    const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/.exec(input.queryTimeUtc);
+    if (!m) throw new Error(`无法解析 queryTimeUtc: ${input.queryTimeUtc}`);
+    const hasZone = /(Z|[+-]\d{2}:?\d{2})$/.test(input.queryTimeUtc);
     const astro = normalizeBirthTime({
-      isoLocal: input.queryTimeUtc, // queryTimeUtc accepted as ISO
+      birthLocalDateTime: {
+        year: Number(m[1]), month: Number(m[2]), day: Number(m[3]),
+        hour: Number(m[4]), minute: Number(m[5]), second: m[6] ? Number(m[6]) : 0,
+      },
+      birthUtcDateTime: hasZone ? new Date(input.queryTimeUtc).toISOString() : undefined,
       timezoneIana: input.timezoneIana,
-      latitude: input.geoLatitude,
-      longitude: input.geoLongitude,
+      geoLatitude: input.geoLatitude,
+      geoLongitude: input.geoLongitude,
     } as never);
     const fp = fourPillarsFromAstro(astro);
     const dayGanzhi = fp.day.ganzhi;
@@ -195,7 +203,7 @@ export function calculateHexagram(input: LiuyaoCoreInput): LiuyaoChart {
   }
 
   // 2. Calendar context (if random/manual it may already have queryTimeUtc)
-  let calendar = (input.mode === 'time' && input.queryTimeUtc && input.timezoneIana)
+  const calendar = (input.mode === 'time' && input.queryTimeUtc && input.timezoneIana)
     ? buildCalendarContext(input, [], []) // already traced above for time mode
     : (input.queryTimeUtc && input.timezoneIana ? buildCalendarContext(input, warnings, trace) : null);
   const cal = calendar ?? defaultCalendar();
@@ -291,6 +299,28 @@ export function calculateHexagram(input: LiuyaoCoreInput): LiuyaoChart {
   const yongShen = analyzeYongShen(main, input);
   trace.push(...yongShen.trace);
 
+  // 8b. 伏神（用神不现时从本宫首卦寻伏）
+  const fuShen = yongShen.hidden ? findFuShen(main, yongShen.yongShen) : null;
+  if (fuShen) {
+    trace.push({
+      rule: 'liuyao.fushen',
+      detail: `用神不现，寻得伏神 ${fuShen.branch}(${fuShen.element}) 伏于第 ${fuShen.position} 爻飞神 ${fuShen.flyingBranch} 之下，${fuShen.relation}。${fuShen.judgment}`,
+      data: { ...fuShen } as unknown as Record<string, unknown>,
+    });
+  }
+
+  // 8c. 进退神
+  const jinTuiShen = detectJinTuiShen(main);
+  for (const jt of jinTuiShen) {
+    trace.push({ rule: 'liuyao.jintui', detail: jt.description, data: { ...jt } as unknown as Record<string, unknown> });
+  }
+
+  // 8d. 伏吟 / 反吟
+  const fanFuYin = detectFanFuYin(main);
+  for (const note of fanFuYin.notes) {
+    trace.push({ rule: 'liuyao.fanfuyin', detail: note, data: { scoreAdjustment: fanFuYin.scoreAdjustment } });
+  }
+
   // 9. 冲合刑害
   const clashCombine = detectClashCombine(main);
   if (clashCombine.length > 0) {
@@ -306,14 +336,25 @@ export function calculateHexagram(input: LiuyaoCoreInput): LiuyaoChart {
     ? (yongShen.strength === '不现' ? 'C' : 'B')
     : 'C';
 
-  const completenessScore = calendar ? 80 : 55;
-  const confidence =
-    yongShen.strength === '旺相' ? 80 :
-    yongShen.strength === '发动' ? 65 :
-    yongShen.strength === '休囚' ? 45 :
-    yongShen.strength === '受克' ? 35 :
-    yongShen.strength === '空亡' ? 25 :
-    yongShen.strength === '不现' ? 30 : 50;
+  // 9b. 应期
+  const yingQi = deriveYingQi(main, yongShen, calendar);
+  if (yingQi.length > 0) {
+    trace.push({
+      rule: 'liuyao.yingqi',
+      detail: `应期候选：${yingQi.map((y) => `${y.branch}(${y.basis})`).join('、')}`,
+      data: { candidates: yingQi.map((y) => y.branch) },
+    });
+  }
+
+  const completenessScore = calendar ? 90 : 60;
+  const baseConfidence =
+    yongShen.strength === '旺相' ? 82 :
+    yongShen.strength === '发动' ? 68 :
+    yongShen.strength === '休囚' ? 48 :
+    yongShen.strength === '受克' ? 38 :
+    yongShen.strength === '空亡' ? 28 :
+    yongShen.strength === '不现' ? (fuShen ? 40 : 30) : 50;
+  const confidence = Math.max(10, baseConfidence + fanFuYin.scoreAdjustment);
 
   return {
     input,
@@ -323,12 +364,16 @@ export function calculateHexagram(input: LiuyaoCoreInput): LiuyaoChart {
     mainHexagram: main,
     changedHexagram: changed,
     yongShen,
+    fuShen,
+    jinTuiShen,
+    fanFuYin,
+    yingQi,
     clashCombine,
     warnings,
     explanationTrace: trace,
     sourceGrade,
     confidence,
     completenessScore,
-    implementationStatus: 'partial',
+    implementationStatus: calendar ? 'complete' : 'partial',
   };
 }

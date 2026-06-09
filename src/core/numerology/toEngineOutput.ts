@@ -58,6 +58,10 @@ export function numerologyToEngineOutput(result: NumerologyResult): EngineOutput
   if (result.destiny != null) eventCandidates.push(`Destiny = ${result.destiny}`);
   if (result.soulUrge != null) eventCandidates.push(`Soul Urge = ${result.soulUrge}`);
   if (result.personality != null) eventCandidates.push(`Personality = ${result.personality}`);
+  eventCandidates.push(`Birthday = ${result.birthday}`);
+  if (result.maturity != null) eventCandidates.push(`Maturity = ${result.maturity}`);
+  if (result.chaldeanDestiny != null) eventCandidates.push(`Chaldean Destiny = ${result.chaldeanDestiny}`);
+  for (const k of result.karmicDebts) eventCandidates.push(`Karmic Debt ${k.number} (${k.source})`);
 
   return {
     engineName: 'numerology',
@@ -83,12 +87,18 @@ export function numerologyToEngineOutput(result: NumerologyResult): EngineOutput
       personality: result.personality != null ? String(result.personality) : '-',
       personalYear: String(result.personalYear),
       referenceYear: String(result.referenceYear),
+      birthday: String(result.birthday),
+      maturity: result.maturity != null ? String(result.maturity) : '-',
+      chaldeanDestiny: result.chaldeanDestiny != null ? String(result.chaldeanDestiny) : '-',
+      karmicDebts: result.karmicDebts.length > 0
+        ? result.karmicDebts.map((k) => `${k.number}(${k.source})`).join(', ')
+        : 'none',
       implementationStatus: result.implementationStatus,
     },
     warnings: result.warnings.map((w) => `${w.code}: ${w.message}`),
     uncertaintyNotes: [
       'Y is treated as a consonant for determinism. Some traditions count it as a vowel when adjacent to consonants — that variant is not modelled here.',
-      'Pythagorean only; Chaldean / Hebrew gematria mappings are out of scope for this engine.',
+      'Primary numbers use the Pythagorean table; the Chaldean Destiny number is provided as a secondary cross-check (Chaldean 1..8, no 9).',
       result.destiny == null
         ? 'Name-based numbers (Destiny / Soul Urge / Personality) require fullName.'
         : 'Name-based numbers reflect the EXACT spelling provided; alternative spellings yield different values.',
@@ -107,6 +117,9 @@ export function numerologyToEngineOutput(result: NumerologyResult): EngineOutput
       destiny: result.destiny ?? 0,
       soulUrge: result.soulUrge ?? 0,
       personality: result.personality ?? 0,
+      birthday: result.birthday,
+      maturity: result.maturity ?? 0,
+      karmicDebtCount: result.karmicDebts.length,
     },
     eventCandidates,
   };

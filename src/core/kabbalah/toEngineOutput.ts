@@ -48,6 +48,9 @@ export function kabbalahToEngineOutput(result: KabbalahResult): EngineOutput {
   if (result.primarySephirah) {
     eventCandidates.push(`Sephirah ${result.primarySephirah.number} ${result.primarySephirah.name} — ${result.primarySephirah.attribute}`);
   }
+  if (result.primaryPath) {
+    eventCandidates.push(`Path ${result.primaryPath.number} (${result.primaryPath.letterName}): ${result.primaryPath.from} → ${result.primaryPath.to} — ${result.primaryPath.meaning}`);
+  }
 
   return {
     engineName: 'kabbalah',
@@ -71,13 +74,19 @@ export function kabbalahToEngineOutput(result: KabbalahResult): EngineOutput {
       sephirahNumber: result.primarySephirah ? String(result.primarySephirah.number) : '-',
       sephirahName: result.primarySephirah?.name ?? '-',
       derivedFromName: String(result.derivedFromName),
+      gematriaKatan: result.gematria ? String(result.gematria.katan) : '-',
+      gematriaSiduri: result.gematria ? String(result.gematria.siduri) : '-',
+      pathNumber: result.primaryPath ? String(result.primaryPath.number) : '-',
+      pathLetter: result.primaryPath ? `${result.primaryPath.letterName} (${result.primaryPath.letter})` : '-',
+      pathRoute: result.primaryPath ? `${result.primaryPath.from} → ${result.primaryPath.to}` : '-',
+      pathMeaning: result.primaryPath?.meaning ?? '-',
       implementationStatus: result.implementationStatus,
     },
     warnings: result.warnings.map((w) => `${w.code}: ${w.message}`),
     uncertaintyNotes: [
       'Final forms (ך ם ן ף ץ) use standard non-final values. Mispar Gadol variant (500..900) not implemented.',
       'Latin → Hebrew transliteration is a coarse phonetic map. For authentic gematria supply Hebrew letters.',
-      'Tree of Life mapping uses primary sephirah only; 22 connecting paths and partzufim are not modelled.',
+      'Primary path uses Golden Dawn letter→path attribution; other schools (Ari, Gra) assign letters differently.',
       result.derivedFromName
         ? null
         : 'Result derived from birth date only because no name was supplied — this is NOT a complete Kabbalistic profile.',
@@ -94,6 +103,9 @@ export function kabbalahToEngineOutput(result: KabbalahResult): EngineOutput {
       gematriaTotal: result.gematria?.total ?? 0,
       sephirahNumber: result.primarySephirah?.number ?? 0,
       derivedFromName: result.derivedFromName ? 1 : 0,
+      pathNumber: result.primaryPath?.number ?? 0,
+      gematriaKatan: result.gematria?.katan ?? 0,
+      gematriaSiduri: result.gematria?.siduri ?? 0,
     },
     eventCandidates,
   };

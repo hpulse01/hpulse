@@ -27,8 +27,8 @@ export function QimenCorePanel({ engineOutput }: Props) {
 
   const ju = (
     <QimenJuPanel
-      dunDirection={norm.dunDirection}
-      juNumber={norm.juNumber ? Number(norm.juNumber) : undefined}
+      dunDirection={norm.dunDirection ?? norm.dun}
+      juNumber={norm.juNumber ?? norm.ju ? Number(norm.juNumber ?? norm.ju) : undefined}
       solarTerm={norm.solarTerm}
       threeYuan={norm.threeYuan}
       hourGanzhi={norm.hourGanzhi}
@@ -47,7 +47,7 @@ export function QimenCorePanel({ engineOutput }: Props) {
   );
   const yong = (
     <QimenYongShenPanel
-      yongShen={norm.yongShen}
+      yongShen={norm.yongShen ?? norm.yongShenSymbol}
       yongShenPalace={norm.yongShenPalace ? Number(norm.yongShenPalace) : undefined}
       category={norm.yongShenCategory}
       hostGuest={norm.hostGuest}

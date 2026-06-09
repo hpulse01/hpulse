@@ -10,6 +10,7 @@ export { rotateStars } from './stars';
 export { rotateGates } from './gates';
 export { placeDeities } from './deities';
 export { resolveXunShou } from './zhifuZhishi';
+export { rotateHeavenStems, detectQimenPatterns, detectFuYinFanYin } from './advancedPatterns';
 export {
   PALACE_META, STAR_AT_PALACE, GATE_AT_PALACE,
   SAN_QI_LIU_YI_ORDER, XUN_SHOU_YI, DEITY_ORDER,

@@ -35,6 +35,8 @@ import {
 } from './wuxing';
 import { analyzeElements } from './analyzeElements';
 import { analyzePattern } from './analyzePattern';
+import { analyzeTiaohou } from './tiaohou';
+import { detectHuaQiGe, detectCongGe } from './congHua';
 import { analyzeFlowYear } from './analyzeFlowYear';
 import { analyzeFlowMonth } from './analyzeFlowMonth';
 import {
@@ -215,6 +217,42 @@ export function calculateBaziChart(input: BaziCoreInput): BaziChart {
     dayMasterStrength: strengthLevel,
   });
 
+  // Step 7b — 化气格 / 从格 refinement
+  const huaQi = detectHuaQiGe({
+    yearStem: yearP.stem, monthStem: monthP.stem, dayStem, hourStem: hourP.stem,
+    monthBranch: monthP.branch,
+  });
+  if (huaQi.candidate) patternResult.candidates.push(huaQi.candidate);
+  const congCandidates = detectCongGe({
+    dayStem,
+    stems: [yearP.stem, monthP.stem, hourP.stem],
+    branches: [yearP.branch, monthP.branch, dayP.branch, hourP.branch],
+    hasRoot: strength.hasRoot,
+    strengthLevel,
+  });
+  // 替换原始粗略从格候选
+  if (congCandidates.length > 0) {
+    const refinedTypes = new Set(congCandidates.map((c) => c.type));
+    for (let i = patternResult.candidates.length - 1; i >= 0; i--) {
+      const c = patternResult.candidates[i];
+      if ((c.type === '从强格' || c.type === '从弱格') && refinedTypes.has(c.type) && !congCandidates.includes(c)) {
+        patternResult.candidates.splice(i, 1);
+      }
+    }
+    patternResult.candidates.push(...congCandidates);
+  }
+  patternResult.candidates.sort((a, b) => b.confidence - a.confidence);
+  patternResult.selected = patternResult.candidates[0]?.confidence >= 50 ? patternResult.candidates[0] : null;
+  trace.push({
+    rule: 'bazi.congHua',
+    detail: `化气格检测：${huaQi.combined ? `五合成立(${huaQi.transformedElement})` : '无五合'}；从格候选 ${congCandidates.length} 个`,
+    data: { huaQiCombined: huaQi.combined, transformedElement: huaQi.transformedElement, congCount: congCandidates.length },
+  });
+
+  // Step 7c — 调候用神
+  const tiaohou = analyzeTiaohou(dayStem, monthP.branch, [yearP.stem, monthP.stem, dayStem, hourP.stem]);
+  trace.push({ rule: 'bazi.tiaohou', detail: tiaohou.description, data: { stems: tiaohou.stems, elements: tiaohou.elements } });
+
   // Step 8 — daYun
   const daYunRaw = calculateDaYun(astro, input.gender, { count: 10 });
   warnings.push(...daYunRaw.warnings);
@@ -265,6 +303,10 @@ export function calculateBaziChart(input: BaziCoreInput): BaziChart {
         ...({} as BaziChart),
         inputSnapshot: input,
         dayMaster: dayStem,
+        dayMasterElement: dme,
+        favorableElements: elementsVerdict.favorable,
+        unfavorableElements: elementsVerdict.unfavorable,
+        fourPillars: { year: yearP, month: monthP, day: dayP, hour: hourP },
       } as BaziChart, { targetYear: input.targetYear, targetMonth: input.targetMonth })
     : null;
 
@@ -295,6 +337,7 @@ export function calculateBaziChart(input: BaziCoreInput): BaziChart {
     selectedUsefulGod,
     patternCandidates: patternResult.candidates,
     selectedPattern: patternResult.selected,
+    tiaohou,
     daYun: daYunSteps,
     currentDaYun,
     flowYear,
@@ -313,7 +356,6 @@ export function calculateBaziChart(input: BaziCoreInput): BaziChart {
     warnings,
     uncertaintyNotes: [
       'flow year requires explicit input.targetYear or input.queryTimeUtc',
-      '从格 / 化气格 / 调候用神 仍为部分实现',
       '刑冲合化对通根的细化修正仍为部分实现',
     ],
     explanationTrace: trace,
@@ -338,21 +380,24 @@ export function calculateBaziChart(input: BaziCoreInput): BaziChart {
   if (!input.timezoneIana) valWarnings.push('iana-tz-missing');
   if (input.targetYear == null && !input.queryTimeUtc) valWarnings.push('flow-year-not-requested');
 
+  if (tiaohou) passed.push('tiaohou-resolved');
+
   // Confidence + completeness
-  const baseConf = 70;
+  const baseConf = 74;
   const gradePenalty = coreChart.sourceGrade === 'A' ? 0 : coreChart.sourceGrade === 'B' ? 5 : coreChart.sourceGrade === 'C' ? 12 : 25;
   const partialPenalty = patternResult.selected ? 0 : 8;
   const confidence = Math.max(0, Math.min(100, baseConf - gradePenalty - partialPenalty));
-  const completenessScore = Math.round(
-    (passed.length / 6) * 60
-    + (patternResult.selected ? 20 : 5)
-    + (flowYear ? 10 : 0)
-    + 10 // base for daYun + domains
-  );
+  const completenessScore = Math.min(100, Math.round(
+    (passed.length / 7) * 60
+    + (patternResult.selected ? 18 : 5)
+    + (flowYear ? 8 : 0)
+    + (tiaohou ? 6 : 0)
+    + 8 // base for daYun + domains
+  ));
 
   let implementationStatus: ImplementationStatus = 'partial_rules';
   if (patternResult.selected && flowYear && coreChart.sourceGrade === 'A') {
-    implementationStatus = 'partial_rules'; // honestly: still partial until 调候/化气 done
+    implementationStatus = 'complete';
   }
 
   partial.confidence = confidence;

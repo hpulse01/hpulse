@@ -16,6 +16,12 @@ export const HEBREW_GEMATRIA: Record<string, number> = {
   'צ': 90, 'ץ': 90, 'ק': 100, 'ר': 200, 'ש': 300, 'ת': 400,
 };
 
+/** The 22 Hebrew letters in alphabetical order (no final forms). */
+export const HEBREW_ALPHABET: string[] = [
+  'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ',
+  'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת',
+];
+
 /**
  * Approximate Latin → Hebrew transliteration for gematria (used only when
  * the input contains no Hebrew). This is intentionally a coarse phonetic

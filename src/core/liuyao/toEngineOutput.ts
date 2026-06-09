@@ -65,6 +65,9 @@ export function liuyaoChartToEngineOutput(chart: LiuyaoChart): EngineOutput {
       chart.yongShen.strength === '不现' ? 25 : 50,
     changingLineCount: main.changingLines.length,
     clashCombineCount: chart.clashCombine.length,
+    jinTuiCount: chart.jinTuiShen.length,
+    fanFuYinAdjustment: chart.fanFuYin.scoreAdjustment,
+    yingQiCount: chart.yingQi.length,
   };
 
   const eventCandidates: string[] = [];
@@ -76,6 +79,10 @@ export function liuyaoChartToEngineOutput(chart: LiuyaoChart): EngineOutput {
   }
   for (const c of chart.clashCombine) eventCandidates.push(`${c.type}:${c.description}`);
   eventCandidates.push(`用神:${chart.yongShen.yongShen}(${chart.yongShen.strength})`);
+  if (chart.fuShen) eventCandidates.push(`伏神:${chart.fuShen.branch}伏第${chart.fuShen.position}爻${chart.fuShen.flyingBranch}下(${chart.fuShen.relation})`);
+  for (const jt of chart.jinTuiShen) eventCandidates.push(`${jt.type}:第${jt.position}爻${jt.from}化${jt.to}`);
+  for (const n of chart.fanFuYin.notes) eventCandidates.push(`伏反吟:${n}`);
+  for (const y of chart.yingQi) eventCandidates.push(`应期:${y.branch}日(${y.basis})`);
 
   const validationFlags: ValidationFlags = {
     passed: [
@@ -86,7 +93,7 @@ export function liuyaoChartToEngineOutput(chart: LiuyaoChart): EngineOutput {
       `palace_determined=${main.palace}`,
       `shi_ying=${main.shiYao}/${main.yingYao}`,
     ],
-    failed: chart.yongShen.hidden ? ['yongshen_not_present_need_fushen'] : [],
+    failed: chart.yongShen.hidden && !chart.fuShen ? ['yongshen_not_present_fushen_not_found'] : [],
     warnings: chart.warnings.map((w) => `${w.code}: ${w.message}`),
   };
 
@@ -123,13 +130,19 @@ export function liuyaoChartToEngineOutput(chart: LiuyaoChart): EngineOutput {
       changingLines: main.changingLines.join(','),
       yongShen: chart.yongShen.yongShen,
       yongShenStrength: chart.yongShen.strength,
+      fuShen: chart.fuShen ? `${chart.fuShen.branch}伏第${chart.fuShen.position}爻(${chart.fuShen.relation})` : '',
+      jinTuiShen: chart.jinTuiShen.map((j) => `第${j.position}爻${j.from}化${j.to}${j.type}`).join('；'),
+      fanFuYin: chart.fanFuYin.notes.join('；'),
+      yingQi: chart.yingQi.map((y) => `${y.branch}(${y.basis})`).join('；'),
       castingSource: chart.castingSource,
       implementationStatus: chart.implementationStatus,
     },
     warnings: chart.warnings.map((w) => `${w.code}: ${w.message}`),
     uncertaintyNotes: [
       '六爻判断需结合具体问题背景，本输出仅为算法层结构化结果，不构成行动建议。',
-      ...(chart.yongShen.hidden ? ['用神不现，建议查伏神或重断。'] : []),
+      ...(chart.yongShen.hidden
+        ? [chart.fuShen ? `用神不现，已从本宫首卦寻得伏神 ${chart.fuShen.branch}。` : '用神不现且未寻得伏神，建议重断。']
+        : []),
       ...(chart.calendar ? [] : ['未提供 queryTimeUtc + timezoneIana，月建/日辰/旬空降级。']),
     ],
     timingBasis: chart.castingMode === 'time' ? 'query' : 'hybrid',

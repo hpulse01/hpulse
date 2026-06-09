@@ -19,14 +19,20 @@ export function LiuRenCorePanel({ engineOutput }: Props) {
   const norm = (engineOutput.normalizedOutput ?? {}) as Record<string, string>;
 
   const lessons = parseJSON<{name:string;upper?:string;lower?:string;relation?:string}[]>(norm.fourLessons, []);
-  const transmissions = parseJSON<{stage:string;branch?:string;general?:string;meaning?:string}[]>(norm.threeTransmissions, []);
+  const parsedTransmissions = parseJSON<{stage:string;branch?:string;general?:string;meaning?:string}[]>(norm.threeTransmissions, []);
+  const transmissions = parsedTransmissions.length > 0 ? parsedTransmissions :
+    (norm.threeTransChu ? [
+      { stage: '初 · Chu', branch: norm.threeTransChu },
+      { stage: '中 · Zhong', branch: norm.threeTransZhong },
+      { stage: '末 · Mo', branch: norm.threeTransMo, meaning: norm.threeTransMethod ? `发用: ${norm.threeTransMethod}${norm.keTi ? ` · 课体: ${norm.keTi}` : ''}` : undefined },
+    ] : []);
   const generals = parseJSON<string[]>(norm.twelveGenerals, []);
 
   const plate = <LiuRenHeavenEarthPlate yueJiang={norm.yueJiang} zhanShi={norm.zhanShi} questionTime={norm.questionTime} hourGanzhi={norm.hourGanzhi} />;
   const four = <LiuRenFourLessonsPanel lessons={lessons} />;
   const three = <LiuRenThreeTransmissionsPanel transmissions={transmissions} />;
   const gens = <LiuRenGeneralsPanel generals={generals} />;
-  const judge = <LiuRenJudgementPanel yongShen={norm.yongShen} verdict={norm.verdict} events={engineOutput.eventCandidates ?? []} />;
+  const judge = <LiuRenJudgementPanel yongShen={norm.yongShen} verdict={norm.verdict ?? (norm.keTi ? `课体：${norm.keTi}` : undefined)} events={engineOutput.eventCandidates ?? []} />;
 
   return (
     <div className="space-y-5">

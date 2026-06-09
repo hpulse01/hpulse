@@ -63,6 +63,9 @@ export function qimenChartToEngineOutput(chart: QimenChart): EngineOutput {
   const aspectScores: Record<string, number> = {
     juNumber: chart.juNumber,
     yongShenPalace: chart.yongShen.primaryPalace ?? 0,
+    auspiciousPatternCount: chart.patterns.filter((p) => p.type === '吉格').length,
+    inauspiciousPatternCount: chart.patterns.filter((p) => p.type === '凶格').length,
+    fuYinFanYinAdjustment: chart.fuYinFanYin.scoreAdjustment,
     auspiciousGateCount: chart.palaces.filter((p) => p.gate && AUSPICIOUS_GATES.includes(p.gate as GateName)).length,
     inauspiciousGateCount: chart.palaces.filter((p) => p.gate && INAUSPICIOUS_GATES.includes(p.gate as GateName)).length,
   };
@@ -74,8 +77,14 @@ export function qimenChartToEngineOutput(chart: QimenChart): EngineOutput {
     `时柱:${chart.hourGanzhi} 旬首:${chart.hourXunShou}`,
     `用神:${chart.yongShen.primarySymbol}@${chart.yongShen.primaryPalace ?? '不现'}宫`,
   ];
+  for (const pt of chart.patterns) {
+    eventCandidates.push(`格局:${pt.name}(${pt.type})@${pt.palace}宫 — ${pt.evidence}`);
+  }
+  if (chart.fuYinFanYin.fuYin || chart.fuYinFanYin.fanYin) {
+    eventCandidates.push(chart.fuYinFanYin.description);
+  }
   for (const p of chart.palaces) {
-    eventCandidates.push(`${p.palace}宫(${p.trigram}/${p.direction}): 干${p.earthStem ?? '-'} 星${p.star ?? '-'} 门${p.gate ?? '-'} 神${p.deity ?? '-'}`);
+    eventCandidates.push(`${p.palace}宫(${p.trigram}/${p.direction}): 天${p.heavenStem ?? '-'} 地${p.earthStem ?? '-'} 星${p.star ?? '-'} 门${p.gate ?? '-'} 神${p.deity ?? '-'}`);
   }
 
   const validationFlags: ValidationFlags = {
@@ -87,6 +96,8 @@ export function qimenChartToEngineOutput(chart: QimenChart): EngineOutput {
       `three_yuan=${chart.threeYuan}`,
       `zhifu_star=${chart.zhiFuStar}`,
       `zhishi_gate=${chart.zhiShiGate}`,
+      'heaven_stem_rotated',
+      `patterns_detected=${chart.patterns.length}`,
     ],
     failed: chart.yongShen.primaryPalace ? [] : ['yong_shen_not_present'],
     warnings: chart.warnings.map((w) => `${w.code}: ${w.message}`),
@@ -131,8 +142,8 @@ export function qimenChartToEngineOutput(chart: QimenChart): EngineOutput {
     },
     warnings: chart.warnings.map((w) => `${w.code}: ${w.message}`),
     uncertaintyNotes: [
-      '本版为时家奇门基础排盘：地盘三奇六仪 + 转盘九星/八门 + 八神 + 用神宫；',
-      '高级格局（奇门十干克应、三奇得使、伏吟反吟、击刑入墓、九遁三诈五假等）尚未完整实现，标记 partial。',
+      '时家奇门转盘式：地盘三奇六仪 + 天盘干转换 + 转盘九星/八门 + 八神 + 用神宫 + 十干克应/三诈五假/击刑入墓格局 + 伏吟反吟；',
+      '未覆盖：飞盘法、拐干、全部九遁及更多门派变体格局。',
     ],
     timingBasis: 'query',
     explanationTrace,

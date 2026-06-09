@@ -28,6 +28,7 @@ import { rotateStars } from './stars';
 import { rotateGates } from './gates';
 import { placeDeities } from './deities';
 import { PALACE_META, YONG_SHEN_MAP } from './constants';
+import { rotateHeavenStems, detectQimenPatterns, detectFuYinFanYin } from './advancedPatterns';
 
 export function calculateQimenChart(input: QimenInput): QimenChart {
   const trace: ExplanationStep[] = [];
@@ -111,6 +112,9 @@ export function calculateQimenChart(input: QimenInput): QimenChart {
   // 7. 八神 — 起点为 值符星 当前所在宫 (即 hourStemPalace)
   const deityAt = placeDeities(starResult.hourStemPalace, ju.dunDirection, trace);
 
+  // 7b. 天盘干转换（与九星同步移位）
+  const heavenLayout = rotateHeavenStems(earthLayout, starResult.shift, ju.dunDirection, trace);
+
   // 8. 装配 9 宫
   const palaces: PalaceCell[] = ([1,2,3,4,5,6,7,8,9] as PalaceNumber[]).map((p) => ({
     palace: p,
@@ -118,24 +122,25 @@ export function calculateQimenChart(input: QimenInput): QimenChart {
     direction: PALACE_META[p].direction,
     element: PALACE_META[p].element,
     earthStem: earthLayout[p] ?? null,
-    heavenStem: earthLayout[p] ?? null, // 简化：天盘暂等地盘 (未实现 转干); marked partial
+    heavenStem: heavenLayout[p] ?? null,
     star: starResult.starAtPalace[p] ?? null,
     gate: gateResult.gateAtPalace[p] ?? null,
     deity: deityAt[p] ?? null,
   }));
 
-  warnings.push({
-    code: 'qimen.heavenStem.partial',
-    message: '天盘干转换 (随值符星移动) 在本版仅简化为地盘干同值，未实现完整 转干 算法；高级 奇门十干克应/三奇得使 等格局判断标记 partial。',
-    level: 'info',
-  });
+  // 8b. 格局识别 + 伏吟反吟
+  const patterns = detectQimenPatterns(palaces, trace);
+  const fuYinFanYin = detectFuYinFanYin(starResult.shift, trace);
 
   // 9. 用神宫
   const yongShen = decideYongShen(input, palaces, trace);
 
-  // confidence
-  const confidence = 70 + (yongShen.primaryPalace ? 5 : -10);
-  const completenessScore = 0.7;
+  // confidence: 基础 + 用神 + 格局净影响（限幅） + 伏反吟调整
+  const patternNet = patterns.reduce((s, p) => s + p.impact, 0);
+  const patternAdj = Math.max(-8, Math.min(8, Math.round(patternNet / 3)));
+  const confidence = Math.max(10, Math.min(95,
+    72 + (yongShen.primaryPalace ? 5 : -10) + patternAdj + fuYinFanYin.scoreAdjustment));
+  const completenessScore = 0.85;
 
   return {
     input,
@@ -157,6 +162,8 @@ export function calculateQimenChart(input: QimenInput): QimenChart {
     zhiShiOriginPalace: gateResult.zhiShiOriginPalace,
     palaces,
     yongShen,
+    patterns,
+    fuYinFanYin,
     confidence,
     completenessScore,
     sourceGrade: 'C',

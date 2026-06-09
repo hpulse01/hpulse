@@ -55,7 +55,9 @@ export interface WesternChart {
   julianDay: number;
   planets: PlanetPosition[];
   ascendant: { longitude: number; sign: ZodiacSign; degreeInSign: number } | null;
-  housesSystem: 'whole-sign';
+  midheaven: { longitude: number; sign: ZodiacSign; degreeInSign: number } | null;
+  housesSystem: 'whole-sign' | 'placidus';
+  houseCusps: { house: number; longitude: number; sign: ZodiacSign; degreeInSign: number }[] | null;
   aspects: AspectHit[];
   confidence: number;
   completenessScore: number;

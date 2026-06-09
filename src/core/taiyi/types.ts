@@ -41,15 +41,28 @@ export interface TaiyiChart {
   /** 太乙 所在宫 (1..9, skipping 5 in some schools — here we keep 1..9 with 中宫 寄). */
   taiyiPalace: PalaceNumber;
 
+  /** 岁支。 */
+  yearBranch: string;
+  /** 计神所临支 (寅首逆行)。 */
+  jiShen: string;
+  /** 计神所乘十六神名。 */
+  jiShenGod: string;
+
   /** 文昌 所在宫. */
   wenChangPalace: PalaceNumber;
 
   /** 始击 所在宫. */
   shiJiPalace: PalaceNumber;
 
-  /** 主算 / 客算 (基础). */
+  /** 主算 / 客算 (自文昌/始击起累计宫数). */
   zhuSuan: number;
   keSuan: number;
+
+  /** 主/客 大将与参将 (算 mod 9，参将 = 大将×3 mod 9)。 */
+  zhuDaJiang: PalaceNumber;
+  zhuCanJiang: PalaceNumber;
+  keDaJiang: PalaceNumber;
+  keCanJiang: PalaceNumber;
 
   /** 主客判断 (主胜 / 客胜 / 平). */
   zhuKeJudgment: '主胜' | '客胜' | '平';

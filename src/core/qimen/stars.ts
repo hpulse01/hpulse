@@ -16,6 +16,8 @@ export interface StarRotationResult {
   zhiFuStar: StarName;
   zhiFuOriginPalace: PalaceNumber;
   hourStemPalace: PalaceNumber;
+  /** 环序移位步数 (0..7)，天盘干与九星同步使用。 */
+  shift: number;
 }
 
 function loopIndex(p: PalaceNumber): number {
@@ -78,5 +80,6 @@ export function rotateStars(
     zhiFuStar,
     zhiFuOriginPalace: zhiFuOrigin,
     hourStemPalace,
+    shift: rawShift,
   };
 }

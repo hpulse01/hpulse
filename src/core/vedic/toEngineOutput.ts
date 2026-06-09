@@ -50,10 +50,16 @@ export function vedicChartToEngineOutput(chart: VedicChart): EngineOutput {
     );
   }
   if (chart.lagna) {
-    eventCandidates.push(`Lagna ${chart.lagna.rashi} ${chart.lagna.degreeInRashi.toFixed(2)}°`);
+    eventCandidates.push(`Lagna ${chart.lagna.rashi} ${chart.lagna.degreeInRashi.toFixed(2)}° (D9: ${chart.lagna.navamsaRashi})`);
   }
+  eventCandidates.push(`Rahu @ ${chart.nodes.rahu.rashi} ${chart.nodes.rahu.degreeInRashi.toFixed(2)}° / ${chart.nodes.rahu.nakshatra}`);
+  eventCandidates.push(`Ketu @ ${chart.nodes.ketu.rashi} ${chart.nodes.ketu.degreeInRashi.toFixed(2)}° / ${chart.nodes.ketu.nakshatra}`);
   for (const d of chart.vimshottariMahadasha) {
     eventCandidates.push(`Mahadasha ${d.lord} ${d.startUtc.slice(0, 10)} → ${d.endUtc.slice(0, 10)} (${d.years.toFixed(2)}y)`);
+  }
+  const firstAntar = chart.vimshottariMahadasha[0]?.antardashas ?? [];
+  for (const s of firstAntar.slice(0, 3)) {
+    eventCandidates.push(`Antardasha ${chart.vimshottariMahadasha[0].lord}/${s.lord} ${s.startUtc.slice(0, 10)} → ${s.endUtc.slice(0, 10)}`);
   }
 
   return {
@@ -65,7 +71,7 @@ export function vedicChartToEngineOutput(chart: VedicChart): EngineOutput {
       'Lahiri ayanamsa (Indian Astronomical Ephemeris linear model, J2000 anchor)',
     ],
     sourceGrade: chart.sourceGrade,
-    ruleSchool: 'Sidereal zodiac (Lahiri / Chitrapaksha), 27 nakshatras, Vimshottari Mahadasha',
+    ruleSchool: 'Sidereal zodiac (Lahiri / Chitrapaksha), 27 nakshatras, Vimshottari Mahadasha+Antardasha, mean nodes, D9 Navamsa',
     confidence: chart.confidence,
     computationTimeMs: 0,
     rawInputSnapshot: {
@@ -84,14 +90,19 @@ export function vedicChartToEngineOutput(chart: VedicChart): EngineOutput {
       moonNakshatra: chart.moonNakshatra?.name ?? '-',
       moonPada: String(chart.moonNakshatra?.pada ?? '-'),
       currentMahadashaLord: chart.vimshottariMahadasha[0]?.lord ?? '-',
+      currentAntardashaLord: chart.vimshottariMahadasha[0]?.antardashas?.[0]?.lord ?? '-',
+      rahu: `${chart.nodes.rahu.rashi} ${chart.nodes.rahu.degreeInRashi.toFixed(3)}°`,
+      ketu: `${chart.nodes.ketu.rashi} ${chart.nodes.ketu.degreeInRashi.toFixed(3)}°`,
+      lagnaNavamsa: chart.lagna?.navamsaRashi ?? '-',
+      moonNavamsa: chart.planets.find((p) => p.planet === 'Moon')?.navamsaRashi ?? '-',
       implementationStatus: chart.implementationStatus,
     },
     warnings: chart.warnings.map((w) => `${w.code}: ${w.message}`),
     uncertaintyNotes: [
       'Lahiri ayanamsa uses linear precession model (J2000 anchor, 50.2388475″/yr) — accurate to ~arcminute, not arcsecond.',
-      'Rahu/Ketu (lunar nodes) not yet computed.',
-      'Only top-level Mahadasha periods computed; Antardasha/Pratyantar/Sukshma sub-periods pending.',
-      'Divisional charts (vargas — D9 Navamsa, D10 Dasamsa, etc.) not implemented.',
+      'Rahu/Ketu use the mean lunar node; true-node oscillation (±1.5°) not modelled.',
+      'Mahadasha + Antardasha computed; Pratyantar/Sukshma sub-periods pending.',
+      'D9 Navamsa computed; other vargas (D10 Dasamsa, etc.) not implemented.',
     ],
     timingBasis: 'birth',
     explanationTrace: [
@@ -104,6 +115,8 @@ export function vedicChartToEngineOutput(chart: VedicChart): EngineOutput {
     aspectScores: {
       ayanamsaDeg: Number(chart.ayanamsaDeg.toFixed(4)),
       mahadashaCount: chart.vimshottariMahadasha.length,
+      antardashaCount: chart.vimshottariMahadasha.reduce((n, d) => n + (d.antardashas?.length ?? 0), 0),
+      rahuLongitude: Number(chart.nodes.rahu.longitude.toFixed(3)),
     },
     eventCandidates,
   };

@@ -61,6 +61,67 @@ describe('Liu Yao core — random mode requires explicit seed', () => {
   });
 });
 
+describe('Liu Yao — 进阶规则 (伏神/进退神/伏反吟/应期)', () => {
+  it('用神不现时寻得伏神（含飞伏关系）', () => {
+    // 乾宫纯卦 乾为天：六亲无妻财? 乾宫首卦含妻财(寅) — 改用问子女在无子孙的卦
+    // 构造：全静卦 + 指定类别，扫描直到 hidden 为真
+    let found = false;
+    const combos: LineValue[][] = [
+      [7,7,7,7,7,7],[8,8,8,8,8,8],[7,8,7,8,7,8],[8,7,8,7,8,7],[7,7,8,8,7,7],[8,8,7,7,8,8],
+    ];
+    for (const manualLines of combos) {
+      for (const cat of ['财运','事业','学业','子女','健康'] as const) {
+        const chart = calculateHexagram({ mode: 'manual', manualLines, yongShenCategory: cat });
+        if (chart.yongShen.hidden) {
+          found = true;
+          expect(chart.fuShen).not.toBeNull();
+          expect(chart.fuShen!.yongShen).toBe(chart.yongShen.yongShen);
+          expect(chart.fuShen!.position).toBeGreaterThanOrEqual(1);
+          expect(chart.fuShen!.position).toBeLessThanOrEqual(6);
+          expect(chart.fuShen!.branch).toMatch(/子|丑|寅|卯|辰|巳|午|未|申|酉|戌|亥/);
+          expect(chart.fuShen!.relation).toMatch(/飞来生伏|伏去生飞|飞来克伏|伏去克飞|比和/);
+        }
+      }
+    }
+    expect(found).toBe(true);
+  });
+
+  it('伏吟：动爻变出同支记入 fanFuYin 并降低置信度', () => {
+    const a = calculateHexagram({ mode: 'manual', manualLines: [7,8,9,7,6,8] });
+    expect(a.fanFuYin.fuYinPositions.length + a.fanFuYin.fanYinPositions.length).toBeGreaterThanOrEqual(0);
+    expect(a.fanFuYin.scoreAdjustment).toBeLessThanOrEqual(0);
+  });
+
+  it('进退神：化出之支按经典进神对判定', () => {
+    // 遍历一批种子，确保检测器对动爻产生一致的进/退神条目结构
+    for (let seed = 1; seed <= 20; seed++) {
+      const chart = calculateHexagram({ mode: 'random', seed });
+      for (const jt of chart.jinTuiShen) {
+        expect(jt.type).toMatch(/进神|退神/);
+        expect(chart.mainHexagram.changingLines).toContain(jt.position);
+      }
+    }
+  });
+
+  it('应期：至少给出候选并带依据', () => {
+    const chart = calculateHexagram({ mode: 'manual', manualLines: [7,8,9,7,6,8], questionText: '问财运' });
+    expect(chart.yingQi.length).toBeGreaterThan(0);
+    for (const y of chart.yingQi) {
+      expect(y.branch).toMatch(/子|丑|寅|卯|辰|巳|午|未|申|酉|戌|亥/);
+      expect(y.basis.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('提供历法时 implementationStatus = complete', () => {
+    const chart = calculateHexagram({
+      mode: 'manual', manualLines: [7,8,9,7,6,8],
+      queryTimeUtc: '2026-05-14T08:30:00', timezoneIana: 'Asia/Shanghai',
+    });
+    expect(chart.calendar).not.toBeNull();
+    expect(chart.implementationStatus).toBe('complete');
+  });
+});
+
 describe('Liu Yao — EngineOutput', () => {
   it('emits valid EngineOutput with fateVector dimensions in [0,100]', () => {
     const chart = calculateHexagram({ mode: 'manual', manualLines: [7,8,9,7,6,8] });

@@ -3,14 +3,17 @@
  */
 import { julianDayFromUtc } from '../astro-time/julianDay';
 import { computePlanetPositions } from './planets';
-import { computeAscendant, wholeSignHouse } from './houses';
+import {
+  computeAscendant, computeMidheaven, computePlacidusCusps, houseFromCusps, wholeSignHouse,
+} from './houses';
+import type { HouseCusp } from './houses';
 import { detectAspects } from './aspects';
 import type {
   WesternChart, WesternInput, WesternWarning, ExplanationStep,
 } from './types';
 
 export interface CalculateWesternOptions {
-  /** Request Placidus houses; we will warn and fall back to whole-sign. */
+  /** House system. Defaults to Placidus (falls back to whole-sign at circumpolar latitudes). */
   housesSystem?: 'whole-sign' | 'placidus';
 }
 
@@ -34,28 +37,45 @@ export function calculateWesternChart(
     detail: `computed ${positions.length} planet longitudes (tropical, of-date, geocentric)`,
   });
 
+  const requestedSystem = opts.housesSystem ?? 'placidus';
   let ascendant: WesternChart['ascendant'] = null;
+  let midheaven: WesternChart['midheaven'] = null;
+  let houseCusps: HouseCusp[] | null = null;
+  let housesSystem: WesternChart['housesSystem'] = 'whole-sign';
   if (typeof input.geoLatitude === 'number' && typeof input.geoLongitude === 'number') {
     ascendant = computeAscendant(dateUtc, input.geoLatitude, input.geoLongitude);
+    midheaven = computeMidheaven(dateUtc, input.geoLongitude);
     trace.push({
       rule: 'western.ascendant',
       detail: `Asc = ${ascendant.longitude.toFixed(3)}° → ${ascendant.sign} ${ascendant.degreeInSign.toFixed(3)}°`,
     });
+    trace.push({
+      rule: 'western.midheaven',
+      detail: `MC = ${midheaven.longitude.toFixed(3)}° → ${midheaven.sign} ${midheaven.degreeInSign.toFixed(3)}°`,
+    });
+    if (requestedSystem === 'placidus') {
+      houseCusps = computePlacidusCusps(dateUtc, input.geoLatitude, input.geoLongitude);
+      if (houseCusps) {
+        housesSystem = 'placidus';
+        trace.push({
+          rule: 'western.houses',
+          detail: `Placidus cusps solved iteratively (semi-arc trisection); cusp1=${houseCusps[0].longitude.toFixed(3)}° cusp10=${houseCusps[9].longitude.toFixed(3)}°`,
+        });
+      } else {
+        warnings.push({
+          code: 'placidus_polar_fallback',
+          message: 'Placidus undefined at circumpolar latitude — whole-sign houses returned instead.',
+          level: 'warn',
+        });
+      }
+    }
     for (const p of positions) {
-      p.house = wholeSignHouse(p.sign, ascendant.sign);
+      p.house = houseCusps ? houseFromCusps(p.longitude, houseCusps) : wholeSignHouse(p.sign, ascendant.sign);
     }
   } else {
     warnings.push({
       code: 'no_geo',
       message: 'geoLatitude/geoLongitude missing — cannot compute Ascendant or houses.',
-      level: 'warn',
-    });
-  }
-
-  if (opts.housesSystem === 'placidus') {
-    warnings.push({
-      code: 'placidus_not_implemented',
-      message: 'Placidus house system is not implemented in P4.9; whole-sign houses returned instead.',
       level: 'warn',
     });
   }
@@ -67,20 +87,23 @@ export function calculateWesternChart(
   });
 
   const hasAsc = ascendant !== null;
-  const completenessScore = hasAsc ? 80 : 60;
-  const confidence = hasAsc ? 75 : 60;
+  const hasPlacidus = houseCusps !== null;
+  const completenessScore = hasPlacidus ? 92 : hasAsc ? 80 : 60;
+  const confidence = hasPlacidus ? 84 : hasAsc ? 75 : 60;
 
   return {
     input,
     julianDay: jd,
     planets: positions,
     ascendant,
-    housesSystem: 'whole-sign',
+    midheaven,
+    housesSystem,
+    houseCusps,
     aspects,
     confidence,
     completenessScore,
     sourceGrade: hasAsc ? 'B' : 'C',
-    implementationStatus: 'partial',
+    implementationStatus: hasPlacidus ? 'complete' : 'partial',
     warnings,
     explanationTrace: trace,
   };
