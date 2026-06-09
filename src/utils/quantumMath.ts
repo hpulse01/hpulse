@@ -166,7 +166,9 @@ export function calculateAmplitude(
   kT: number,
   phaseSeed: number = 0,
 ): QuantumAmplitude {
-  const magnitude = Math.exp(-fatePotential / Math.max(0.01, kT));
+  // Magnitude e^(-E/2kT) so that |Ψ|² = e^(-E/kT) matches the Boltzmann
+  // weights used by calculatePartitionFunction / calculateProbabilityDistribution.
+  const magnitude = Math.exp(-fatePotential / (2 * Math.max(0.01, kT)));
   // Phase determined by potential → creates constructive/destructive interference
   const phase = (fatePotential * 2 * Math.PI + phaseSeed) % (2 * Math.PI);
   
@@ -531,7 +533,6 @@ export function annealedCollapse(
 
   const temps = generateAnnealingSchedule(schedule);
   const selections: number[] = [];
-  const rng = new DeterministicRNG(collapseSeed);
 
   for (const T of temps) {
     const result = quantumCollapsePipeline(worldLines, collapseSeed + BigInt(Math.round(T * 1000)), T);

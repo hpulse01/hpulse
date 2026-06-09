@@ -74,14 +74,25 @@ export function familyVerification(
     if (siblingPredict === facts.siblingsCount) siblings = 10;
     else if (Math.abs(siblingPredict - facts.siblingsCount) === 1) siblings = 5;
 
-    const matchScore = Math.min(100, father + mother + parentsStatus + siblings);
+    // Optional 妻/夫宫 bonus dimension (spouse offset 6, mirroring father=3 / mother=9).
+    let spouse: number | undefined;
+    if (facts.spouseZodiac != null) {
+      const predSpouse = Math.abs(seed + 6) % 12;
+      if (predSpouse === facts.spouseZodiac) spouse = 15;
+      else {
+        const d = circularDiff(predSpouse, facts.spouseZodiac);
+        spouse = d === 1 ? 6 : d === 2 ? 2 : 0;
+      }
+    }
+
+    const matchScore = Math.min(100, father + mother + parentsStatus + siblings + (spouse ?? 0));
 
     return {
       ...c,
       predictedFatherZodiac: predFather,
       predictedMotherZodiac: predMother,
       matchScore,
-      scoreBreakdown: { father, mother, parentsStatus, siblings },
+      scoreBreakdown: { father, mother, parentsStatus, siblings, ...(spouse != null ? { spouse } : {}) },
     };
   }).sort((a, b) => b.matchScore - a.matchScore);
 
@@ -116,7 +127,7 @@ export function familyVerification(
     },
     {
       rule: 'tieban.kaoke.scoring',
-      detail: '每刻分数 = 父35 + 母35 + 父母状态20 + 兄弟数10；近1属相+15，近2属相+5。',
+      detail: '每刻分数 = 父35 + 母35 + 父母状态20 + 兄弟数10（+ 可选妻/夫宫加分≤15）；近1属相+15，近2属相+5。',
       data: {
         ranked: ranked.map((c) => ({
           quarter: c.label,
