@@ -34,7 +34,9 @@ import { runCoreEngine, applyCoreOverlay, computeQualityMultiplier } from './p4C
 import { extractTiebanEvents, extractBaziEvents, extractZiweiEvents, extractWesternEvents, extractVedicEvents, extractNumerologyEvents, extractMayanEvents, extractKabbalahEvents, extractInstantEvents } from './eventSeedExtractors';
 import { fuseEventSeeds } from './eventFusion';
 import { generateWorldTree, collapseWorldTree } from './worldTreeGenerator';
+import { generateHolographicFateMap } from './holisticFateMapGenerator';
 import type { RecursiveWorldTree, CollapseResult, DestinyEventSeed } from '@/types/destinyTree';
+import type { HolographicFateMap } from '@/types/holisticFateMap';
 
 import type {
   StandardizedInput,
@@ -192,6 +194,8 @@ export interface QuantumPredictionResult {
   unifiedResult?: UnifiedPredictionResult;
   destinyTree?: RecursiveWorldTree;
   collapseResult?: CollapseResult;
+  /** v5.1 — 三层全息命盘（宏观/中观/微观）。在 collapseResult 成功后生成。 */
+  holographicFateMap?: HolographicFateMap;
 }
 
 // ═══════════════════════════════════════════════
@@ -1310,6 +1314,7 @@ export const QuantumPredictionEngine = {
     // Phase 5: Event-Driven Destiny Tree
     let destinyTree: RecursiveWorldTree | undefined;
     let collapseResult: CollapseResult | undefined;
+    let holographicFateMap: HolographicFateMap | undefined;
     try {
       const allSeeds: DestinyEventSeed[] = [];
       if (rawData.fullReport && rawData.baziProfile) allSeeds.push(...extractTiebanEvents(rawData.fullReport, rawData.baziProfile, input.year));
@@ -1330,9 +1335,17 @@ export const QuantumPredictionEngine = {
       const fusionResult = fuseEventSeeds(allSeeds, engineWeightMap);
       destinyTree = generateWorldTree(fusionResult, unifiedResult.fusedFateVector, input.year, input.gender);
       collapseResult = collapseWorldTree(destinyTree);
+
+      // v5.1 — 三层全息命盘：基于 collapseResult 生成宏/中/微三层
+      if (collapseResult) {
+        const queryYear = new Date(si.queryTimeUtc).getUTCFullYear();
+        const currentAge = Math.max(0, queryYear - input.year);
+        holographicFateMap = generateHolographicFateMap(collapseResult, input.year, input.gender, currentAge);
+      }
     } catch (err) {
-      console.error('Destiny tree generation error:', err);
+      console.error('Destiny tree / holographic fate map error:', err);
     }
+
 
     const deathAge = collapseResult?.deathAge ?? legacyDeathAge;
     const lifeSummary = collapseResult?.finalLifeSummary ?? legacyLifeSummary;
@@ -1353,7 +1366,7 @@ export const QuantumPredictionEngine = {
       states, destinyTimeline: timeline, entanglements, overallCoherence,
       destinyPhases: phases, lifeSummary, deathAge, quantumSignature, dominantElement,
       baziProfile, fullReport, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport,
-      timestamp, unifiedResult, destinyTree, collapseResult,
+      timestamp, unifiedResult, destinyTree, collapseResult, holographicFateMap,
     };
   },
 
