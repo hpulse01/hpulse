@@ -95,6 +95,9 @@ export function BaziCorePanel({ bazi }: Props) {
         </span>
       </header>
 
+      <EngineWarningStrip warnings={bazi.warnings} uncertainty={bazi.uncertaintyNotes} />
+
+
       {/* Four pillars grid with kongWang indicator */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {pillars.map((gz, i) => {
