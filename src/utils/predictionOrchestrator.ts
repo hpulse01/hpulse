@@ -208,6 +208,7 @@ export const PredictionOrchestrator = {
         ...(prediction.unifiedResult?.executionTrace ?? []).map((entry) => `${entry.engineName}:${entry.success ? 'ok' : entry.errorMessage ?? 'failed'}`),
       ],
       dashboardPayload: prediction.unifiedResult!,
+      holographicFateMap: prediction.holographicFateMap ?? null,
     };
 
     return {

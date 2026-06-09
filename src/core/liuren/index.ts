@@ -1,5 +1,11 @@
 /**
  * P4.8 — Da Liu Ren (大六壬) public API.
+ *
+ * NAMING NOTE: This module IS "Da Liu Ren / 大六壬" — the engine name in
+ * orchestrator config (`daLiuren` / `liuren`) and the legacy spec memory key
+ * `mem://engines/da-liuren-implementation` all refer to THIS implementation.
+ * There is no separate `src/core/daLiuren/`. The folder name is shortened to
+ * `liuren` for brevity; both names are interchangeable across the codebase.
  */
 export * from './types';
 export { calculateLiurenChart } from './calculateLiurenChart';
