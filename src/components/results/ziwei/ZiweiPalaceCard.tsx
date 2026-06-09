@@ -3,14 +3,19 @@ import { Star } from 'lucide-react';
 export interface ZiweiPalaceCardData {
   name: string;
   branch?: string;
+  stem?: string;
   isMing?: boolean;
   isShen?: boolean;
+  isEmpty?: boolean;
   strengthScore?: number;
   majorStars?: string[];
   minorStars?: string[];
   auxiliaryStars?: string[];
   shaStars?: string[];
+  borrowedFromName?: string;
+  borrowedStars?: string[];
   sihua?: { star: string; transform: string }[];
+  selfSihua?: { star: string; transform: string }[];
 }
 
 interface Props {
@@ -37,6 +42,8 @@ export function ZiweiPalaceCard({ palace, compact }: Props) {
         <div className="flex items-center gap-1 min-w-0">
           <span className="font-serif text-sm tracking-wider text-foreground/95 truncate">{palace.name}</span>
           {palace.branch && <span className="text-[10px] font-mono text-muted-foreground/70">{palace.branch}</span>}
+          {palace.stem && <span className="text-[10px] font-mono text-primary/60">{palace.stem}</span>}
+          {palace.isEmpty && <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-amber-300 px-1 py-0.5 border border-amber-400/40 rounded">空</span>}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {palace.isMing && <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-primary px-1 py-0.5 border border-primary/40 rounded">命</span>}
@@ -56,6 +63,20 @@ export function ZiweiPalaceCard({ palace, compact }: Props) {
           <span key={s} className="px-1.5 py-0.5 text-[10px] font-serif rounded border border-destructive/35 text-destructive/85 bg-destructive/[0.04]">{s}</span>
         ))}
       </div>
+      {palace.isEmpty && palace.borrowedFromName && (
+        <div className="text-[10px] font-mono text-amber-300/80">
+          借自 {palace.borrowedFromName} · {(palace.borrowedStars ?? []).join(' ')}
+        </div>
+      )}
+      {palace.selfSihua && palace.selfSihua.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {palace.selfSihua.map((sh, i) => (
+            <span key={i} className={`px-1.5 py-0.5 text-[10px] font-mono rounded border ${SIHUA_COLOR[sh.transform] ?? 'text-muted-foreground border-muted-foreground/30'}`}>
+              自化·{sh.star}·{sh.transform}
+            </span>
+          ))}
+        </div>
+      )}
       {palace.sihua && palace.sihua.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {palace.sihua.map((sh, i) => (
