@@ -51,13 +51,18 @@ function normalizePalace(p: RawPalace): ZiweiPalaceCardData {
   return {
     name: p.name ?? '',
     branch: p.branch,
+    stem: p.stem,
     isMing: !!p.isMing,
     isShen: !!p.isShen,
+    isEmpty: !!p.isEmpty,
     strengthScore: p.strengthScore,
     majorStars: (p.majorStars ?? []).map(starName).filter(Boolean),
     auxiliaryStars: (p.auxiliaryStars ?? []).map(starName).filter(Boolean),
     shaStars: (p.shaStars ?? []).map(starName).filter(Boolean),
     minorStars: (p.minorStars ?? []).map(starName).filter(Boolean),
+    borrowedFromName: p.borrowedFromName,
+    borrowedStars: p.borrowedStars,
+    selfSihua: (p.selfSihua ?? []).map(s => ({ star: String(s.star ?? ''), transform: String(s.transform ?? '') })).filter(s => s.star),
   };
 }
 
