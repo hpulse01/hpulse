@@ -24,7 +24,7 @@ interface Props {
 }
 
 const SENSITIVE_KEYS = new Set(['health', 'disaster', 'children']);
-const ORDER = ['overview', 'marriage', 'wealth', 'career', 'health', 'children', 'parents', 'migration', 'disaster'];
+const ORDER = ['overview', 'marriage', 'wealth', 'career', 'health', 'children', 'parents', 'siblings', 'migration', 'disaster'];
 
 /** TiebanDestinySections — 9 报告分区,sensitive ones default-collapsed in dim red. */
 export function TiebanDestinySections({ sections }: Props) {

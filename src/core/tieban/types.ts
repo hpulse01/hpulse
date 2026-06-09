@@ -52,6 +52,8 @@ export interface FamilyFacts {
   motherZodiac: number;
   parentsStatus: 'both_alive' | 'father_deceased' | 'mother_deceased' | 'both_deceased';
   siblingsCount: number;
+  /** Optional 妻/夫宫 zodiac (0..11). When provided, adds a bonus scoring dimension. */
+  spouseZodiac?: number;
 }
 
 export interface FamilyVerificationCandidate extends QuarterKeCandidate {
@@ -65,6 +67,7 @@ export interface FamilyVerificationCandidate extends QuarterKeCandidate {
     mother: number;
     parentsStatus: number;
     siblings: number;
+    spouse?: number;
   };
 }
 

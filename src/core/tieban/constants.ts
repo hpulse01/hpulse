@@ -47,6 +47,7 @@ export const SECTION_SPECS: SectionSpec[] = [
   { key: 'health',    nameCN: '健康寿元',  palace: 'HEALTH', sensitive: true, sensitiveCategory: 'health' },
   { key: 'children',  nameCN: '子嗣后代',  palace: 'CHILDREN' },
   { key: 'parents',   nameCN: '父母六亲',  palace: 'PARENTS' },
+  { key: 'siblings',  nameCN: '兄弟姐妹',  palace: 'SIBLINGS' },
   { key: 'migration', nameCN: '迁移远行',  palace: 'PROPERTY' },
   { key: 'disaster',  nameCN: '灾厄风险',  palace: 'HEALTH', sensitive: true, sensitiveCategory: 'disaster' },
 ];

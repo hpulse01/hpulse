@@ -52,8 +52,7 @@ import type {
 import { ALL_FATE_DIMENSIONS, FATE_DIMENSION_LABELS } from '@/types/prediction';
 import { calculateDynamicWeights, getWeightsForQueryType } from '@/config/engineWeights';
 import { detectConflicts, fuseFateVectors, generateConflictReport } from '@/utils/conflictResolver';
-import { generateCollapseSeed, quantumCollapsePipeline, calculateFateVectorCoherence } from '@/utils/quantumMath';
-import type { WorldLineInput } from '@/utils/quantumMath';
+import { calculateFateVectorCoherence } from '@/utils/quantumMath';
 import {
   getActiveEngines,
   getSkippedEngines,
@@ -75,6 +74,8 @@ export interface QuantumInput {
   geoLatitude: number;
   geoLongitude: number;
   timezoneOffsetMinutes: number;
+  /** Query time (UTC ISO). Same input + same query time → identical result. */
+  queryTimeUtc?: string;
 }
 
 export type LifeAspect =
@@ -275,6 +276,7 @@ function quantumInputToStandardized(
   locationName: string = '',
   timezoneIana: string = '',
 ): StandardizedInput {
+  const queryTimeUtc = input.queryTimeUtc ?? new Date().toISOString();
   const utcMs = Date.UTC(input.year, input.month - 1, input.day, input.hour, input.minute, 0)
     - input.timezoneOffsetMinutes * 60_000;
   const utcDate = new Date(utcMs);
@@ -288,7 +290,7 @@ function quantumInputToStandardized(
     gender: input.gender,
     normalizedLocationName: locationName,
     queryType,
-    queryTimeUtc: new Date().toISOString(),
+    queryTimeUtc,
     sourceMetadata: { provider: 'legacy_quantum_input', confidence: 0.8, normalizedLocationName: locationName, timezoneIana },
   };
 }
@@ -893,7 +895,7 @@ function orchestrate(
 
     // Dynamic weights W(t, e, d)
     const executedNames = engineOutputs.map(e => e.engineName);
-    const currentAge = new Date().getFullYear() - standardizedInput.birthLocalDateTime.year;
+    const currentAge = new Date(standardizedInput.queryTimeUtc).getUTCFullYear() - standardizedInput.birthLocalDateTime.year;
     const dynamicResult = calculateDynamicWeights({
       queryType,
       age: currentAge,
@@ -950,7 +952,7 @@ function orchestrate(
   // Prediction ID
   const { year, month, day, hour } = standardizedInput.birthLocalDateTime;
   const hex = ((year * 13 + month * 7 + day * 3 + hour) % 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
-  const predictionId = `UPR-${hex}-${Date.now().toString(36)}`;
+  const predictionId = `UPR-${hex}-${new Date(standardizedInput.queryTimeUtc).getTime().toString(36)}`;
 
   const unifiedResult: UnifiedPredictionResult = {
     predictionId,
@@ -961,7 +963,7 @@ function orchestrate(
     conflicts,
     finalConfidence,
     causalSummary,
-    generatedAt: new Date().toISOString(),
+    generatedAt: standardizedInput.queryTimeUtc,
     algorithmVersion: '5.0.0',
     activeEngines: activeEngineNames,
     executedEngines,
@@ -976,14 +978,14 @@ function orchestrate(
   };
 
   // Legacy data assembly
-  const legacyBaziProfile = tiebanResult?.baziProfile ?? baziResult?.deepAnalysis ? {
-    dayMaster: baziResult!.deepAnalysis.dayMaster.stem,
-    dayMasterElement: baziResult!.deepAnalysis.dayMaster.element,
-    pillars: { ...baziResult!.deepAnalysis.fourPillars, time: baziResult!.deepAnalysis.fourPillars.hour ?? '甲子' },
-    strength: baziResult!.deepAnalysis.dayMaster.strengthLevel,
-    favorableElements: baziResult!.deepAnalysis.favorable.elements,
-    unfavorableElements: baziResult!.deepAnalysis.unfavorable.elements,
-  } : {
+  const legacyBaziProfile = baziResult?.deepAnalysis ? {
+    dayMaster: baziResult.deepAnalysis.dayMaster.stem,
+    dayMasterElement: baziResult.deepAnalysis.dayMaster.element,
+    pillars: { ...baziResult.deepAnalysis.fourPillars, time: baziResult.deepAnalysis.fourPillars.hour ?? '甲子' },
+    strength: baziResult.deepAnalysis.dayMaster.strengthLevel,
+    favorableElements: baziResult.deepAnalysis.favorable.elements,
+    unfavorableElements: baziResult.deepAnalysis.unfavorable.elements,
+  } : tiebanResult?.baziProfile ?? {
     dayMaster: '甲', dayMasterElement: '木',
     pillars: { year: '甲子', month: '甲子', day: '甲子', time: '甲子' },
     strength: '中和', favorableElements: ['木'], unfavorableElements: ['金'],
@@ -1096,11 +1098,11 @@ function quantumCollapse(
   systems: SystemAnalysis[], branches: WorldBranch[], input: QuantumInput,
   baziProfile: BaZiProfile, fullReport: FullDestinyReport,
   vedicReport: VedicReport, numerologyReport: NumerologyReport,
+  currentYear: number,
 ): { timeline: CollapsedEvent[]; states: QuantumState[]; entanglements: QuantumEntanglement[]; overallCoherence: number; deathAge: number } {
   const fav = baziProfile.favorableElements;
   const unfav = baziProfile.unfavorableElements;
   const timeline: CollapsedEvent[] = [];
-  const currentYear = new Date().getFullYear();
   const currentAge = currentYear - input.year;
 
   for (let age = 1; age <= 80; age++) {
@@ -1282,14 +1284,25 @@ function clamp(v: number): number {
 
 export const QuantumPredictionEngine = {
   predict(input: QuantumInput, systemOffset: number = 0): QuantumPredictionResult {
-    const timestamp = new Date();
     const si = quantumInputToStandardized(input);
+    const timestamp = new Date(si.queryTimeUtc);
     const { unifiedResult, rawData, systems } = orchestrate(si, systemOffset);
     const { baziProfile, fullReport, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport } = rawData;
 
     // Legacy Phase 2-4
     const { branches, totalGenerated, perSystem } = generateInfiniteWorlds(systems, input, vedicReport, numerologyReport, fullReport);
-    const { timeline, states, entanglements, overallCoherence, deathAge: legacyDeathAge } = quantumCollapse(systems, branches, input, baziProfile, fullReport, vedicReport, numerologyReport);
+    const queryYear = new Date(si.queryTimeUtc).getUTCFullYear();
+    const { timeline, states, entanglements, overallCoherence: legacyCoherence, deathAge: legacyDeathAge } = quantumCollapse(systems, branches, input, baziProfile, fullReport, vedicReport, numerologyReport, queryYear);
+
+    // Cross-engine FateVector coherence (weighted variance across 10 dimensions)
+    const engineWeightLookup: Record<string, number> = {};
+    for (const w of unifiedResult.weightsUsed) engineWeightLookup[w.engineName] = w.weight;
+    const fvInputs = unifiedResult.engineOutputs.map(eo => eo.fateVector);
+    const fvWeights = unifiedResult.engineOutputs.map(eo => engineWeightLookup[eo.engineName] ?? 0);
+    const fvCoherence = fvInputs.length > 0 ? calculateFateVectorCoherence(fvInputs, fvWeights) : { overall: legacyCoherence };
+    const overallCoherence = fvInputs.length > 0
+      ? legacyCoherence * 0.5 + fvCoherence.overall * 0.5
+      : legacyCoherence;
     const { phases, lifeSummary: legacyLifeSummary } = revealDestiny(timeline, states, legacyDeathAge, input);
 
     // Phase 5: Event-Driven Destiny Tree

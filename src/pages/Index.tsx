@@ -142,7 +142,10 @@ const Index = () => {
       setCalibrationResult(calibration);
       const report: FullDestinyReport = TiebanEngine.generateFullDestinyReport(birthInput!, theoreticalBase, systemOffset);
       setFullReport(report);
-      const qResult = QuantumPredictionEngine.predict(birthInput!, systemOffset);
+      // Single query timestamp shared by both pipelines — keeps legacy quantum
+      // result and HPU pipeline deterministic relative to the same instant.
+      const queryTimeUtc = new Date().toISOString();
+      const qResult = QuantumPredictionEngine.predict({ ...birthInput!, queryTimeUtc }, systemOffset);
       setQuantumResult(qResult);
       if (qResult.unifiedResult) {
         setUnifiedReport(PredictionOrchestrator.execute(qResult.unifiedResult.input));
@@ -160,7 +163,7 @@ const Index = () => {
           longitude: rawBirthForm.geoLongitude,
           timezone: rawBirthForm.timezoneIana,
           gender: rawBirthForm.gender,
-          query_time_utc: new Date().toISOString(),
+          query_time_utc: queryTimeUtc,
           query_type: 'natal' as const,
           granularity: 'year' as const,
         };
@@ -439,82 +442,46 @@ const Index = () => {
                     )}
                   </TabsContent>
 
-                  {isSuperAdmin && (
-                  <TabsContent value="bazi" className="mt-5">
-                    <HolographicPanel innerPadding="md">
-                      <BaziCorePanel
-                        bazi={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'bazi')}
-                      />
-                    </HolographicPanel>
-                  </TabsContent>
-                  )}
-
-                  {isSuperAdmin && (
-                  <TabsContent value="tieban" className="mt-5">
-                    <HolographicPanel innerPadding="md">
-                      <TiebanCorePanel
-                        engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'tieban')}
-                        fullReport={fullReport}
-                        calibration={calibrationResult}
-                        selectedKaoKe={selectedKaoKe}
-                        baseNumber={baseNumber}
-                        theoreticalBase={theoreticalBase}
-                        pillarsDisplay={ganZhiDisplay}
-                      />
-                    </HolographicPanel>
-                  </TabsContent>
-                  )}
-
-                  {isSuperAdmin && (
-                  <TabsContent value="ziwei" className="mt-5">
-                    <HolographicPanel innerPadding="md">
-                      <ZiweiCorePanel
-                        engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'ziwei')}
-                        birthYear={birthInput.year}
-                      />
-                    </HolographicPanel>
-                  </TabsContent>
-                  )}
-
-                  {isSuperAdmin && ([
-                    ['liuyao', LiuYaoCorePanel],
-                    ['meihua', MeihuaCorePanel],
-                    ['qimen', QimenCorePanel],
-                    ['liuren', LiuRenCorePanel],
-                    ['taiyi', TaiyiCorePanel],
-                    ['western', WesternCorePanel],
-                    ['vedic', VedicCorePanel],
-                    ['mayan', MayanCorePanel],
-                  ] as const).map(([id, Comp]) => (
-                    <TabsContent key={id} value={id} className="mt-5">
-                      <HolographicPanel innerPadding="md">
-                        <Comp engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === id)} />
-                      </HolographicPanel>
-                    </TabsContent>
-                  ))}
-
-                  {isSuperAdmin && (
-                  <TabsContent value="numerology" className="mt-5">
-                    <HolographicPanel innerPadding="md">
-                      <NumerologyCorePanel
-                        engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'numerology')}
-                        userName={profile?.display_name ?? null}
-                        currentYear={new Date().getFullYear()}
-                      />
-                    </HolographicPanel>
-                  </TabsContent>
-                  )}
-
-                  {isSuperAdmin && (
-                  <TabsContent value="kabbalah" className="mt-5">
-                    <HolographicPanel innerPadding="md">
-                      <KabbalahCorePanel
-                        engineOutput={quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === 'kabbalah')}
-                        userName={profile?.display_name ?? null}
-                      />
-                    </HolographicPanel>
-                  </TabsContent>
-                  )}
+                  {isSuperAdmin && (() => {
+                    const engineOutput = (name: string) =>
+                      quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === name);
+                    const adminEnginePanels: Array<[string, React.ReactNode]> = [
+                      ['bazi', <BaziCorePanel bazi={engineOutput('bazi')} />],
+                      ['tieban', (
+                        <TiebanCorePanel
+                          engineOutput={engineOutput('tieban')}
+                          fullReport={fullReport}
+                          calibration={calibrationResult}
+                          selectedKaoKe={selectedKaoKe}
+                          baseNumber={baseNumber}
+                          theoreticalBase={theoreticalBase}
+                          pillarsDisplay={ganZhiDisplay}
+                        />
+                      )],
+                      ['ziwei', <ZiweiCorePanel engineOutput={engineOutput('ziwei')} birthYear={birthInput.year} />],
+                      ['liuyao', <LiuYaoCorePanel engineOutput={engineOutput('liuyao')} />],
+                      ['meihua', <MeihuaCorePanel engineOutput={engineOutput('meihua')} />],
+                      ['qimen', <QimenCorePanel engineOutput={engineOutput('qimen')} />],
+                      ['liuren', <LiuRenCorePanel engineOutput={engineOutput('liuren')} />],
+                      ['taiyi', <TaiyiCorePanel engineOutput={engineOutput('taiyi')} />],
+                      ['western', <WesternCorePanel engineOutput={engineOutput('western')} />],
+                      ['vedic', <VedicCorePanel engineOutput={engineOutput('vedic')} />],
+                      ['mayan', <MayanCorePanel engineOutput={engineOutput('mayan')} />],
+                      ['numerology', (
+                        <NumerologyCorePanel
+                          engineOutput={engineOutput('numerology')}
+                          userName={profile?.display_name ?? null}
+                          currentYear={quantumResult.timestamp.getFullYear()}
+                        />
+                      )],
+                      ['kabbalah', <KabbalahCorePanel engineOutput={engineOutput('kabbalah')} userName={profile?.display_name ?? null} />],
+                    ];
+                    return adminEnginePanels.map(([id, panel]) => (
+                      <TabsContent key={id} value={id} className="mt-5">
+                        <HolographicPanel innerPadding="md">{panel}</HolographicPanel>
+                      </TabsContent>
+                    ));
+                  })()}
 
                   <TabsContent value="engines" className="mt-5">
                     {quantumResult.unifiedResult && (
