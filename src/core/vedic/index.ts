@@ -8,6 +8,8 @@ export {
 } from './constants';
 export { lahiriAyanamsaDeg, tropicalToSidereal } from './ayanamsa';
 export { nakshatraOf } from './nakshatra';
-export { computeVimshottariMahadasha } from './dasha';
+export { computeVimshottariMahadasha, computeAntardasha } from './dasha';
+export { meanLunarNodeTropicalDeg, meanRahuKetuTropicalDeg } from './nodes';
+export { navamsaRashiOf, NAVAMSA_SPAN_DEG } from './navamsa';
 export { calculateVedicChart } from './calculateChart';
 export { vedicChartToEngineOutput } from './toEngineOutput';

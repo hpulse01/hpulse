@@ -13,9 +13,25 @@ export interface SephirahMapping {
   attribute: string;
 }
 
+export interface TreePath {
+  /** Path number 11..32 (Golden Dawn attribution). */
+  number: number;
+  /** Hebrew letter carried by the path. */
+  letter: string;
+  /** Letter name (e.g. 'Aleph'). */
+  letterName: string;
+  from: SephirahName;
+  to: SephirahName;
+  meaning: string;
+}
+
 export interface GematriaResult {
   /** Total numeric value (Mispar Hechrachi — standard gematria). */
   total: number;
+  /** Mispar Katan (small value): letter values reduced to 1..9 before summing. */
+  katan: number;
+  /** Mispar Siduri (ordinal value): letters counted by alphabet position 1..22. */
+  siduri: number;
   /** Per-letter breakdown. */
   letters: { letter: string; value: number }[];
   /** Source language: 'hebrew' for native Hebrew input, 'transliterated' for Latin letters mapped to nearest Hebrew letter. */
@@ -47,6 +63,9 @@ export interface KabbalahResult {
   primarySephirah: SephirahMapping | null;
   /** Whether the result was derived from a real name vs birth-date-only fallback. */
   derivedFromName: boolean;
+  /** Primary Tree of Life path (11..32) — from the name's first letter when available,
+   *  otherwise from the gematria/birth-date number. Null when nothing to derive from. */
+  primaryPath: TreePath | null;
   confidence: number;
   completenessScore: number;
   sourceGrade: 'A' | 'B' | 'C' | 'D';

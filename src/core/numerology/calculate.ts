@@ -1,8 +1,8 @@
 /**
  * P4.10 — Numerology core calculations.
  */
-import type { NumerologyInput, NumerologyResult, NumerologyWarning, ExplanationStep } from './types';
-import { PYTHAGOREAN_MAP, VOWELS } from './constants';
+import type { NumerologyInput, NumerologyResult, NumerologyWarning, ExplanationStep, KarmicDebt } from './types';
+import { PYTHAGOREAN_MAP, VOWELS, KARMIC_DEBT_NUMBERS, CHALDEAN_MAP } from './constants';
 import { reduceToDigit, sumDigits } from './reduce';
 
 /** Life Path: reduce sum of all date digits. */
@@ -24,6 +24,27 @@ function letterValues(name: string, predicate: (ch: string) => boolean): number[
     }
   }
   return out;
+}
+
+/** Unreduced total used for Karmic Debt detection. */
+function nameTotal(name: string, predicate: (ch: string) => boolean): number {
+  return letterValues(name, predicate).reduce((a, b) => a + b, 0);
+}
+
+/** Life Path unreduced total (sum of all date digits). */
+export function lifePathTotal(year: number, month: number, day: number): number {
+  return sumDigits(year) + sumDigits(month) + sumDigits(day);
+}
+
+/** Chaldean Destiny number: Chaldean letter values, reduced (masters preserved). */
+export function calculateChaldeanDestiny(name: string): number {
+  let total = 0;
+  for (const raw of name.toUpperCase()) {
+    const v = CHALDEAN_MAP[raw];
+    if (v != null) total += v;
+  }
+  if (total === 0) return 0;
+  return reduceToDigit(total);
 }
 
 export function calculateDestiny(name: string): number {
@@ -108,8 +129,40 @@ export function calculateNumerology(input: NumerologyInput): NumerologyResult {
     trace.push({ rule: 'numerology.name', detail: 'skipped (no fullName)' });
   }
 
-  const completenessScore = hasName ? 90 : 55;
-  const confidence = hasName ? 80 : 55;
+  const birthday = reduceToDigit(input.birthDay);
+  trace.push({ rule: 'numerology.birthday', detail: `Birthday = reduce(${input.birthDay}) = ${birthday}` });
+
+  // Karmic Debt: flag 13/14/16/19 appearing as UNREDUCED core totals.
+  const karmicDebts: KarmicDebt[] = [];
+  const lpTotal = lifePathTotal(input.birthYear, input.birthMonth, input.birthDay);
+  if (KARMIC_DEBT_NUMBERS.has(lpTotal)) karmicDebts.push({ source: 'lifePath', number: lpTotal });
+  if (KARMIC_DEBT_NUMBERS.has(input.birthDay)) karmicDebts.push({ source: 'birthday', number: input.birthDay });
+  if (hasName) {
+    const destTotal = nameTotal(cleanedName, () => true);
+    const soulTotal = nameTotal(cleanedName, (ch) => VOWELS.has(ch));
+    const persTotal = nameTotal(cleanedName, (ch) => !VOWELS.has(ch));
+    if (KARMIC_DEBT_NUMBERS.has(destTotal)) karmicDebts.push({ source: 'destiny', number: destTotal });
+    if (KARMIC_DEBT_NUMBERS.has(soulTotal)) karmicDebts.push({ source: 'soulUrge', number: soulTotal });
+    if (KARMIC_DEBT_NUMBERS.has(persTotal)) karmicDebts.push({ source: 'personality', number: persTotal });
+  }
+  trace.push({
+    rule: 'numerology.karmicDebt',
+    detail: karmicDebts.length > 0
+      ? `Karmic Debts: ${karmicDebts.map((k) => `${k.number}(${k.source})`).join(', ')}`
+      : 'No karmic debt numbers (13/14/16/19) in unreduced totals',
+  });
+
+  const maturity = destiny != null ? reduceToDigit(lifePath + destiny) : null;
+  const chaldeanDestiny = hasName ? calculateChaldeanDestiny(cleanedName) : null;
+  if (hasName) {
+    trace.push({
+      rule: 'numerology.extended',
+      detail: `Maturity = reduce(${lifePath}+${destiny}) = ${maturity}; Chaldean Destiny = ${chaldeanDestiny}`,
+    });
+  }
+
+  const completenessScore = hasName ? 95 : 60;
+  const confidence = hasName ? 82 : 58;
 
   return {
     input,
@@ -119,6 +172,10 @@ export function calculateNumerology(input: NumerologyInput): NumerologyResult {
     personality,
     personalYear,
     referenceYear,
+    birthday,
+    maturity,
+    karmicDebts,
+    chaldeanDestiny,
     confidence,
     completenessScore,
     sourceGrade: hasName ? 'B' : 'C',

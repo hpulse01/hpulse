@@ -8,5 +8,6 @@ export * from './wangShuai';
 export * from './changingLines';
 export * from './clashCombine';
 export * from './yongshen';
+export * from './advancedRules';
 export * from './calculateHexagram';
 export * from './toEngineOutput';

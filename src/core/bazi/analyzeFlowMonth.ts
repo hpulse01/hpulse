@@ -9,7 +9,7 @@ import { tenGodOf } from '../calendar/tenGods';
 import {
   STEMS, BRANCHES, type Stem, type Branch,
 } from '../calendar/ganzhi';
-import { YEAR_STEM_TO_YIN_MONTH_STEM } from './constants';
+import { YEAR_STEM_TO_YIN_MONTH_STEM, BRANCH_LIUCHONG, BRANCH_LIUHE } from './constants';
 import type { ExplanationStep } from '../astro-time/types';
 import type { BaziChart, FlowMonthInfo } from './types';
 import { sixtyJiazi } from '../calendar/ganzhi';
@@ -47,16 +47,50 @@ export function analyzeFlowMonth(chart: BaziChart, opts: { targetYear: number; t
   const ganZhi = `${stem}${branch}`;
   const tenGod = tenGodOf(chart.dayMaster, stem);
 
+  const natalBranches: { pos: 'year' | 'month' | 'day' | 'hour'; b: Branch }[] = [
+    { pos: 'year', b: chart.fourPillars.year.branch },
+    { pos: 'month', b: chart.fourPillars.month.branch },
+    { pos: 'day', b: chart.fourPillars.day.branch },
+    { pos: 'hour', b: chart.fourPillars.hour.branch },
+  ];
+  const clashes: string[] = [];
+  const combinations: string[] = [];
+  const affected: ('year' | 'month' | 'day' | 'hour')[] = [];
+  for (const n of natalBranches) {
+    if (BRANCH_LIUCHONG[branch] === n.b) {
+      clashes.push(`${branch}冲${n.b}@${n.pos}`);
+      affected.push(n.pos);
+    } else if (BRANCH_LIUHE[branch] === n.b) {
+      combinations.push(`${branch}合${n.b}@${n.pos}`);
+      affected.push(n.pos);
+    }
+  }
+
+  const riskFlags: string[] = [];
+  const opportunityFlags: string[] = [];
+  if (clashes.some((c) => c.endsWith('@day'))) riskFlags.push('流月冲日支，事务变动性高');
+  if (tenGod === '七杀' && chart.unfavorableElements?.includes?.(chart.dayMasterElement) === false) {
+    riskFlags.push('七杀流月，决策宜慎');
+  }
+  if (tenGod === '正财' || tenGod === '偏财') opportunityFlags.push('财星流月，资源调度较顺');
+
   const trace: ExplanationStep[] = [
     { rule: 'flowMonth.yearGZ', detail: `${opts.targetYear} → ${yGz}` },
     { rule: 'flowMonth.fiveTigers', detail: `年干 ${yStem} 五虎遁 寅月起 ${yinMonthStem}` },
     { rule: 'flowMonth.calc', detail: `${opts.targetMonth}月 → 月支 ${branch}, 月柱 ${ganZhi}` },
+    { rule: 'flowMonth.relations', detail: `冲=${clashes.length} 合=${combinations.length}` },
   ];
 
   return {
     year: opts.targetYear, month: opts.targetMonth,
-    ganZhi, stem, branch,
-    relationToNatal: [`月干 ${stem} 对日主 ${chart.dayMaster} = ${tenGod}`],
+    ganZhi, stem, branch, tenGod,
+    relationToNatal: [
+      `月干 ${stem} 对日主 ${chart.dayMaster} = ${tenGod}`,
+      ...clashes.map((c) => `冲：${c}`),
+      ...combinations.map((c) => `合：${c}`),
+    ],
+    clashes, combinations, affectedPillars: affected,
+    riskFlags, opportunityFlags,
     explanationTrace: trace,
   };
 }

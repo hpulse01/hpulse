@@ -42,6 +42,7 @@ export function liurenChartToEngineOutput(chart: LiurenChart): EngineOutput {
       `hour_branch=${chart.hourBranch}`,
       `noble_person=${chart.noblePerson}`,
       `three_trans_method=${tt.method}`,
+      `ke_ti=${chart.keTi}`,
     ],
     failed: tt.method === 'fallback' ? ['three_trans_fallback_used'] : [],
     warnings: chart.warnings.map((w) => `${w.code}: ${w.message}`),
@@ -52,6 +53,7 @@ export function liurenChartToEngineOutput(chart: LiurenChart): EngineOutput {
     `贵人:${chart.noblePerson} (${chart.isNight ? '夜' : '昼'}贵)`,
     `四课: 1=${chart.fourClasses.ke1.heaven}/${chart.fourClasses.ke1.earth} 2=${chart.fourClasses.ke2.heaven}/${chart.fourClasses.ke2.earth} 3=${chart.fourClasses.ke3.heaven}/${chart.fourClasses.ke3.earth} 4=${chart.fourClasses.ke4.heaven}/${chart.fourClasses.ke4.earth}`,
     `三传: ${tt.chu} → ${tt.zhong} → ${tt.mo} (${tt.method})`,
+    `课体: ${chart.keTi}`,
   ];
   for (const c of chart.plates) {
     eventCandidates.push(`地${c.earthBranch}|天${c.heavenBranch}|神${c.deity ?? '-'}`);
@@ -63,7 +65,7 @@ export function liurenChartToEngineOutput(chart: LiurenChart): EngineOutput {
     engineVersion: 'P4.8-core',
     sourceUrls: ['classical: 大六壬指南 / 大六壬探源'],
     sourceGrade: chart.sourceGrade,
-    ruleSchool: '基础月将加时 + 四课贼克法 (高级九宗门 partial)',
+    ruleSchool: '月将加时 + 四课 + 九宗门课体识别（贼克/比用/涉害/遥克/昴星/别责/八专/伏吟/反吟）',
     confidence: chart.confidence,
     computationTimeMs: 0,
     rawInputSnapshot: {
@@ -83,12 +85,13 @@ export function liurenChartToEngineOutput(chart: LiurenChart): EngineOutput {
       isNight: String(chart.isNight),
       threeTransChu: tt.chu, threeTransZhong: tt.zhong, threeTransMo: tt.mo,
       threeTransMethod: tt.method,
+      keTi: chart.keTi,
       implementationStatus: chart.implementationStatus,
     },
     warnings: chart.warnings.map((w) => `${w.code}: ${w.message}`),
     uncertaintyNotes: [
-      '本版仅实现：月将加时、十二天将、四课、贼克法三传 (基础)。',
-      '高级九宗门、年命、课体格局、空亡判断 等尚未完整实现。',
+      '已实现：月将加时、十二天将、四课、九宗门完整三传发用与课体识别。',
+      '未覆盖：年命、毕法赋七百诀、空亡/遁干细化解读。',
     ],
     timingBasis: 'query',
     explanationTrace: [
@@ -99,7 +102,7 @@ export function liurenChartToEngineOutput(chart: LiurenChart): EngineOutput {
     validationFlags,
     timeWindows: [],
     aspectScores: {
-      threeTransMethodScore: tt.method === '贼克' ? 80 : tt.method === '比用' ? 65 : tt.method === 'fallback' ? 30 : 50,
+      threeTransMethodScore: tt.method === '贼克' ? 80 : tt.method === '比用' ? 70 : tt.method === '涉害' ? 65 : tt.method === '遥克' ? 55 : tt.method === 'fallback' ? 30 : 50,
       nobleAuspicious: chuCell?.deity && AUSPICIOUS_DEITIES.has(chuCell.deity) ? 1 : 0,
     },
     eventCandidates,

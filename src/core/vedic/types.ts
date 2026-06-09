@@ -31,6 +31,19 @@ export interface SiderealPosition {
   nakshatra: NakshatraName;
   /** 1..4. */
   pada: number;
+  /** D9 navamsa rashi. */
+  navamsaRashi: Rashi;
+}
+
+export interface NodePosition {
+  node: 'Rahu' | 'Ketu';
+  /** Sidereal ecliptic longitude in degrees [0, 360). */
+  longitude: number;
+  rashi: Rashi;
+  degreeInRashi: number;
+  nakshatra: NakshatraName;
+  pada: number;
+  navamsaRashi: Rashi;
 }
 
 export interface DashaPeriod {
@@ -41,6 +54,8 @@ export interface DashaPeriod {
   endUtc: string;
   /** Duration in years (Vimshottari fixed). */
   years: number;
+  /** Antardasha (bhukti) sub-periods inside this Mahadasha. */
+  antardashas?: DashaPeriod[];
 }
 
 export interface VedicWarning {
@@ -64,7 +79,8 @@ export interface VedicChart {
   ayanamsaDeg: number;
   ayanamsaSystem: 'Lahiri';
   planets: SiderealPosition[];
-  lagna: { longitude: number; rashi: Rashi; degreeInRashi: number } | null;
+  nodes: { rahu: NodePosition; ketu: NodePosition };
+  lagna: { longitude: number; rashi: Rashi; degreeInRashi: number; navamsaRashi: Rashi } | null;
   moonNakshatra: { name: NakshatraName; pada: number; lord: DashaLord } | null;
   vimshottariMahadasha: DashaPeriod[];
   confidence: number;

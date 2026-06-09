@@ -21,6 +21,8 @@ export {
 } from './analyzeStrength';
 export * from './calculateDaYun';
 export * from './calculateBaziChart';
+export * from './tiaohou';
+export * from './congHua';
 export * from './toEngineOutput';
 export * as BaziConstants from './constants';
 export { calculateBaziChart as default } from './calculateBaziChart';

@@ -131,3 +131,46 @@ describe('P4.7 Qimen — EngineOutput adapter', () => {
     expect(out.normalizedOutput.dun).toMatch(/yang|yin/);
   });
 });
+
+describe('P4.7+ Qimen — 高级规则 (天盘干/格局/伏吟反吟)', () => {
+  const input = {
+    queryTimeUtc: '2025-05-14T03:00:00Z',
+    timezoneIana: 'Asia/Shanghai',
+    yongShenCategory: '财运' as const,
+  };
+
+  it('天盘干完成转换且与地盘干集合一致', () => {
+    const c = calculateQimenChart(input);
+    const heaven = c.palaces.map((p) => p.heavenStem).filter(Boolean).sort();
+    const earth = c.palaces.map((p) => p.earthStem).filter(Boolean).sort();
+    expect(heaven).toEqual(earth);
+    expect(c.explanationTrace.some((s) => s.rule === 'qimen.heavenStemRotation')).toBe(true);
+  });
+
+  it('格局识别与伏吟反吟字段存在且确定', () => {
+    const a = calculateQimenChart(input);
+    const b = calculateQimenChart(input);
+    expect(Array.isArray(a.patterns)).toBe(true);
+    expect(a.patterns).toEqual(b.patterns);
+    expect(a.fuYinFanYin).toEqual(b.fuYinFanYin);
+    expect(a.fuYinFanYin.scoreAdjustment).toBeLessThanOrEqual(0);
+    for (const p of a.patterns) {
+      expect(['吉格', '凶格']).toContain(p.type);
+      expect(p.palace).toBeGreaterThanOrEqual(1);
+      expect(p.palace).toBeLessThanOrEqual(9);
+      expect(p.evidence).toBeTruthy();
+    }
+    expect(a.explanationTrace.some((s) => s.rule === 'qimen.patterns')).toBe(true);
+    expect(a.explanationTrace.some((s) => s.rule === 'qimen.fuYinFanYin')).toBe(true);
+  });
+
+  it('多时间点扫描：格局/伏反吟均确定且 confidence 在 [10,95]', () => {
+    for (const hour of ['01', '05', '09', '13', '17', '21']) {
+      const c = calculateQimenChart({ ...input, queryTimeUtc: `2025-05-14T${hour}:00:00Z` });
+      expect(c.confidence).toBeGreaterThanOrEqual(10);
+      expect(c.confidence).toBeLessThanOrEqual(95);
+      if (c.fuYinFanYin.fuYin) expect(c.fuYinFanYin.scoreAdjustment).toBe(-5);
+      if (c.fuYinFanYin.fanYin) expect(c.fuYinFanYin.scoreAdjustment).toBe(-8);
+    }
+  });
+});

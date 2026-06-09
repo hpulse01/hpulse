@@ -122,6 +122,40 @@ export interface YongShenAnalysis {
   trace: ExplanationStep[];
 }
 
+export interface FuShenInfo {
+  yongShen: SixRelative;
+  /** 伏于本卦第几爻之下 (1..6)。 */
+  position: number;
+  branch: string;
+  element: FiveElement;
+  flyingBranch: string;
+  flyingElement: FiveElement;
+  relation: '飞来生伏' | '伏去生飞' | '飞来克伏' | '伏去克飞' | '比和';
+  judgment: string;
+}
+
+export interface JinTuiEntry {
+  position: number;
+  type: '进神' | '退神';
+  from: string;
+  to: string;
+  description: string;
+}
+
+export interface FanFuYinInfo {
+  fuYinPositions: number[];
+  fanYinPositions: number[];
+  /** 负向调整应用于置信度。 */
+  scoreAdjustment: number;
+  notes: string[];
+}
+
+export interface YingQiCandidate {
+  branch: string;
+  basis: string;
+  description: string;
+}
+
 export interface ClashCombineEntry {
   type: '六冲' | '六合' | '三刑' | '相害' | '合卦' | '冲卦';
   scope: '爻' | '卦';
@@ -150,6 +184,10 @@ export interface LiuyaoChart {
   mainHexagram: Hexagram;
   changedHexagram?: ChangedHexagram;
   yongShen: YongShenAnalysis;
+  fuShen: FuShenInfo | null;
+  jinTuiShen: JinTuiEntry[];
+  fanFuYin: FanFuYinInfo;
+  yingQi: YingQiCandidate[];
   clashCombine: ClashCombineEntry[];
   warnings: AstroWarning[];
   explanationTrace: ExplanationStep[];

@@ -4,7 +4,10 @@
 export * from './types';
 export { SIGNS, PLANETS, ASPECTS, OBLIQUITY_J2000_DEG } from './constants';
 export { computePlanetPositions, planetLongitude, longitudeToSign, normalizeDeg } from './planets';
-export { computeAscendant, wholeSignHouse } from './houses';
+export {
+  computeAscendant, computeMidheaven, computePlacidusCusps, houseFromCusps, wholeSignHouse,
+} from './houses';
+export type { HouseCusp } from './houses';
 export { detectAspects, angularSeparation } from './aspects';
 export { calculateWesternChart } from './calculateChart';
 export { westernChartToEngineOutput } from './toEngineOutput';

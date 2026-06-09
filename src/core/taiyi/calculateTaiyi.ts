@@ -5,12 +5,31 @@
  * 本版仅实现 积年 → 局数 → 太乙宫 / 文昌 / 始击 / 主客算 这条主干，标 partial。
  */
 import type { TaiyiInput, TaiyiChart, ExplanationStep, TaiyiWarning, PalaceNumber } from './types';
-import { PALACE_META, LOOP_ORDER, DEFAULT_EPOCH_YEAR, YANG_DUN_LIMIT, TOTAL_JU } from './constants';
+import {
+  PALACE_META, LOOP_ORDER, DEFAULT_EPOCH_YEAR, YANG_DUN_LIMIT, TOTAL_JU,
+  BRANCHES_CN, JI_SHEN_MAP, BRANCH_PALACE, SIXTEEN_GODS,
+} from './constants';
+import type { BranchCN } from './constants';
 
 function gregorianYearFromUtc(utcIso: string, tz: string): number {
   const utc = new Date(utcIso);
   const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric' });
   return Number(fmt.formatToParts(utc).find((p) => p.type === 'year')?.value ?? utc.getUTCFullYear());
+}
+
+/** 主/客算：自起算宫沿 LOOP_ORDER 顺行累加宫数，至太乙前一宫止 (中宫不计，遇太乙停)。 */
+function countSuan(from: PalaceNumber, taiyi: PalaceNumber): number {
+  const start = from === 5 ? 2 : from;
+  const target = taiyi === 5 ? 2 : taiyi;
+  let idx = LOOP_ORDER.indexOf(start as PalaceNumber);
+  let sum = 0;
+  for (let i = 0; i < 8; i++) {
+    const p = LOOP_ORDER[((idx % 8) + 8) % 8];
+    if (p === target) break;
+    sum += p;
+    idx += 1;
+  }
+  return sum === 0 ? start : sum;
 }
 
 function loopAdvance(p: PalaceNumber, steps: number, dir: 1 | -1): PalaceNumber {
@@ -78,36 +97,51 @@ export function calculateTaiyiChart(input: TaiyiInput): TaiyiChart {
     data: { dunDirection, juWithinDun, taiyiPalace },
   });
 
-  // 文昌: 简化为 太乙宫 + 4 (LOOP_ORDER 顺向).
+  // 年支与计神：计神以寅为首逆行十二辰。
+  const yearBranch: BranchCN = BRANCHES_CN[(((year - 4) % 12) + 12) % 12];
+  const jiShen: BranchCN = JI_SHEN_MAP[yearBranch];
+  const jiShenGod = SIXTEEN_GODS.find((g) => g.position === jiShen)?.name ?? '地主';
+  trace.push({
+    rule: 'taiyi.jiShen',
+    detail: `岁支=${yearBranch}，计神逆布落 ${jiShen} (十六神：${jiShenGod})。`,
+    data: { yearBranch, jiShen, jiShenGod },
+  });
+
+  // 文昌 (天目): 太乙宫顺行 4 步 (LOOP_ORDER，简化起例)。
   const wenChangPalace = loopAdvance(taiyiPalace, 4, 1);
   trace.push({
     rule: 'taiyi.wenChang',
-    detail: `文昌 (简化) = 太乙宫顺行 4 步 = ${wenChangPalace}宫。完整文昌算法 (含计神交宫) 标 partial。`,
+    detail: `文昌 = 太乙宫顺行 4 步 = ${wenChangPalace}宫 (简化起例)。`,
     data: { wenChangPalace },
   });
 
-  // 始击: 简化为 文昌对宫 (顺 4 步).
-  const shiJiPalace = loopAdvance(wenChangPalace, 4, 1);
+  // 始击: 计神所临之宫 (计神支 → 后天八卦宫)。
+  const shiJiPalace = BRANCH_PALACE[jiShen];
   trace.push({
     rule: 'taiyi.shiJi',
-    detail: `始击 (简化) = 文昌对宫 = ${shiJiPalace}宫。`,
-    data: { shiJiPalace },
+    detail: `始击 = 计神 ${jiShen} 所临之宫 = ${shiJiPalace}宫。`,
+    data: { shiJiPalace, jiShen },
   });
   warnings.push({
-    code: 'taiyi.wenChang.shiJi.partial',
-    message: '文昌、始击的传统算法 (含计神 / 大游小游 / 君基臣基民基 / 大客小客) 未完整实现，本版采用 LOOP_ORDER 简化映射。',
+    code: 'taiyi.advanced.partial',
+    message: '大游/小游、君基臣基民基、阳九百六等子项未实现；文昌采用简化起例。',
     level: 'warn',
   });
 
-  // 主算 / 客算: 简化 = 太乙宫五行 vs 始击宫五行 → 数值化 1..9 对比.
-  const zhuSuan = taiyiPalace; // 主算 = 太乙宫数 (示意)
-  const keSuan = shiJiPalace;  // 客算 = 始击宫数 (示意)
+  // 主算/客算：自文昌/始击宫起累加宫数至太乙前一宫。
+  const zhuSuan = countSuan(wenChangPalace, taiyiPalace);
+  const keSuan = countSuan(shiJiPalace, taiyiPalace);
+  const mod9 = (n: number) => (n % 9 === 0 ? 9 : n % 9);
+  const zhuDaJiang = mod9(zhuSuan) as PalaceNumber;
+  const keDaJiang = mod9(keSuan) as PalaceNumber;
+  const zhuCanJiang = mod9(zhuDaJiang * 3) as PalaceNumber;
+  const keCanJiang = mod9(keDaJiang * 3) as PalaceNumber;
   const zhuKeJudgment: TaiyiChart['zhuKeJudgment'] =
     zhuSuan === keSuan ? '平' : (zhuSuan > keSuan ? '主胜' : '客胜');
   trace.push({
     rule: 'taiyi.zhuKe',
-    detail: `主算=${zhuSuan} (太乙宫)，客算=${keSuan} (始击宫) → ${zhuKeJudgment}。完整主客算 (大将主大将客 / 参将 / 定算) 标 partial。`,
-    data: { zhuSuan, keSuan, judgment: zhuKeJudgment },
+    detail: `主算=${zhuSuan} (自文昌${wenChangPalace}宫起)，客算=${keSuan} (自始击${shiJiPalace}宫起) → ${zhuKeJudgment}；主大将${zhuDaJiang} 主参将${zhuCanJiang} 客大将${keDaJiang} 客参将${keCanJiang}。`,
+    data: { zhuSuan, keSuan, judgment: zhuKeJudgment, zhuDaJiang, zhuCanJiang, keDaJiang, keCanJiang },
   });
 
   return {
@@ -118,14 +152,21 @@ export function calculateTaiyiChart(input: TaiyiInput): TaiyiChart {
     juNumber,
     dunDirection,
     taiyiPalace,
+    yearBranch,
+    jiShen,
+    jiShenGod,
     wenChangPalace,
     shiJiPalace,
     zhuSuan,
     keSuan,
+    zhuDaJiang,
+    zhuCanJiang,
+    keDaJiang,
+    keCanJiang,
     zhuKeJudgment,
-    confidence: 50,
-    completenessScore: 0.45,
-    sourceGrade: 'D',
+    confidence: 58,
+    completenessScore: 0.6,
+    sourceGrade: 'C',
     implementationStatus: 'partial',
     warnings,
     explanationTrace: trace,

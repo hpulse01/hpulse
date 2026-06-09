@@ -7,9 +7,11 @@ import { computeAscendant } from '../western/houses';
 import { lahiriAyanamsaDeg, tropicalToSidereal } from './ayanamsa';
 import { nakshatraOf } from './nakshatra';
 import { computeVimshottariMahadasha } from './dasha';
+import { meanRahuKetuTropicalDeg } from './nodes';
+import { navamsaRashiOf } from './navamsa';
 import { RASHIS } from './constants';
 import type {
-  VedicChart, VedicInput, VedicWarning, ExplanationStep, SiderealPosition, Rashi,
+  VedicChart, VedicInput, VedicWarning, ExplanationStep, SiderealPosition, NodePosition, Rashi,
 } from './types';
 
 function rashiOf(siderealLonDeg: number): { rashi: Rashi; degreeInRashi: number } {
@@ -46,6 +48,7 @@ export function calculateVedicChart(input: VedicInput): VedicChart {
       degreeInRashi,
       nakshatra: nk.name,
       pada: nk.pada,
+      navamsaRashi: navamsaRashiOf(sidLon).rashi,
     };
   });
   trace.push({
@@ -53,12 +56,28 @@ export function calculateVedicChart(input: VedicInput): VedicChart {
     detail: `${planets.length} sidereal planet positions computed (tropical − ayanamsa)`,
   });
 
+  const { rahu: rahuTrop, ketu: ketuTrop } = meanRahuKetuTropicalDeg(jd);
+  const makeNode = (node: 'Rahu' | 'Ketu', tropLon: number): NodePosition => {
+    const sidLon = tropicalToSidereal(tropLon, ayanamsa);
+    const { rashi, degreeInRashi } = rashiOf(sidLon);
+    const nk = nakshatraOf(sidLon);
+    return {
+      node, longitude: sidLon, rashi, degreeInRashi,
+      nakshatra: nk.name, pada: nk.pada, navamsaRashi: navamsaRashiOf(sidLon).rashi,
+    };
+  };
+  const nodes = { rahu: makeNode('Rahu', rahuTrop), ketu: makeNode('Ketu', ketuTrop) };
+  trace.push({
+    rule: 'vedic.nodes',
+    detail: `Mean nodes: Rahu ${nodes.rahu.rashi} ${nodes.rahu.degreeInRashi.toFixed(3)}°, Ketu ${nodes.ketu.rashi} ${nodes.ketu.degreeInRashi.toFixed(3)}°`,
+  });
+
   let lagna: VedicChart['lagna'] = null;
   if (typeof input.geoLatitude === 'number' && typeof input.geoLongitude === 'number') {
     const tropAsc = computeAscendant(dateUtc, input.geoLatitude, input.geoLongitude);
     const sidLon = tropicalToSidereal(tropAsc.longitude, ayanamsa);
     const { rashi, degreeInRashi } = rashiOf(sidLon);
-    lagna = { longitude: sidLon, rashi, degreeInRashi };
+    lagna = { longitude: sidLon, rashi, degreeInRashi, navamsaRashi: navamsaRashiOf(sidLon).rashi };
     trace.push({
       rule: 'vedic.lagna',
       detail: `Lagna sidereal = ${sidLon.toFixed(3)}° → ${rashi} ${degreeInRashi.toFixed(3)}°`,
@@ -85,16 +104,9 @@ export function calculateVedicChart(input: VedicInput): VedicChart {
     detail: `Mahadasha periods: ${vimshottariMahadasha.length} entries starting with ${vimshottariMahadasha[0].lord} (${vimshottariMahadasha[0].years.toFixed(2)}y remaining)`,
   });
 
-  // True Rahu/Ketu nodes, retrograde flags, divisional charts (vargas), and
-  // Antardasha sub-periods are not implemented yet → partial.
   warnings.push({
-    code: 'rahu_ketu_not_included',
-    message: 'Rahu/Ketu lunar nodes are not included in this version.',
-    level: 'info',
-  });
-  warnings.push({
-    code: 'antardasha_not_implemented',
-    message: 'Only Mahadasha (top-level Vimshottari) implemented; Antardasha/Pratyantar not yet.',
+    code: 'mean_nodes',
+    message: 'Rahu/Ketu use the MEAN lunar node; true-node oscillation (±1.5°) not modelled.',
     level: 'info',
   });
 
@@ -104,13 +116,14 @@ export function calculateVedicChart(input: VedicInput): VedicChart {
     ayanamsaDeg: ayanamsa,
     ayanamsaSystem: 'Lahiri',
     planets,
+    nodes,
     lagna,
     moonNakshatra,
     vimshottariMahadasha,
-    confidence: lagna ? 65 : 55,
-    completenessScore: lagna ? 70 : 55,
-    sourceGrade: 'C',
-    implementationStatus: 'partial',
+    confidence: lagna ? 78 : 60,
+    completenessScore: lagna ? 88 : 65,
+    sourceGrade: lagna ? 'B' : 'C',
+    implementationStatus: lagna ? 'complete' : 'partial',
     warnings,
     explanationTrace: trace,
   };

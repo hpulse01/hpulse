@@ -34,6 +34,7 @@ export function taiyiChartToEngineOutput(chart: TaiyiChart): EngineOutput {
       `taiyi_palace=${chart.taiyiPalace}`,
       `wenchang_palace=${chart.wenChangPalace}`,
       `shiji_palace=${chart.shiJiPalace}`,
+      `ji_shen=${chart.jiShen}(${chart.jiShenGod})`,
     ],
     failed: ['advanced_rules_partial'],
     warnings: chart.warnings.map((w) => `${w.code}: ${w.message}`),
@@ -45,7 +46,9 @@ export function taiyiChartToEngineOutput(chart: TaiyiChart): EngineOutput {
     `太乙宫:${chart.taiyiPalace}(${PALACE_META[chart.taiyiPalace].trigram}/${PALACE_META[chart.taiyiPalace].direction})`,
     `文昌宫:${chart.wenChangPalace}(${PALACE_META[chart.wenChangPalace].trigram})`,
     `始击宫:${chart.shiJiPalace}(${PALACE_META[chart.shiJiPalace].trigram})`,
+    `计神:${chart.jiShen} 乘十六神「${chart.jiShenGod}」 (岁支${chart.yearBranch})`,
     `主算=${chart.zhuSuan} 客算=${chart.keSuan} → ${chart.zhuKeJudgment}`,
+    `主大将${chart.zhuDaJiang}宫 主参将${chart.zhuCanJiang}宫 / 客大将${chart.keDaJiang}宫 客参将${chart.keCanJiang}宫`,
   ];
 
   return {
@@ -54,7 +57,7 @@ export function taiyiChartToEngineOutput(chart: TaiyiChart): EngineOutput {
     engineVersion: 'P4.8-core',
     sourceUrls: ['classical: 太乙金镜式经 / 太乙统宗大全'],
     sourceGrade: chart.sourceGrade,
-    ruleSchool: '年家太乙基础 (积年→局→太乙宫/文昌/始击/主客算简化映射)',
+    ruleSchool: '年家太乙 (积年→局→太乙宫/计神/十六神/文昌/始击/主客算/大将参将)',
     confidence: chart.confidence,
     computationTimeMs: 0,
     rawInputSnapshot: {
@@ -73,15 +76,22 @@ export function taiyiChartToEngineOutput(chart: TaiyiChart): EngineOutput {
       taiyiPalace: String(chart.taiyiPalace),
       wenChangPalace: String(chart.wenChangPalace),
       shiJiPalace: String(chart.shiJiPalace),
+      yearBranch: chart.yearBranch,
+      jiShen: chart.jiShen,
+      jiShenGod: chart.jiShenGod,
       zhuSuan: String(chart.zhuSuan),
       keSuan: String(chart.keSuan),
+      zhuDaJiang: String(chart.zhuDaJiang),
+      zhuCanJiang: String(chart.zhuCanJiang),
+      keDaJiang: String(chart.keDaJiang),
+      keCanJiang: String(chart.keCanJiang),
       zhuKeJudgment: chart.zhuKeJudgment,
       implementationStatus: chart.implementationStatus,
     },
     warnings: chart.warnings.map((w) => `${w.code}: ${w.message}`),
     uncertaintyNotes: [
-      '太乙神数全本含 阳九/百六/三纪/五元/计神/大游/小游/君基臣基民基 等众多子项，本版仅实现核心主干。',
-      '主算/客算的最终吉凶需结合「四神」「九宫数差」综合判断；本版仅给出基础数值。',
+      '已实现：积年/局数/太乙宫/计神/十六神/始击(计神临宫)/主客算累计/大将参将。',
+      '未覆盖：阳九/百六/三纪五元/大游小游/君基臣基民基；文昌采用简化起例；月/日/时家太乙未完整实现。',
     ],
     timingBasis: 'query',
     explanationTrace: [
@@ -96,6 +106,8 @@ export function taiyiChartToEngineOutput(chart: TaiyiChart): EngineOutput {
       taiyiPalace: chart.taiyiPalace,
       wenChangPalace: chart.wenChangPalace,
       shiJiPalace: chart.shiJiPalace,
+      zhuSuan: chart.zhuSuan,
+      keSuan: chart.keSuan,
     },
     eventCandidates,
   };

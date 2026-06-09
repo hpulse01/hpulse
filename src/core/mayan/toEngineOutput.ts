@@ -4,6 +4,7 @@
 import type { EngineOutput, FateVector, ValidationFlags } from '../../types/prediction';
 import type { MayanResult } from './types';
 import { formatLongCount } from './longCount';
+import { formatHaab } from './haab';
 
 const clamp = (n: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, Math.round(n)));
 
@@ -35,6 +36,8 @@ export function mayanToEngineOutput(result: MayanResult): EngineOutput {
       'deterministic_no_random',
       `tzolkin=${result.tzolkin.tone}_${result.tzolkin.sign}`,
       `long_count=${formatLongCount(result.longCount)}`,
+      `haab=${formatHaab(result.haab)}`,
+      `lord_of_night=${result.lordOfNight.name}`,
     ],
     failed: [],
     warnings: result.warnings.map((w) => `${w.code}: ${w.message}`),
@@ -46,7 +49,7 @@ export function mayanToEngineOutput(result: MayanResult): EngineOutput {
     engineVersion: 'P4.10-core',
     sourceUrls: ['GMT correlation (Goodman–Martínez–Thompson) JD 584283'],
     sourceGrade: result.sourceGrade,
-    ruleSchool: 'Tzolkin (260-day) + Long Count (vigesimal except tun=18 uinal)',
+    ruleSchool: 'Tzolkin (260-day) + Haab (365-day) + Calendar Round + Long Count (vigesimal except tun=18 uinal)',
     confidence: result.confidence,
     computationTimeMs: 0,
     rawInputSnapshot: { utcDateTime: result.input.utcDateTime },
@@ -58,12 +61,19 @@ export function mayanToEngineOutput(result: MayanResult): EngineOutput {
       tzolkinPosition: String(result.tzolkin.position),
       longCount: formatLongCount(result.longCount),
       daysSinceEpoch: String(result.longCount.daysSinceEpoch),
+      haab: formatHaab(result.haab),
+      haabMonth: result.haab.month,
+      haabDay: String(result.haab.day),
+      haabDayOfYear: String(result.haab.dayOfYear),
+      isWayeb: String(result.haab.isWayeb),
+      lordOfNight: result.lordOfNight.name,
+      calendarRound: result.calendarRound.designation,
+      calendarRoundPosition: String(result.calendarRound.position),
       implementationStatus: result.implementationStatus,
     },
     warnings: result.warnings.map((w) => `${w.code}: ${w.message}`),
     uncertaintyNotes: [
       'GMT correlation (584283) used. Alternative correlations (e.g. Lounsbury 584285) shift the day by ±2.',
-      'Haab (365-day vague solar), Lord of the Night cycle (G1..G9), and Calendar Round not yet computed.',
     ],
     timingBasis: 'birth',
     explanationTrace: [
@@ -78,10 +88,16 @@ export function mayanToEngineOutput(result: MayanResult): EngineOutput {
       tzolkinSignIndex: result.tzolkin.signIndex,
       tzolkinPosition: result.tzolkin.position,
       baktun: result.longCount.baktun,
+      haabDayOfYear: result.haab.dayOfYear,
+      lordOfNight: result.lordOfNight.number,
+      calendarRoundPosition: result.calendarRound.position,
     },
     eventCandidates: [
       `Tzolkin: ${result.tzolkin.tone} ${result.tzolkin.sign} (${result.tzolkin.position}/260)`,
       `Long Count: ${formatLongCount(result.longCount)}`,
+      `Haab: ${formatHaab(result.haab)}${result.haab.isWayeb ? ' (Wayeb)' : ''}`,
+      `Calendar Round: ${result.calendarRound.designation}`,
+      `Lord of the Night: ${result.lordOfNight.name}`,
     ],
   };
 }

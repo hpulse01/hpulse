@@ -8,6 +8,7 @@ export {
   buildPlates, buildFourClasses, deriveThreeTransmissions,
   resolveMonthGeneral, placeTwelveDeities, heavenOfEarth,
 } from './plate';
+export { deriveThreeTransmissionsFull } from './keti';
 export {
   STEMS, BRANCHES, MONTH_GENERAL_BRANCH, BRANCH_TO_GENERAL,
   MID_TERM_TO_GENERAL_BRANCH, DAY_STEM_PALACE,

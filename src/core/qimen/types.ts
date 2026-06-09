@@ -71,6 +71,22 @@ export interface YongShenAssignment {
   rationale: string;
 }
 
+export interface QimenPattern {
+  name: string;
+  type: '吉格' | '凶格';
+  palace: PalaceNumber;
+  impact: number;
+  description: string;
+  evidence: string;
+}
+
+export interface FuYinFanYinInfo {
+  fuYin: boolean;
+  fanYin: boolean;
+  scoreAdjustment: number;
+  description: string;
+}
+
 export interface QimenChart {
   input: QimenInput;
   /** 时间柱 */
@@ -100,6 +116,11 @@ export interface QimenChart {
 
   /** 用神 */
   yongShen: YongShenAssignment;
+
+  /** 格局识别（十干克应/三诈五假/击刑入墓） */
+  patterns: QimenPattern[];
+  /** 伏吟反吟 */
+  fuYinFanYin: FuYinFanYinInfo;
 
   confidence: number;
   completenessScore: number;

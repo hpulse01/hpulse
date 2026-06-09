@@ -33,6 +33,8 @@ export interface ThreeTransmissions {
   zhong: BranchCN; // 中传
   mo: BranchCN;    // 末传
   method: '贼克' | '比用' | '涉害' | '遥克' | '昴星' | '别责' | '八专' | '伏吟' | '反吟' | 'fallback';
+  /** 课体名（元首/重审/知一/涉害/蒿矢/弹射/昴星/别责/八专/伏吟/返吟）。 */
+  keTi?: string;
 }
 
 export interface LiurenWarning {
@@ -72,6 +74,8 @@ export interface LiurenChart {
   plates: PlateCell[];
   fourClasses: FourClasses;
   threeTransmissions: ThreeTransmissions;
+  /** 课体识别结果。 */
+  keTi: string;
   confidence: number;
   completenessScore: number;
   sourceGrade: 'A'|'B'|'C'|'D';

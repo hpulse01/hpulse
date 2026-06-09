@@ -41,3 +41,35 @@ export const DEFAULT_EPOCH_YEAR = -10153917; // BC 10153918 (negative ISO year)
 /** 阳遁/阴遁切换：积年 mod 72 < 36 阳遁 else 阴遁. */
 export const YANG_DUN_LIMIT = 36;
 export const TOTAL_JU = 72;
+
+export const BRANCHES_CN = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'] as const;
+export type BranchCN = typeof BRANCHES_CN[number];
+
+/**
+ * 计神：岁计以寅为首逆行十二辰 (子年起寅，丑年在丑，寅年在子 ……)。
+ * 出处：《太乙金镜式经》「计神常以寅为正月，逆行十二辰」。
+ */
+export const JI_SHEN_MAP: Record<BranchCN, BranchCN> = {
+  子:'寅', 丑:'丑', 寅:'子', 卯:'亥', 辰:'戌', 巳:'酉',
+  午:'申', 未:'未', 申:'午', 酉:'巳', 戌:'辰', 亥:'卯',
+};
+
+/** 地支 → 后天八卦九宫 (子坎1 丑寅艮8 卯震3 辰巳巽4 午离9 未申坤2 酉兑7 戌亥乾6). */
+export const BRANCH_PALACE: Record<BranchCN, PalaceNumber> = {
+  子:1, 丑:8, 寅:8, 卯:3, 辰:4, 巳:4, 午:9, 未:2, 申:2, 酉:7, 戌:6, 亥:6,
+};
+
+/**
+ * 十六神 (太乙式盘十六位): 子起地主，顺布十六位 (含四维卦位)。
+ * 出处：《太乙统宗》十六神名次。
+ */
+export const SIXTEEN_GODS: readonly { name: string; position: string }[] = [
+  { name:'地主', position:'子' }, { name:'阳德', position:'丑' },
+  { name:'和德', position:'艮' }, { name:'吕申', position:'寅' },
+  { name:'高丛', position:'卯' }, { name:'太阳', position:'辰' },
+  { name:'太炅', position:'巽' }, { name:'大神', position:'巳' },
+  { name:'大威', position:'午' }, { name:'天道', position:'未' },
+  { name:'大武', position:'坤' }, { name:'武德', position:'申' },
+  { name:'太簇', position:'酉' }, { name:'阴主', position:'戌' },
+  { name:'阴德', position:'乾' }, { name:'大义', position:'亥' },
+];

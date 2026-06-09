@@ -63,6 +63,9 @@ export function westernChartToEngineOutput(chart: WesternChart): EngineOutput {
   if (chart.ascendant) {
     eventCandidates.push(`Asc ${chart.ascendant.sign} ${chart.ascendant.degreeInSign.toFixed(2)}°`);
   }
+  if (chart.midheaven) {
+    eventCandidates.push(`MC ${chart.midheaven.sign} ${chart.midheaven.degreeInSign.toFixed(2)}°`);
+  }
   for (const a of chart.aspects) {
     eventCandidates.push(`${a.a} ${a.aspect} ${a.b} (orb ${a.orbDeg.toFixed(2)}°)`);
   }
@@ -73,7 +76,7 @@ export function westernChartToEngineOutput(chart: WesternChart): EngineOutput {
     engineVersion: 'P4.9-core',
     sourceUrls: ['astronomy-engine (Don Cross, MIT) — geocentric of-date positions'],
     sourceGrade: chart.sourceGrade,
-    ruleSchool: 'Tropical zodiac, Whole-Sign houses, Ptolemaic major aspects',
+    ruleSchool: `Tropical zodiac, ${chart.housesSystem === 'placidus' ? 'Placidus' : 'Whole-Sign'} houses, Ptolemaic major aspects`,
     confidence: chart.confidence,
     computationTimeMs: 0,
     rawInputSnapshot: {
@@ -87,14 +90,21 @@ export function westernChartToEngineOutput(chart: WesternChart): EngineOutput {
       julianDay: String(chart.julianDay),
       ascendantSign: chart.ascendant?.sign ?? '-',
       ascendantDeg: chart.ascendant ? chart.ascendant.degreeInSign.toFixed(3) : '-',
+      midheavenSign: chart.midheaven?.sign ?? '-',
+      midheavenDeg: chart.midheaven ? chart.midheaven.degreeInSign.toFixed(3) : '-',
       housesSystem: chart.housesSystem,
+      houseCusps: chart.houseCusps
+        ? chart.houseCusps.map((c) => `${c.house}:${c.sign} ${c.degreeInSign.toFixed(2)}°`).join('; ')
+        : '-',
       planetCount: String(chart.planets.length),
       aspectCount: String(chart.aspects.length),
       implementationStatus: chart.implementationStatus,
     },
     warnings: chart.warnings.map((w) => `${w.code}: ${w.message}`),
     uncertaintyNotes: [
-      'Whole-Sign houses only; Placidus / Koch / Regiomontanus not implemented.',
+      chart.housesSystem === 'placidus'
+        ? 'Placidus cusps via iterative semi-arc method; Koch / Regiomontanus not implemented.'
+        : 'Whole-sign houses in effect (Placidus unavailable for this chart).',
       'Mean obliquity J2000 used in Ascendant; nutation in obliquity not applied.',
       'Minor aspects (quincunx, semi-square, etc.) not detected.',
     ],

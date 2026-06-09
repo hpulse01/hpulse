@@ -3,6 +3,8 @@ import {
   calculateMayan, mayanToEngineOutput,
   tzolkinFromJulianDay, longCountFromJulianDay, formatLongCount,
   MAYAN_EPOCH_JD,
+  haabFromDaysSinceEpoch, lordOfNightFromDaysSinceEpoch,
+  calendarRoundFromDaysSinceEpoch, CALENDAR_ROUND_DAYS,
 } from '../index';
 
 describe('mayan/tzolkin calibration', () => {
@@ -21,6 +23,39 @@ describe('mayan/tzolkin calibration', () => {
   });
   it('long count one tun later = 0.0.1.0.0 (360 days)', () => {
     expect(formatLongCount(longCountFromJulianDay(MAYAN_EPOCH_JD + 360))).toBe('0.0.1.0.0');
+  });
+});
+
+describe('mayan/haab calibration', () => {
+  it('epoch (daysSinceEpoch=0) = 8 Cumku, G9', () => {
+    const h = haabFromDaysSinceEpoch(0);
+    expect(h.day).toBe(8);
+    expect(h.month).toBe('Cumku');
+    expect(lordOfNightFromDaysSinceEpoch(0).name).toBe('G9');
+  });
+  it('2012-12-21 (13.0.0.0.0) = 4 Ahau 3 Kankin, G9', () => {
+    const days = 1872000;
+    const h = haabFromDaysSinceEpoch(days);
+    expect(h.day).toBe(3);
+    expect(h.month).toBe('Kankin');
+    expect(lordOfNightFromDaysSinceEpoch(days).name).toBe('G9');
+    const r = calculateMayan({ utcDateTime: '2012-12-21T12:00:00Z' });
+    expect(r.tzolkin.tone).toBe(4);
+    expect(r.tzolkin.sign).toBe('Ahau');
+    expect(r.haab.day).toBe(3);
+    expect(r.haab.month).toBe('Kankin');
+    expect(r.calendarRound.designation).toBe('4 Ahau 3 Kankin');
+  });
+  it('haab cycle is 365 days; calendar round is 18980 days', () => {
+    expect(haabFromDaysSinceEpoch(365)).toEqual(haabFromDaysSinceEpoch(0));
+    expect(CALENDAR_ROUND_DAYS).toBe(18980);
+    const a = calendarRoundFromDaysSinceEpoch(0, tzolkinFromJulianDay(MAYAN_EPOCH_JD), haabFromDaysSinceEpoch(0));
+    expect(a.designation).toBe('4 Ahau 8 Cumku');
+  });
+  it('wayeb days flagged', () => {
+    const h = haabFromDaysSinceEpoch(365 - 348 - 5); // dayOfYear 360 → Wayeb 0
+    expect(h.isWayeb).toBe(true);
+    expect(h.month).toBe('Wayeb');
   });
 });
 

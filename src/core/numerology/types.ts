@@ -22,6 +22,13 @@ export interface ExplanationStep {
   rule: string; detail: string; data?: Record<string, unknown>;
 }
 
+export interface KarmicDebt {
+  /** Which core number carried the debt. */
+  source: 'lifePath' | 'destiny' | 'soulUrge' | 'personality' | 'birthday';
+  /** The unreduced total (13, 14, 16 or 19). */
+  number: number;
+}
+
 export interface NumerologyResult {
   input: NumerologyInput;
   /** Life Path number derived from full birth date. Master numbers 11/22/33 preserved. */
@@ -35,6 +42,14 @@ export interface NumerologyResult {
   /** Personal Year for referenceYear. */
   personalYear: number;
   referenceYear: number;
+  /** Birthday number — reduce(birthDay), master numbers preserved. */
+  birthday: number;
+  /** Maturity number — reduce(lifePath + destiny). Null without name. */
+  maturity: number | null;
+  /** Karmic Debt numbers (13/14/16/19) detected in unreduced core totals. */
+  karmicDebts: KarmicDebt[];
+  /** Chaldean Destiny (name) number — secondary system. Null without name. */
+  chaldeanDestiny: number | null;
   confidence: number;
   completenessScore: number;
   sourceGrade: 'A' | 'B' | 'C' | 'D';

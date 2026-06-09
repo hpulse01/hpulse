@@ -28,6 +28,35 @@ export interface LongCount {
   daysSinceEpoch: number;
 }
 
+export interface HaabDay {
+  /** Day within the month: 0..19 (0..4 in Wayeb). */
+  day: number;
+  /** Haab month name (Pop..Cumku, Wayeb). */
+  month: string;
+  /** Month index 0..18 (18 = Wayeb). */
+  monthIndex: number;
+  /** Day of the 365-day haab year, 0..364. */
+  dayOfYear: number;
+  /** True if within the 5 unlucky Wayeb days. */
+  isWayeb: boolean;
+}
+
+export interface LordOfNight {
+  /** 1..9. */
+  number: number;
+  /** "G1".."G9". */
+  name: string;
+}
+
+export interface CalendarRound {
+  /** Position within the 18,980-day (~52 year) Calendar Round, 1-based. */
+  position: number;
+  /** Cycle length in days (18,980). */
+  cycleDays: number;
+  /** Full Calendar Round designation, e.g. "4 Ahau 8 Cumku". */
+  designation: string;
+}
+
 export interface MayanInput {
   /** UTC timestamp to convert. */
   utcDateTime: string;
@@ -46,6 +75,9 @@ export interface MayanResult {
   julianDay: number;
   tzolkin: TzolkinDay;
   longCount: LongCount;
+  haab: HaabDay;
+  lordOfNight: LordOfNight;
+  calendarRound: CalendarRound;
   confidence: number;
   completenessScore: number;
   sourceGrade: 'A' | 'B' | 'C' | 'D';

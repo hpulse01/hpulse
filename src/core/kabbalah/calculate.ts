@@ -7,6 +7,7 @@
  */
 import { gematria, isHebrewInput } from './gematria';
 import { sephirahFromNumber } from './treeOfLife';
+import { pathFromLetter, pathFromNumber } from './paths';
 import { reduceToDigit, sumDigits } from '../numerology/reduce';
 import type { KabbalahInput, KabbalahResult, KabbalahWarning, ExplanationStep } from './types';
 
@@ -74,8 +75,23 @@ export function calculateKabbalah(input: KabbalahInput): KabbalahResult {
   const derivedFromName = hasName && gem != null && gem.letters.length > 0;
   const isHebrewSource = derivedFromName && gem!.source === 'hebrew';
 
-  const completenessScore = isHebrewSource ? 80 : derivedFromName ? 65 : 40;
-  const confidence = isHebrewSource ? 75 : derivedFromName ? 60 : 35;
+  let primaryPath = null as ReturnType<typeof pathFromNumber> | null;
+  if (derivedFromName) {
+    primaryPath = pathFromLetter(gem!.letters[0].letter) ?? pathFromNumber(gem!.total);
+    trace.push({
+      rule: 'kabbalah.path',
+      detail: `Path ${primaryPath.number} (${primaryPath.letterName} ${primaryPath.letter}): ${primaryPath.from} → ${primaryPath.to} — ${primaryPath.meaning}`,
+    });
+  } else if (primaryNumber != null) {
+    primaryPath = pathFromNumber(primaryNumber);
+    trace.push({
+      rule: 'kabbalah.path',
+      detail: `Fallback path ${primaryPath.number} (${primaryPath.letterName}) from birth-date number ${primaryNumber}`,
+    });
+  }
+
+  const completenessScore = isHebrewSource ? 90 : derivedFromName ? 70 : 42;
+  const confidence = isHebrewSource ? 80 : derivedFromName ? 62 : 36;
   const sourceGrade: KabbalahResult['sourceGrade'] = isHebrewSource ? 'B' : derivedFromName ? 'C' : 'D';
 
   return {
@@ -83,10 +99,11 @@ export function calculateKabbalah(input: KabbalahInput): KabbalahResult {
     gematria: gem,
     primarySephirah,
     derivedFromName,
+    primaryPath,
     confidence,
     completenessScore,
     sourceGrade,
-    implementationStatus: 'partial',
+    implementationStatus: isHebrewSource ? 'complete' : 'partial',
     warnings,
     explanationTrace: trace,
   };
