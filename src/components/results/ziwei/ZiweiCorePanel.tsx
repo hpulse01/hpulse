@@ -27,13 +27,18 @@ interface RawStar { name?: string; brightness?: string }
 interface RawPalace {
   name?: string;
   branch?: string;
+  stem?: string;
   isMing?: boolean;
   isShen?: boolean;
+  isEmpty?: boolean;
   strengthScore?: number;
   majorStars?: RawStar[] | string[];
   auxiliaryStars?: RawStar[] | string[];
   shaStars?: RawStar[] | string[];
   minorStars?: RawStar[] | string[];
+  borrowedFromName?: string;
+  borrowedStars?: string[];
+  selfSihua?: Array<{ star?: string; transform?: string }>;
 }
 
 function starName(s: unknown): string {
