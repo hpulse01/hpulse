@@ -10,6 +10,7 @@ import { PredictionOverview } from '@/components/results/PredictionOverview';
 import { EngineContributionPanel } from '@/components/results/EngineContributionPanel';
 import { DestinyTreeLayer } from '@/components/results/DestinyTreeLayer';
 import { UniquePathLayer } from '@/components/results/UniquePathLayer';
+import { HolographicFateMapPanel } from '@/components/results/HolographicFateMapPanel';
 import { Footer } from '@/components/Footer';
 import { UserMenu } from '@/components/UserMenu';
 import { LanguageToggle } from '@/components/LanguageToggle';
@@ -201,6 +202,7 @@ const Index = () => {
     const publicTabs = [
       { id: 'overview', label: t('tab.overview'), icon: Sparkles },
       { id: 'engines', label: t('tab.engines'), icon: Layers },
+      { id: 'holographic', label: lang === 'zh' ? '全息命盘' : 'Holographic Map', icon: Layers },
       { id: 'tree', label: t('tab.tree'), icon: TreePine },
       { id: 'path', label: t('tab.path'), icon: Target },
       { id: 'yearly', label: lang === 'zh' ? '逐年详批' : 'Yearly Detail', icon: CalendarDays },
@@ -508,6 +510,14 @@ const Index = () => {
                       </HolographicPanel>
                     )}
                   </TabsContent>
+
+                  <TabsContent value="holographic" className="mt-5">
+                    <HolographicFateMapPanel
+                      map={quantumResult.holographicFateMap ?? null}
+                      birthYear={birthInput.year}
+                    />
+                  </TabsContent>
+
 
                   <TabsContent value="path" className="mt-5">
                     {quantumResult.collapseResult ? (
