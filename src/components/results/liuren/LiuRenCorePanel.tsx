@@ -1,6 +1,6 @@
 import type { EngineOutput } from '@/types/prediction';
 import { MobileSectionAccordion } from '@/components/hpulse/MobileSectionAccordion';
-import { EnginePanelHeader, EngineMissingNotice, EngineAuditTrace } from '../_shared/EnginePanelShell';
+import { EnginePanelHeader, EngineMissingNotice, EngineAuditTrace, EngineWarningStrip } from '../_shared/EnginePanelShell';
 import { LiuRenHeavenEarthPlate } from './LiuRenHeavenEarthPlate';
 import { LiuRenFourLessonsPanel } from './LiuRenFourLessonsPanel';
 import { LiuRenThreeTransmissionsPanel } from './LiuRenThreeTransmissionsPanel';
@@ -37,6 +37,7 @@ export function LiuRenCorePanel({ engineOutput }: Props) {
   return (
     <div className="space-y-5">
       <EnginePanelHeader engineOutput={engineOutput} fallbackName="大六壬" />
+      <EngineWarningStrip warnings={engineOutput.warnings} uncertainty={engineOutput.uncertaintyNotes} />
       <div className="hidden lg:grid lg:grid-cols-[1fr_1.2fr] gap-5">
         <div className="space-y-3">{plate}{gens}</div>
         <div className="space-y-3">{four}{three}{judge}</div>

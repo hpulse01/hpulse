@@ -1,6 +1,6 @@
 import type { EngineOutput } from '@/types/prediction';
 import { MobileSectionAccordion } from '@/components/hpulse/MobileSectionAccordion';
-import { EnginePanelHeader, EngineMissingNotice, EngineAuditTrace } from '../_shared/EnginePanelShell';
+import { EnginePanelHeader, EngineMissingNotice, EngineAuditTrace, EngineWarningStrip } from '../_shared/EnginePanelShell';
 import { QimenJuPanel } from './QimenJuPanel';
 import { QimenNinePalaceGrid, type PalaceData } from './QimenNinePalaceGrid';
 import { QimenStarsGatesPanel } from './QimenStarsGatesPanel';
@@ -59,6 +59,7 @@ export function QimenCorePanel({ engineOutput }: Props) {
   return (
     <div className="space-y-5">
       <EnginePanelHeader engineOutput={engineOutput} fallbackName="奇门遁甲" />
+      <EngineWarningStrip warnings={engineOutput.warnings} uncertainty={engineOutput.uncertaintyNotes} />
 
       <div className="hidden lg:grid lg:grid-cols-[1.2fr_1fr] gap-5">
         <div className="space-y-3">{ju}{grid}</div>

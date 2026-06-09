@@ -10,6 +10,7 @@ import { SixSpiritsPanel } from './SixSpiritsPanel';
 import { YongShenPanel } from './YongShenPanel';
 import { LiuYaoJudgementPanel } from './LiuYaoJudgementPanel';
 import { LiuYaoAuditTrace } from './LiuYaoAuditTrace';
+import { EngineWarningStrip } from '../_shared/EnginePanelShell';
 
 interface Props { engineOutput?: EngineOutput | null }
 
@@ -70,6 +71,9 @@ export function LiuYaoCorePanel({ engineOutput }: Props) {
           conf {formatPercent(engineOutput.confidence)} · compl {formatScore(engineOutput.completenessScore)}
         </span>
       </header>
+
+      <EngineWarningStrip warnings={engineOutput.warnings} uncertainty={engineOutput.uncertaintyNotes} />
+
 
       {/* Desktop: 卦象 left, 判断 right */}
       <div className="hidden lg:grid lg:grid-cols-[minmax(280px,1fr)_1.5fr] gap-5">

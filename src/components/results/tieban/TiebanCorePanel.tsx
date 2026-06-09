@@ -10,6 +10,7 @@ import { FamilyVerificationTrace } from './FamilyVerificationTrace';
 import { ClauseLookupPanel, type ClauseLookupItem } from './ClauseLookupPanel';
 import { TiebanDestinySections, type DestinySectionView } from './TiebanDestinySections';
 import { TiebanAuditTrace } from './TiebanAuditTrace';
+import { EngineWarningStrip } from '../_shared/EnginePanelShell';
 
 interface Props {
   engineOutput?: EngineOutput | null;
@@ -69,6 +70,11 @@ export function TiebanCorePanel(props: Props) {
           conf {formatPercent(engineOutput?.confidence)} · compl {formatScore(engineOutput?.completenessScore)}
         </span>
       </header>
+
+      {engineOutput && (
+        <EngineWarningStrip warnings={engineOutput.warnings} uncertainty={engineOutput.uncertaintyNotes} />
+      )}
+
 
       {/* Desktop: 2-col base+calibration | sections+clauses. Mobile: stacked accordions. */}
       <div className="hidden lg:grid lg:grid-cols-2 gap-5">

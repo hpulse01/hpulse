@@ -1,6 +1,6 @@
 import type { EngineOutput } from '@/types/prediction';
 import { MobileSectionAccordion } from '@/components/hpulse/MobileSectionAccordion';
-import { EnginePanelHeader, EngineMissingNotice, EngineAuditTrace } from '../_shared/EnginePanelShell';
+import { EnginePanelHeader, EngineMissingNotice, EngineAuditTrace, EngineWarningStrip } from '../_shared/EnginePanelShell';
 import { NumerologyNumberGrid } from './NumerologyNumberGrid';
 import { PersonalYearPanel } from './PersonalYearPanel';
 import { NumerologyMissingInputPanel } from './NumerologyMissingInputPanel';
@@ -43,6 +43,7 @@ export function NumerologyCorePanel({ engineOutput, userName, currentYear }: Pro
   return (
     <div className="space-y-5">
       <EnginePanelHeader engineOutput={engineOutput} fallbackName="数字命理" />
+      <EngineWarningStrip warnings={engineOutput.warnings} uncertainty={engineOutput.uncertaintyNotes} />
       {missing}
       <div className="hidden lg:grid lg:grid-cols-[1fr_2fr] gap-5">
         <div className="space-y-3">{py}</div>
