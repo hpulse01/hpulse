@@ -1,10 +1,12 @@
 /**
  * Destiny Dashboard Component (天命总览仪表盘)
- * 
- * A comprehensive tabbed interface showing:
- * - Tab 1: BaZi Profile (八字命盘) with Ten Gods, Hidden Stems, Na Yin
- * - Tab 2: Iron Plate Timeline (铁板流年)
- * - Tab 3: General Verdict (终身总评)
+ *
+ * Tieban-focused tabbed interface:
+ * - Tab 1: BaZi Profile (八字命盘) — four pillars + Da Yun timeline
+ * - Tab 2: General Verdict (终身总评) — six-aspect destiny clauses
+ *
+ * Per-year clause detail lives in the 逐年详批 tab (YearByYearPanel);
+ * engine deep-dives live in the per-engine core panels.
  */
 
 import { useState, useEffect, useMemo } from 'react';
@@ -13,33 +15,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { fetchClauseByNumber, fetchClausesByNumbers } from '@/services/SupabaseService';
-import { 
-  type FullDestinyReport, 
-  type FlowYearClause,
-  type DestinyProjection,
+import { fetchClauseByNumber } from '@/services/SupabaseService';
+
+import {
+  type FullDestinyReport,
   type BaZiProfile,
 } from '@/utils/tiebanAlgorithm';
-
-import { BaZiDetailedDisplay } from '@/components/BaZiDetailedDisplay';
-import { LiuYaoDeepAnalysis } from '@/components/LiuYaoDeepAnalysis';
-import { ZiweiDisplay } from '@/components/ZiweiDisplay';
-import { useAuth } from '@/hooks/useAuth';
-import { calculateLiuYaoHexagram, type LiuYaoResult } from '@/utils/liuYaoAlgorithm';
-import { ZiweiEngine } from '@/utils/ziweiAlgorithm';
-
-interface ZiweiProfileSummary {
-  mingGong: string;
-  shenGong: string;
-  mingElement: string;
-  shenElement: string;
-  palaces: Array<{ name: string; branch: string }>;
-}
-import { 
-  RotateCcw, Scroll, Sparkles, Heart, Coins, Briefcase, 
-  Activity, Baby, Calendar, Zap, Mountain, Flame, Droplet, 
-  TreeDeciduous, CircleDot, Lock
+import {
+  RotateCcw, Scroll, Sparkles, Heart, Coins, Briefcase,
+  Activity, Baby, Calendar, Mountain, Flame, Droplet,
+  TreeDeciduous, CircleDot,
 } from 'lucide-react';
 
 // ==========================================
@@ -79,7 +64,6 @@ interface DestinyDashboardProps {
   report: FullDestinyReport;
   pillarsDisplay: string;
   birthYear: number;
-  birthData: { year: number; month: number; day: number; hour: number; minute: number; gender: 'male' | 'female' };
   onReset: () => void;
 }
 
@@ -157,21 +141,11 @@ function DaYunExpandedPanel({
   daYun,
   daYunIndex,
   baziProfile,
-  pillarsDisplay,
-  hexagramResult,
-  ziweiProfile,
-  canUseAI,
-  isAuthenticated,
   birthYear,
 }: {
   daYun: { startAge: number; endAge: number; ganZhi: string; element: string; startYear: number };
   daYunIndex: number;
   baziProfile: BaZiProfile;
-  pillarsDisplay: string;
-  hexagramResult: LiuYaoResult;
-  ziweiProfile: ZiweiProfileSummary;
-  canUseAI: boolean;
-  isAuthenticated: boolean;
   birthYear: number;
 }) {
   const colorClass = ELEMENT_COLORS[daYun.element] || 'text-gray-400 bg-gray-500/20 border-gray-500/30';
@@ -406,85 +380,6 @@ function DaYunExpandedPanel({
   );
 }
 
-// Flow Year Timeline Item with AI
-function FlowYearItem({ 
-  flowYear, 
-  currentAge,
-  pillarsDisplay,
-  baziProfile,
-  canUseAI,
-  ziweiProfile,
-  hexagram,
-}: { 
-  flowYear: FlowYearClause & { content?: string }; 
-  currentAge: number;
-  pillarsDisplay: string;
-  baziProfile: BaZiProfile;
-  canUseAI: boolean;
-  ziweiProfile?: ZiweiProfileSummary;
-  hexagram?: LiuYaoResult;
-}) {
-  const isCurrentAge = flowYear.age === currentAge;
-  const isPast = flowYear.age < currentAge;
-  
-  // Check if clause contains age number for highlighting
-  const hasAgeMatch = flowYear.content?.includes(`(${flowYear.age})`) || 
-                      flowYear.content?.includes(`${flowYear.age}岁`);
-  
-  return (
-    <div className={`
-      relative flex gap-2 sm:gap-4 p-3 sm:p-4 rounded-lg border transition-all
-      ${isCurrentAge 
-        ? 'bg-primary/20 border-primary shadow-lg' 
-        : isPast 
-          ? 'bg-secondary/20 border-border/30 opacity-70' 
-          : 'bg-card/50 border-border/50 hover:border-primary/30'}
-    `}>
-      {/* Timeline connector */}
-      <div className="absolute left-6 sm:left-8 top-0 bottom-0 w-px bg-border/50 -z-10" />
-      
-      {/* Age/Year Column */}
-      <div className="flex flex-col items-center min-w-[45px] sm:min-w-[60px]">
-        <span className={`text-xl sm:text-2xl font-serif ${isCurrentAge ? 'text-primary' : 'text-foreground'}`}>
-          {flowYear.age}
-        </span>
-        <span className="text-[10px] sm:text-xs text-muted-foreground">岁</span>
-        <span className="text-[10px] sm:text-xs text-primary/60 mt-0.5 sm:mt-1">{flowYear.year}</span>
-        <span className="text-[10px] sm:text-xs text-muted-foreground">{flowYear.ganZhi}</span>
-      </div>
-      
-      {/* Content Column */}
-      <div className="flex-1 min-w-0">
-        {flowYear.content ? (
-          <>
-            <p className={`
-              font-serif text-xs sm:text-sm leading-relaxed break-words
-              ${hasAgeMatch ? 'text-primary' : 'text-foreground/80'}
-            `}>
-              {flowYear.content}
-            </p>
-            
-            {/* AI interpretation removed */}
-
-          </>
-        ) : (
-          <Skeleton className="h-4 w-full bg-muted/30" />
-        )}
-        <span className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2 block">
-          条文 #{flowYear.clauseNumber}
-        </span>
-      </div>
-      
-      {/* Highlight badge for age match */}
-      {hasAgeMatch && (
-        <Badge className="absolute top-1 sm:top-2 right-1 sm:right-2 bg-primary/80 text-primary-foreground text-[10px] sm:text-xs px-1.5 sm:px-2">
-          应验
-        </Badge>
-      )}
-    </div>
-  );
-}
-
 // ==========================================
 // MAIN COMPONENT
 // ==========================================
@@ -493,53 +388,18 @@ export function DestinyDashboard({
   report,
   pillarsDisplay,
   birthYear,
-  birthData,
   onReset,
 }: DestinyDashboardProps) {
-  const { canUseAI, isAuthenticated, profile } = useAuth();
   const [activeTab, setActiveTab] = useState('bazi');
   const [loadedAspects, setLoadedAspects] = useState<LoadedAspect[]>([]);
-  const [loadedFlowYears, setLoadedFlowYears] = useState<Map<number, string>>(new Map());
   const [isLoadingAspects, setIsLoadingAspects] = useState(true);
-  const [isLoadingFlowYears, setIsLoadingFlowYears] = useState(false);
-  const [flowYearRange, setFlowYearRange] = useState({ start: 1, end: 20 });
   const [selectedDaYunIndex, setSelectedDaYunIndex] = useState<number | null>(null);
-
-  // Calculate hexagram for the session
-  const hexagramResult = useMemo(() => {
-    return calculateLiuYaoHexagram(new Date());
-  }, []);
 
   // Calculate current age
   const currentAge = useMemo(() => {
     const now = new Date();
     return now.getFullYear() - birthYear;
   }, [birthYear]);
-
-  // Calculate Ziwei profile for AI interpretation
-  const ziweiProfile = useMemo(() => {
-    const ziweiReport = ZiweiEngine.generateReport({
-      year: birthData.year,
-      month: birthData.month,
-      day: birthData.day,
-      hour: birthData.hour,
-      gender: birthData.gender,
-    });
-    
-    // Branch element mapping
-    const branchElements: Record<string, string> = {
-      '子': '水', '丑': '土', '寅': '木', '卯': '木', '辰': '土', '巳': '火',
-      '午': '火', '未': '土', '申': '金', '酉': '金', '戌': '土', '亥': '水',
-    };
-    
-    return {
-      mingGong: ziweiReport.mingGong,
-      shenGong: ziweiReport.shenGong,
-      mingElement: branchElements[ziweiReport.mingGong] || '',
-      shenElement: branchElements[ziweiReport.shenGong] || '',
-      palaces: ziweiReport.palaces.map((p) => ({ name: p.name, branch: p.branch })),
-    };
-  }, [birthData]);
 
   // Load destiny aspects on mount
   useEffect(() => {
@@ -566,49 +426,6 @@ export function DestinyDashboard({
     loadAspects();
   }, [report.destinyProjection]);
 
-  // Load flow years when tab is activated or range changes
-  useEffect(() => {
-    if (activeTab !== 'timeline') return;
-    
-    const loadFlowYears = async () => {
-      setIsLoadingFlowYears(true);
-      
-      // Get clause numbers for the current range
-      const clauseNumbers = report.flowYears
-        .filter(fy => fy.age >= flowYearRange.start && fy.age <= flowYearRange.end)
-        .map(fy => fy.clauseNumber);
-      
-      // Fetch all clauses at once
-      const clauses = await fetchClausesByNumbers(clauseNumbers);
-      
-      // Create a map of clause_number -> content
-      const contentMap = new Map<number, string>();
-      clauses.forEach(clause => {
-        contentMap.set(clause.clause_number, clause.content);
-      });
-      
-      setLoadedFlowYears(prev => {
-        const newMap = new Map(prev);
-        contentMap.forEach((content, num) => newMap.set(num, content));
-        return newMap;
-      });
-      
-      setIsLoadingFlowYears(false);
-    };
-    
-    loadFlowYears();
-  }, [activeTab, flowYearRange, report.flowYears]);
-
-  // Get flow years with content for current range
-  const displayedFlowYears = useMemo(() => {
-    return report.flowYears
-      .filter(fy => fy.age >= flowYearRange.start && fy.age <= flowYearRange.end)
-      .map(fy => ({
-        ...fy,
-        content: loadedFlowYears.get(fy.clauseNumber),
-      }));
-  }, [report.flowYears, flowYearRange, loadedFlowYears]);
-
   // Find active Da Yun cycle
   const activeDaYunIndex = useMemo(() => {
     return report.lifeCycles.findIndex(
@@ -616,7 +433,6 @@ export function DestinyDashboard({
     );
   }, [report.lifeCycles, currentAge]);
 
-  // Get selected Da Yun for AI
   const selectedDaYun = selectedDaYunIndex !== null ? report.lifeCycles[selectedDaYunIndex] : null;
 
   return (
@@ -641,9 +457,8 @@ export function DestinyDashboard({
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-secondary/50 h-auto">
+        <TabsList className="grid w-full grid-cols-2 bg-secondary/50 h-auto">
           <TabsTrigger value="bazi" className="font-serif text-xs sm:text-sm py-2 sm:py-2.5">八字命盘</TabsTrigger>
-          <TabsTrigger value="timeline" className="font-serif text-xs sm:text-sm py-2 sm:py-2.5">铁板流年</TabsTrigger>
           <TabsTrigger value="verdict" className="font-serif text-xs sm:text-sm py-2 sm:py-2.5">终身总评</TabsTrigger>
         </TabsList>
 
@@ -662,28 +477,6 @@ export function DestinyDashboard({
               <PillarCard title="时柱" ganZhi={report.baziProfile.pillars.time} subtitle="Hour" />
             </div>
           </div>
-
-          {/* Deep BaZi Analysis */}
-          <BaZiDetailedDisplay
-            year={birthData.year}
-            month={birthData.month}
-            day={birthData.day}
-            hour={birthData.hour}
-            minute={birthData.minute}
-            gender={birthData.gender}
-          />
-
-          {/* Ziwei Doushu Display */}
-          <ZiweiDisplay
-            year={birthData.year}
-            month={birthData.month}
-            day={birthData.day}
-            hour={birthData.hour}
-            gender={birthData.gender}
-          />
-
-          {/* Liu Yao Deep Analysis */}
-          <LiuYaoDeepAnalysis calculationTime={new Date()} />
 
           {/* Da Yun Timeline */}
           <div>
@@ -706,79 +499,15 @@ export function DestinyDashboard({
               </div>
             </div>
             
-            {/* Selected Da Yun Details with AI */}
             {selectedDaYunIndex !== null && selectedDaYun && (
               <DaYunExpandedPanel
                 daYun={selectedDaYun}
                 daYunIndex={selectedDaYunIndex}
                 baziProfile={report.baziProfile}
-                pillarsDisplay={pillarsDisplay}
-                hexagramResult={hexagramResult}
-                ziweiProfile={ziweiProfile}
-                canUseAI={canUseAI}
-                isAuthenticated={isAuthenticated}
                 birthYear={birthYear}
               />
             )}
           </div>
-        </TabsContent>
-
-        {/* Tab 2: Iron Plate Timeline */}
-        <TabsContent value="timeline" className="space-y-3 sm:space-y-4 mt-4 sm:mt-6">
-          {/* Range Selector */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-secondary/30 rounded-lg p-2 sm:p-3">
-            <span className="text-xs sm:text-sm text-muted-foreground">年龄范围</span>
-            <div className="grid grid-cols-4 gap-1 sm:flex sm:gap-2">
-              {[
-                { label: '1-20', start: 1, end: 20 },
-                { label: '21-40', start: 21, end: 40 },
-                { label: '41-60', start: 41, end: 60 },
-                { label: '61-80', start: 61, end: 80 },
-              ].map(range => (
-                <Button
-                  key={range.label}
-                  variant={flowYearRange.start === range.start ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFlowYearRange({ start: range.start, end: range.end })}
-                  className="text-[10px] sm:text-xs px-2 sm:px-3 h-7 sm:h-8"
-                >
-                  {range.label}岁
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Timeline */}
-          <ScrollArea className="h-[400px] sm:h-[500px] pr-2 sm:pr-4">
-            {isLoadingFlowYears ? (
-              <div className="space-y-3 sm:space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex gap-2 sm:gap-4 p-3 sm:p-4 bg-card/50 rounded-lg">
-                    <Skeleton className="w-12 sm:w-16 h-16 sm:h-20" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-3/4" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-2 sm:space-y-3">
-                {displayedFlowYears.map(fy => (
-                  <FlowYearItem 
-                    key={fy.age} 
-                    flowYear={fy} 
-                    currentAge={currentAge}
-                    pillarsDisplay={pillarsDisplay}
-                    baziProfile={report.baziProfile}
-                    canUseAI={canUseAI}
-                    ziweiProfile={ziweiProfile}
-                    hexagram={hexagramResult}
-                  />
-                ))}
-              </div>
-            )}
-          </ScrollArea>
         </TabsContent>
 
         {/* Tab 3: General Verdict */}

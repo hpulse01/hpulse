@@ -10,9 +10,8 @@ interface Props {
  * QuantumCollapsePanel — surfaces existing legacy/event-driven destiny tree
  * + collapse summary so the user has a "量子坍缩" view available.
  *
- * P5-FIX scope: read-only summary of what already exists in QuantumPredictionResult.
- * Does NOT claim P6 deterministic Quantum Collapse Core is complete — emits an
- * explicit warning to that effect.
+ * Super-admin diagnostic view: read-only summary of what already exists in
+ * QuantumPredictionResult (event-driven collapse pipeline).
  */
 export function QuantumCollapsePanel({ quantumResult }: Props) {
   if (!quantumResult) {
@@ -41,9 +40,7 @@ export function QuantumCollapsePanel({ quantumResult }: Props) {
       </header>
 
       <div className="rounded-md border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-100/85">
-        ⚠ 当前展示为 legacy / event-driven collapse 结果。P6 deterministic
-        Quantum Collapse Core (<code>src/core/quantum-collapse</code>) 尚未接入,
-        本视图不代表最终 deterministic 输出。
+        ⚠ 当前展示为 event-driven collapse 管线的诊断汇总，仅供管理员核验。
       </div>
 
       {/* Top metrics */}
