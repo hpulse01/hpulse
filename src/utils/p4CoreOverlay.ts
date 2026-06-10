@@ -19,6 +19,7 @@
  * inside the orchestrator.
  */
 import type { EngineOutput, StandardizedInput } from '@/types/prediction';
+import { normalizeConfidence01 } from '@/core/shared/confidence';
 
 import { calculateBaziChart, baziChartToEngineOutput } from '@/core/bazi';
 import { calculateZiweiChart, ziweiChartToEngineOutput } from '@/core/ziwei';
@@ -237,7 +238,7 @@ export function mergeCoreOverlay(legacy: EngineOutput, core: EngineOutput): Engi
   const merged: EngineOutput = {
     ...legacy,
     sourceGrade: core.sourceGrade,
-    confidence: core.confidence,
+    confidence: normalizeConfidence01(core.confidence),
     completenessScore: core.completenessScore,
     timingBasis: core.timingBasis ?? legacy.timingBasis,
     sourceUrls: Array.from(new Set([...legacy.sourceUrls, ...core.sourceUrls])),
@@ -337,7 +338,7 @@ export function computeQualityMultiplier(eo: EngineOutput): {
 
   // confidence: incorporate gently. If 0..1 scale, already near 1.
   // Many legacy engines report 0..1; P4 core reports 0..100. Normalize.
-  const conf01 = eo.confidence > 1 ? eo.confidence / 100 : eo.confidence;
+  const conf01 = normalizeConfidence01(eo.confidence);
   const confFactor = 0.7 + 0.5 * Math.max(0, Math.min(1, conf01));
   m *= confFactor;
   reasons.push(`confidence=${conf01.toFixed(2)}(x${confFactor.toFixed(2)})`);

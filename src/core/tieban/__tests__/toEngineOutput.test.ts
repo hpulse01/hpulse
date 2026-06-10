@@ -31,7 +31,9 @@ describe('tiebanReportToEngineOutput', () => {
     expect(out.engineVersion).toBe('P4.3-core');
     expect(out.timingBasis).toBe('birth');
     expect(out.sourceGrade).toBe(report.sourceGrade);
-    expect(out.confidence).toBe(report.confidence);
+    // EngineOutput.confidence is canonical 0-1; report.confidence is 0-100.
+    expect(out.confidence).toBeCloseTo(report.confidence / 100, 10);
+    expect(out.confidence).toBeLessThanOrEqual(1);
     expect(out.completenessScore).toBe(report.completenessScore);
     expect(out.explanationTrace.length).toBeGreaterThan(0);
     expect(out.eventCandidates.length).toBe(report.destinySections.length);

@@ -105,7 +105,7 @@ function DaYunItem({
   isSelected,
   onClick 
 }: { 
-  cycle: { startAge: number; endAge: number; ganZhi: string; element: string; startYear: number }; 
+  cycle: { startAge: number; endAge: number; ganZhi: string; element: string; startYear: number; isChildhood?: boolean }; 
   isActive: boolean;
   isSelected: boolean;
   onClick: () => void;
@@ -143,7 +143,7 @@ function DaYunExpandedPanel({
   baziProfile,
   birthYear,
 }: {
-  daYun: { startAge: number; endAge: number; ganZhi: string; element: string; startYear: number };
+  daYun: { startAge: number; endAge: number; ganZhi: string; element: string; startYear: number; isChildhood?: boolean };
   daYunIndex: number;
   baziProfile: BaZiProfile;
   birthYear: number;
@@ -263,10 +263,10 @@ function DaYunExpandedPanel({
       {/* Da Yun Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2 sm:mb-3">
         <h4 className="font-serif text-primary text-base sm:text-lg">
-          第{daYunIndex + 1}步大运 · {daYun.ganZhi}
+          {daYun.isChildhood ? '童限（未起运）' : `第${daYunIndex + 1}步大运 · ${daYun.ganZhi}`}
         </h4>
         <Badge variant="outline" className={colorClass}>
-          {daYun.element}运
+          {daYun.isChildhood ? '童限' : `${daYun.element}运`}
         </Badge>
       </div>
       

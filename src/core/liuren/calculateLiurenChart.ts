@@ -100,7 +100,7 @@ export function calculateLiurenChart(input: LiurenInput): LiurenChart {
     threeTransmissions: tt,
     keTi: tt.keTi,
     confidence: 65 + (tt.method === 'fallback' ? -15 : 5),
-    completenessScore: 0.85,
+    completenessScore: 85,
     sourceGrade: 'C',
     implementationStatus: 'partial',
     warnings,

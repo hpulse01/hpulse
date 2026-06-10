@@ -2,6 +2,7 @@
  * P4.4 — Adapter from new ZiweiChart → legacy EngineOutput.
  */
 
+import { normalizeConfidence01 } from '@/core/shared/confidence';
 import type {
   EngineOutput,
   FateVector,
@@ -118,7 +119,7 @@ export function ziweiChartToEngineOutput(chart: ZiweiChart, input: ZiweiCoreInpu
     ],
     sourceGrade: chart.sourceGrade,
     ruleSchool: '北派紫微 (经典 14 主星 + 四化 + 三方四正)',
-    confidence: chart.confidence,
+    confidence: normalizeConfidence01(chart.confidence),
     computationTimeMs: 0, // orchestrator should overwrite if needed
     rawInputSnapshot: {
       birthLocalDateTime: input.birthLocalDateTime,
@@ -176,7 +177,7 @@ export function ziweiChartToEngineOutput(chart: ZiweiChart, input: ZiweiCoreInpu
       dimension: 'life' as const,
       startAge: d.startAge,
       endAge: d.endAge,
-      confidence: chart.confidence,
+      confidence: normalizeConfidence01(chart.confidence),
       trend: 'stable' as const,
       evidence: `大限 ${d.palaceName}(${d.branch})`,
     })),

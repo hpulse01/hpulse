@@ -2,6 +2,7 @@
  * P4.5 — LiuyaoChart → EngineOutput adapter. Deterministic.
  */
 
+import { normalizeConfidence01 } from '@/core/shared/confidence';
 import type { EngineOutput, FateVector, ValidationFlags } from '../../types/prediction';
 import type { LiuyaoChart } from './types';
 
@@ -109,7 +110,7 @@ export function liuyaoChartToEngineOutput(chart: LiuyaoChart): EngineOutput {
     sourceUrls: ['classical: 京房纳甲 / 卜筮正宗 / 增删卜易'],
     sourceGrade: chart.sourceGrade,
     ruleSchool: '京房纳甲法 (梅花时间起卦 + 装卦 + 用神)',
-    confidence: chart.confidence,
+    confidence: normalizeConfidence01(chart.confidence),
     computationTimeMs: 0,
     rawInputSnapshot: {
       mode: chart.castingMode,

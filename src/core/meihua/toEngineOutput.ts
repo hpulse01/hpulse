@@ -1,6 +1,7 @@
 /**
  * P4.6 — MeihuaChart → EngineOutput adapter (deterministic).
  */
+import { normalizeConfidence01 } from '@/core/shared/confidence';
 import type { EngineOutput, FateVector, ValidationFlags } from '../../types/prediction';
 import type { MeihuaChart } from './types';
 
@@ -52,7 +53,7 @@ export function meihuaChartToEngineOutput(chart: MeihuaChart): EngineOutput {
 
   const aspectScores: Record<string, number> = {
     bodyUseTrendScore: chart.bodyUse.trendScore,
-    confidence: chart.confidence,
+    confidence: normalizeConfidence01(chart.confidence),
     movingLine: chart.movingLine,
   };
 
@@ -89,7 +90,7 @@ export function meihuaChartToEngineOutput(chart: MeihuaChart): EngineOutput {
     sourceUrls: ['classical: 邵雍《梅花易数》'],
     sourceGrade: chart.sourceGrade,
     ruleSchool: '邵雍先天数 + 体用生克',
-    confidence: chart.confidence,
+    confidence: normalizeConfidence01(chart.confidence),
     computationTimeMs: 0,
     rawInputSnapshot: {
       mode: chart.castingMode,

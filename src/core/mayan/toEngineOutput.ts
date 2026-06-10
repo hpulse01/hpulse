@@ -1,6 +1,7 @@
 /**
  * P4.10 — MayanResult → EngineOutput.
  */
+import { normalizeConfidence01 } from '@/core/shared/confidence';
 import type { EngineOutput, FateVector, ValidationFlags } from '../../types/prediction';
 import type { MayanResult } from './types';
 import { formatLongCount } from './longCount';
@@ -50,7 +51,7 @@ export function mayanToEngineOutput(result: MayanResult): EngineOutput {
     sourceUrls: ['GMT correlation (Goodman–Martínez–Thompson) JD 584283'],
     sourceGrade: result.sourceGrade,
     ruleSchool: 'Tzolkin (260-day) + Haab (365-day) + Calendar Round + Long Count (vigesimal except tun=18 uinal)',
-    confidence: result.confidence,
+    confidence: normalizeConfidence01(result.confidence),
     computationTimeMs: 0,
     rawInputSnapshot: { utcDateTime: result.input.utcDateTime },
     fateVector,

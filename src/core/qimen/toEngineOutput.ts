@@ -1,6 +1,7 @@
 /**
  * P4.7 — QimenChart → EngineOutput adapter (deterministic).
  */
+import { normalizeConfidence01 } from '@/core/shared/confidence';
 import type { EngineOutput, FateVector, ValidationFlags } from '../../types/prediction';
 import type { QimenChart, GateName, StarName } from './types';
 
@@ -115,7 +116,7 @@ export function qimenChartToEngineOutput(chart: QimenChart): EngineOutput {
     sourceUrls: ['classical: 烟波钓叟歌 / 奇门遁甲秘籍大全'],
     sourceGrade: chart.sourceGrade,
     ruleSchool: '时家奇门 / 转盘式 (基础排盘)',
-    confidence: chart.confidence,
+    confidence: normalizeConfidence01(chart.confidence),
     computationTimeMs: 0,
     rawInputSnapshot: {
       queryTimeUtc: chart.input.queryTimeUtc,

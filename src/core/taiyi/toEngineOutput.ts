@@ -1,6 +1,7 @@
 /**
  * P4.8 — TaiyiChart → EngineOutput.
  */
+import { normalizeConfidence01 } from '@/core/shared/confidence';
 import type { EngineOutput, FateVector, ValidationFlags } from '../../types/prediction';
 import type { TaiyiChart } from './types';
 import { PALACE_META } from './constants';
@@ -58,7 +59,7 @@ export function taiyiChartToEngineOutput(chart: TaiyiChart): EngineOutput {
     sourceUrls: ['classical: 太乙金镜式经 / 太乙统宗大全'],
     sourceGrade: chart.sourceGrade,
     ruleSchool: '年家太乙 (积年→局→太乙宫/计神/十六神/文昌/始击/主客算/大将参将)',
-    confidence: chart.confidence,
+    confidence: normalizeConfidence01(chart.confidence),
     computationTimeMs: 0,
     rawInputSnapshot: {
       queryTimeUtc: chart.input.queryTimeUtc,

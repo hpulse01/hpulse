@@ -6,6 +6,7 @@
  *   - `baziChartToEngineOutput` (new: full BaziChart → EngineOutput)
  */
 
+import { normalizeConfidence01 } from '@/core/shared/confidence';
 import type { BaziChart as BaziCoreChart } from './calculateBazi';
 import type { StrengthAnalysis } from './analyzeStrength';
 import type { BaziChart, BaziCoreInput } from './types';
@@ -164,7 +165,7 @@ export function baziChartToEngineOutput(chart: BaziChart, input: BaziCoreInput):
     ],
     sourceGrade: chart.sourceGrade,
     ruleSchool: '子平 (经典四柱 + 节气月 + 立春切年 + 五鼠遁时柱)',
-    confidence: chart.confidence,
+    confidence: normalizeConfidence01(chart.confidence),
     computationTimeMs: 0,
     rawInputSnapshot: {
       birthLocalDateTime: input.birthLocalDateTime,
@@ -261,7 +262,7 @@ export function baziChartToEngineOutput(chart: BaziChart, input: BaziCoreInput):
       dimension: 'life' as const,
       startAge: d.startAge,
       endAge: d.endAge,
-      confidence: chart.confidence,
+      confidence: normalizeConfidence01(chart.confidence),
       trend: 'stable' as const,
       evidence: `大运 ${d.ganZhi}(${d.tenGod})`,
     })),
