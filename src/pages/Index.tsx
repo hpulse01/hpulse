@@ -203,12 +203,10 @@ const Index = () => {
       { id: 'overview', label: t('tab.overview'), icon: Sparkles },
       { id: 'engines', label: t('tab.engines'), icon: Layers },
       { id: 'holographic', label: lang === 'zh' ? '全息命盘' : 'Holographic Map', icon: Layers },
-      { id: 'tree', label: t('tab.tree'), icon: TreePine },
-      { id: 'path', label: t('tab.path'), icon: Target },
+      { id: 'tree', label: lang === 'zh' ? '命运树·唯一路径' : 'Destiny Tree & Path', icon: TreePine },
       { id: 'yearly', label: lang === 'zh' ? '逐年详批' : 'Yearly Detail', icon: CalendarDays },
       { id: 'destiny', label: lang === 'zh' ? '铁板命盘' : 'Destiny Chart', icon: Scroll },
       { id: 'quantum', label: t('tab.quantum'), icon: Atom },
-      { id: 'quantumCollapse', label: lang === 'zh' ? '量子坍缩' : 'Quantum Collapse', icon: Atom },
     ];
     // Super-admin-only algorithm tabs (含铁板原始面板，待算法修订)
     const adminAlgoTabs = [
@@ -225,6 +223,7 @@ const Index = () => {
       { id: 'numerology', label: lang === 'zh' ? '数字命理' : 'Numerology', icon: BookOpen },
       { id: 'mayan', label: lang === 'zh' ? '玛雅' : 'Mayan', icon: BookOpen },
       { id: 'kabbalah', label: lang === 'zh' ? '卡巴拉' : 'Kabbalah', icon: BookOpen },
+      { id: 'quantumCollapse', label: lang === 'zh' ? '量子坍缩' : 'Quantum Collapse', icon: Atom },
       { id: 'audit', label: lang === 'zh' ? '算法审计' : 'Audit', icon: Activity },
     ];
     const tabs = isSuperAdmin ? [...publicTabs, ...adminAlgoTabs] : publicTabs;
@@ -501,9 +500,12 @@ const Index = () => {
                   </TabsContent>
                   )}
 
-                  <TabsContent value="tree" className="mt-5">
+                  <TabsContent value="tree" className="mt-5 space-y-5">
                     {quantumResult.destinyTree && quantumResult.collapseResult ? (
-                      <DestinyTreeLayer tree={quantumResult.destinyTree} collapse={quantumResult.collapseResult} />
+                      <>
+                        <DestinyTreeLayer tree={quantumResult.destinyTree} collapse={quantumResult.collapseResult} />
+                        <UniquePathLayer collapse={quantumResult.collapseResult} birthYear={birthInput.year} />
+                      </>
                     ) : (
                       <HolographicPanel innerPadding="lg" className="text-center text-xs text-muted-foreground">
                         {lang === 'zh' ? '命运树数据加载中...' : 'Loading destiny tree...'}
@@ -516,17 +518,6 @@ const Index = () => {
                       map={quantumResult.holographicFateMap ?? null}
                       birthYear={birthInput.year}
                     />
-                  </TabsContent>
-
-
-                  <TabsContent value="path" className="mt-5">
-                    {quantumResult.collapseResult ? (
-                      <UniquePathLayer collapse={quantumResult.collapseResult} birthYear={birthInput.year} />
-                    ) : (
-                      <HolographicPanel innerPadding="lg" className="text-center text-xs text-muted-foreground">
-                        {lang === 'zh' ? '坍缩数据加载中...' : 'Loading collapse data...'}
-                      </HolographicPanel>
-                    )}
                   </TabsContent>
 
                   <TabsContent value="yearly" className="mt-5">
@@ -542,14 +533,6 @@ const Index = () => {
                       report={fullReport}
                       pillarsDisplay={ganZhiDisplay}
                       birthYear={birthInput.year}
-                      birthData={{
-                        year: birthInput.year,
-                        month: birthInput.month,
-                        day: birthInput.day,
-                        hour: birthInput.hour,
-                        minute: birthInput.minute,
-                        gender: birthInput.gender,
-                      }}
                       onReset={handleReset}
                     />
                   </TabsContent>
@@ -557,11 +540,13 @@ const Index = () => {
                     <UnifiedQuantumPanel result={quantumResult} birthYear={birthInput.year} />
                   </TabsContent>
 
+                  {isSuperAdmin && (
                   <TabsContent value="quantumCollapse" className="mt-5">
                     <HolographicPanel innerPadding="md">
                       <QuantumCollapsePanel quantumResult={quantumResult} />
                     </HolographicPanel>
                   </TabsContent>
+                  )}
 
                   {isSuperAdmin && unifiedReport && (
                     <TabsContent value="orchestration" className="mt-5">
