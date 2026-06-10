@@ -330,6 +330,8 @@ export interface DaYunCycle {
   naYinElement?: string;
   /** v2.0: 与日主关系 */
   dayMasterRelation?: string;
+  /** 童限：起运前的幼年阶段（lunar-typescript 首段无干支） */
+  isChildhood?: boolean;
 }
 
 export interface FlowYearClause {
@@ -850,6 +852,7 @@ export const TiebanEngine = {
 
     return daYunList.map((dy, index) => {
       const ganZhi = dy.getGanZhi();
+      const isChildhood = ganZhi.trim().length < 2;
       const gan = ganZhi.charAt(0);
       let startAge = dy.getStartAge();
       let endAge = dy.getEndAge();
@@ -869,6 +872,13 @@ export const TiebanEngine = {
       else if (WUXING_KE[dayMasterElement] === element) dayMasterRelation = '我克(耗)';
       else if (WUXING_KE[element] === dayMasterElement) dayMasterRelation = '克我(压)';
 
+      if (isChildhood) {
+        return {
+          startAge, endAge, ganZhi: '童限', startYear: dy.getStartYear(),
+          element: dayMasterElement, naYin: '未起运', naYinElement: dayMasterElement,
+          dayMasterRelation: '童限', isChildhood: true,
+        };
+      }
       return { startAge, endAge, ganZhi, startYear: dy.getStartYear(), element, naYin, naYinElement, dayMasterRelation };
     });
   },

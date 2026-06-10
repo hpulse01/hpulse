@@ -1,6 +1,7 @@
 /**
  * P4.9 — WesternChart → EngineOutput.
  */
+import { normalizeConfidence01 } from '@/core/shared/confidence';
 import type { EngineOutput, FateVector, ValidationFlags } from '../../types/prediction';
 import type { WesternChart, AspectHit } from './types';
 
@@ -77,7 +78,7 @@ export function westernChartToEngineOutput(chart: WesternChart): EngineOutput {
     sourceUrls: ['astronomy-engine (Don Cross, MIT) — geocentric of-date positions'],
     sourceGrade: chart.sourceGrade,
     ruleSchool: `Tropical zodiac, ${chart.housesSystem === 'placidus' ? 'Placidus' : 'Whole-Sign'} houses, Ptolemaic major aspects`,
-    confidence: chart.confidence,
+    confidence: normalizeConfidence01(chart.confidence),
     computationTimeMs: 0,
     rawInputSnapshot: {
       birthUtcDateTime: chart.input.birthUtcDateTime,

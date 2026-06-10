@@ -1,6 +1,7 @@
 /**
  * P4.10 — KabbalahResult → EngineOutput.
  */
+import { normalizeConfidence01 } from '@/core/shared/confidence';
 import type { EngineOutput, FateVector, ValidationFlags } from '../../types/prediction';
 import type { KabbalahResult } from './types';
 
@@ -59,7 +60,7 @@ export function kabbalahToEngineOutput(result: KabbalahResult): EngineOutput {
     sourceUrls: ['Mispar Hechrachi (standard Hebrew gematria); Tree of Life — 10 Sephirot'],
     sourceGrade: result.sourceGrade,
     ruleSchool: 'Standard gematria; final forms (sofit) take non-final values',
-    confidence: result.confidence,
+    confidence: normalizeConfidence01(result.confidence),
     computationTimeMs: 0,
     rawInputSnapshot: {
       name: result.input.name ?? null,

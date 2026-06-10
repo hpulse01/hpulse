@@ -1,6 +1,7 @@
 /**
  * P4.10 — NumerologyResult → EngineOutput.
  */
+import { normalizeConfidence01 } from '@/core/shared/confidence';
 import type { EngineOutput, FateVector, ValidationFlags } from '../../types/prediction';
 import type { NumerologyResult } from './types';
 
@@ -70,7 +71,7 @@ export function numerologyToEngineOutput(result: NumerologyResult): EngineOutput
     sourceUrls: ['Pythagorean numerology (classical letter→digit table)'],
     sourceGrade: result.sourceGrade,
     ruleSchool: 'Pythagorean (A=1..I=9), Y-as-consonant variant, master numbers 11/22/33 preserved',
-    confidence: result.confidence,
+    confidence: normalizeConfidence01(result.confidence),
     computationTimeMs: 0,
     rawInputSnapshot: {
       birthYear: result.input.birthYear,

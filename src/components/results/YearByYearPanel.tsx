@@ -168,9 +168,11 @@ export function YearByYearPanel({ report, birth, collapse }: Props) {
       if (years.length === 0) return;
       result.push({
         key: `dy-${i}`,
-        label: zh
-          ? `第${i + 1}大运 ${cycle.ganZhi}（${cycle.naYin ?? ''}）`
-          : `Cycle ${i + 1} ${cycle.ganZhi} (${cycle.naYin ?? ''})`,
+        label: cycle.isChildhood
+          ? (zh ? `童限（未起运 ${cycle.startAge}-${cycle.endAge}岁）` : `Childhood (pre-cycle, age ${cycle.startAge}-${cycle.endAge})`)
+          : zh
+            ? `第${i + 1}大运 ${cycle.ganZhi}（${cycle.naYin ?? ''}）`
+            : `Cycle ${i + 1} ${cycle.ganZhi} (${cycle.naYin ?? ''})`,
         daYun: cycle,
         startAge: cycle.startAge,
         endAge: cycle.endAge,

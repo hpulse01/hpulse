@@ -27,25 +27,26 @@ Quantum prediction console layout, holographic panel system, multi-engine result
 
 13 deterministic engines. 0 `Math.random`. 0 non-timing `Date.now()`. Every output capped per implementation status.
 
-### P5 — Frontend Sync (this release)
+### P5 — Frontend Sync
 - 10 new shared audit components in `src/components/hpulse/`
 - New **Audit** result tab composing AlgorithmIntegrity + FateVector + EngineAuditMatrix + WarningCenter + ExplanationTraceViewer
 - New **Bazi** result tab driven by `engineOutputs.find(e => e.engineName === 'bazi')`
 - 8 markdown docs (this set)
 - Desktop / tablet / mobile responsive overhaul; tabs scroll on every viewport
 
-## Upcoming
+### P7 — Rule Knowledge Base Expansion
+- Missing rules filled across all 13 engines: 调候用神, 化气格, 博士十二神, 反吟伏吟评分, Antardasha, Haab, Calendar Round, Placidus houses, Rahu-Ketu/D9, 伏神飞神/进退神, etc.
+- Per-rule citation in `algorithmSourceRegistry.ts`.
 
-### P6 — Prediction Verification Ledger
-- Persist every `EngineOutput` with its `cappedConfidence`, `implementationStatus`, `sourceGrade`, `warnings`, full trace.
-- Capture user-reported actuals (event date, magnitude, polarity) — the absolute source of truth.
-- Score each engine over time: precision, recall, calibration. Per-engine, per-domain, per-life-stage.
-- Block ledger writes when `auditEngineOutputs(...).blockers.length > 0`.
+### P6 — Prediction Verification Ledger (this release)
+- Every unified prediction run is archived to `prediction_runs` (RLS owner-private): per-engine `cappedConfidence`, `implementationStatus`, `sourceGrade`, `warnings`, full trace, fused fate vector.
+- User-reported actuals (event date, domain, magnitude, polarity) stored in `prediction_actuals` — the absolute source of truth.
+- Deterministic scoring in `src/utils/ledgerScoring.ts`: per-engine, per-domain claims/hits, hit rate, average capped confidence, calibration gap — surfaced on the Prediction Ledger page.
+- Ledger writes are blocked when `auditEngineOutputs(...).blockers.length > 0`.
+- `EngineOutput.confidence` is now normalized to the canonical 0-1 scale at every adapter boundary (`normalizeConfidence01`).
 - `tieban` cannot enter the death-fusion vote weight until it leaves `needs_source_validation`.
 
-### P7 — Rule Knowledge Base Expansion
-- Migrate every `partial` engine toward `complete` by filling in missing rules: 调候用神, 化气格, 博士十二神, 反吟伏吟评分, Antardasha, Haab, Calendar Round, etc.
-- Per-rule citation in `algorithmSourceRegistry.ts`.
+## Upcoming
 
 ### P8 — User Long-term Feedback Calibration
 - Bayesian update of per-engine, per-domain weights based on ledger outcomes.

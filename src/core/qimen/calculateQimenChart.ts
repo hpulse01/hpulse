@@ -140,7 +140,7 @@ export function calculateQimenChart(input: QimenInput): QimenChart {
   const patternAdj = Math.max(-8, Math.min(8, Math.round(patternNet / 3)));
   const confidence = Math.max(10, Math.min(95,
     72 + (yongShen.primaryPalace ? 5 : -10) + patternAdj + fuYinFanYin.scoreAdjustment));
-  const completenessScore = 0.85;
+  const completenessScore = 85;
 
   return {
     input,

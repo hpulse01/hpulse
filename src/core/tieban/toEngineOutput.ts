@@ -6,6 +6,7 @@
  * from section confidences + clause-lookup completeness — no randomness.
  */
 
+import { normalizeConfidence01 } from '@/core/shared/confidence';
 import type { EngineOutput, FateVector, ValidationFlags } from '../../types/prediction';
 import type { TiebanFullReport } from './types';
 
@@ -131,7 +132,7 @@ export function tiebanReportToEngineOutput(
     ],
     sourceGrade: report.sourceGrade,
     ruleSchool: '铁板神数 (theoreticalBase + 六亲校时 + 十二宫投影)',
-    confidence: report.confidence,
+    confidence: normalizeConfidence01(report.confidence),
     computationTimeMs: 0,
     rawInputSnapshot: { ...report.inputSnapshot, ...inputSnapshot },
     fateVector: fr.vector,

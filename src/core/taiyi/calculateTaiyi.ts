@@ -165,7 +165,7 @@ export function calculateTaiyiChart(input: TaiyiInput): TaiyiChart {
     keCanJiang,
     zhuKeJudgment,
     confidence: 58,
-    completenessScore: 0.6,
+    completenessScore: 60,
     sourceGrade: 'C',
     implementationStatus: 'partial',
     warnings,

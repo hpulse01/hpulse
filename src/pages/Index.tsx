@@ -21,6 +21,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useI18n } from '@/hooks/useI18n';
 
 import { getClauseCount } from '@/services/SupabaseService';
+import { savePredictionRun } from '@/services/predictionLedger';
 import { PredictionOrchestrator } from '@/utils/predictionOrchestrator';
 import { AdminOrchestrationConsole } from '@/components/AdminOrchestrationConsole';
 import {
@@ -151,6 +152,9 @@ const Index = () => {
       setQuantumResult(qResult);
       if (qResult.unifiedResult) {
         setUnifiedReport(PredictionOrchestrator.execute(qResult.unifiedResult.input));
+        // P6: archive run into the verification ledger (no-op when logged out
+        // or audit-blocked); failures never interrupt the prediction flow.
+        void savePredictionRun(qResult.unifiedResult).catch(() => {});
       }
 
       // HPU-2..9 pipeline (deterministic, parallel to legacy result).

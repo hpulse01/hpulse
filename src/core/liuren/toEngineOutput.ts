@@ -1,6 +1,7 @@
 /**
  * P4.8 — LiurenChart → EngineOutput.
  */
+import { normalizeConfidence01 } from '@/core/shared/confidence';
 import type { EngineOutput, FateVector, ValidationFlags } from '../../types/prediction';
 import type { LiurenChart } from './types';
 
@@ -66,7 +67,7 @@ export function liurenChartToEngineOutput(chart: LiurenChart): EngineOutput {
     sourceUrls: ['classical: 大六壬指南 / 大六壬探源'],
     sourceGrade: chart.sourceGrade,
     ruleSchool: '月将加时 + 四课 + 九宗门课体识别（贼克/比用/涉害/遥克/昴星/别责/八专/伏吟/反吟）',
-    confidence: chart.confidence,
+    confidence: normalizeConfidence01(chart.confidence),
     computationTimeMs: 0,
     rawInputSnapshot: {
       queryTimeUtc: chart.input.queryTimeUtc,

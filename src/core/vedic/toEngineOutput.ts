@@ -1,6 +1,7 @@
 /**
  * P4.9 — VedicChart → EngineOutput.
  */
+import { normalizeConfidence01 } from '@/core/shared/confidence';
 import type { EngineOutput, FateVector, ValidationFlags } from '../../types/prediction';
 import type { VedicChart } from './types';
 
@@ -72,7 +73,7 @@ export function vedicChartToEngineOutput(chart: VedicChart): EngineOutput {
     ],
     sourceGrade: chart.sourceGrade,
     ruleSchool: 'Sidereal zodiac (Lahiri / Chitrapaksha), 27 nakshatras, Vimshottari Mahadasha+Antardasha, mean nodes, D9 Navamsa',
-    confidence: chart.confidence,
+    confidence: normalizeConfidence01(chart.confidence),
     computationTimeMs: 0,
     rawInputSnapshot: {
       birthUtcDateTime: chart.input.birthUtcDateTime,

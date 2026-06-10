@@ -21,6 +21,16 @@ export const SOURCE_GRADE_CEILING: Record<SourceGrade, number> = {
   D: 0.45,
 };
 
+/**
+ * Normalize a confidence value to the canonical 0-1 scale.
+ * Values >1 are treated as percentages (0-100); result is clamped to [0, 1].
+ */
+export function normalizeConfidence01(c: number): number {
+  if (!Number.isFinite(c)) return 0;
+  const v = c > 1 ? c / 100 : c;
+  return Math.max(0, Math.min(1, v));
+}
+
 export interface ConfidenceAudit {
   rawConfidence: number;
   cappedConfidence: number;
@@ -52,7 +62,7 @@ export function auditConfidence(eo: EngineOutput): ConfidenceAudit {
     reasons.push(`completeness=${eo.completenessScore} → ≤${completenessCap.toFixed(2)}`);
   }
 
-  const raw = typeof eo.confidence === 'number' ? eo.confidence : 0;
+  const raw = normalizeConfidence01(typeof eo.confidence === 'number' ? eo.confidence : 0);
   const capped = Math.max(0, Math.min(cap, raw) - wPenalty);
   return { rawConfidence: raw, cappedConfidence: capped, capReasons: reasons };
 }
