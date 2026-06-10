@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Archive, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { Archive, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { HolographicPanel } from '@/components/hpulse/HolographicPanel';
 import { Footer } from '@/components/Footer';
-import { HPulseLogo } from '@/components/brand';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { SEO } from '@/components/SEO';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -249,19 +249,7 @@ const PredictionHistory = () => {
         description="Browse your archived H-Pulse quantum destiny reports. Past birth-input projections, Kao Ke calibrations and engine consensus runs in one ledger."
         path="/prediction-history"
       />
-      <header className="border-b border-border/40">
-        <div className="container max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" aria-label="H-Pulse">
-            <HPulseLogo variant="full" size="md" tone="light" />
-          </Link>
-          <Button asChild variant="outline" size="sm" className="border-border/40">
-            <Link to="/">
-              <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
-              返回控制台
-            </Link>
-          </Button>
-        </div>
-      </header>
+      <AppHeader variant="subpage" />
 
       <main className="flex-1 py-8">
         <div className="container max-w-4xl mx-auto px-4 space-y-4">

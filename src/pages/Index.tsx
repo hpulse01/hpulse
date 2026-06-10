@@ -1,241 +1,27 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Target } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { DisclaimerDialog, hasConsented } from '@/components/DisclaimerDialog';
-import { BirthDataForm, type BirthDataWithGeo } from '@/components/BirthDataForm';
 import { SixRelationsVerification } from '@/components/SixRelationsVerification';
-import { DestinyDashboard } from '@/components/DestinyDashboard';
-import { UnifiedQuantumPanel } from '@/components/UnifiedQuantumPanel';
-import { PredictionOverview } from '@/components/results/PredictionOverview';
-import { EngineContributionPanel } from '@/components/results/EngineContributionPanel';
-import { DestinyTreeLayer } from '@/components/results/DestinyTreeLayer';
-import { UniquePathLayer } from '@/components/results/UniquePathLayer';
-import { HolographicFateMapPanel } from '@/components/results/HolographicFateMapPanel';
 import { Footer } from '@/components/Footer';
-import { UserMenu } from '@/components/UserMenu';
-import { LanguageToggle } from '@/components/LanguageToggle';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAdminAccess } from '@/hooks/useAdminAccess';
-import { useAuth } from '@/hooks/useAuth';
-import { useI18n } from '@/hooks/useI18n';
-
-import { getClauseCount } from '@/services/SupabaseService';
-import { savePredictionRun } from '@/services/predictionLedger';
-import { PredictionOrchestrator } from '@/utils/predictionOrchestrator';
-import { AdminOrchestrationConsole } from '@/components/AdminOrchestrationConsole';
-import {
-  TiebanEngine,
-  type TiebanInput,
-  type KaoKeWithMatch,
-  type CalibrationResult,
-  type FullDestinyReport,
-} from '@/utils/tiebanAlgorithm';
-import {
-  QuantumPredictionEngine,
-  type QuantumPredictionResult,
-} from '@/utils/quantumPredictionEngine';
-import { useToast } from '@/hooks/use-toast';
-import {
-  Atom, RotateCcw, Sparkles, Scroll, TreePine, Target, Layers, Shield,
-  AlertTriangle, Archive, ArrowLeft, Database, Activity, BookOpen, CalendarDays,
-} from 'lucide-react';
-
-import { AuditTracePanel } from '@/components/results/audit/AuditTracePanel';
-import { BaziCorePanel } from '@/components/results/bazi/BaziCorePanel';
-import { TiebanCorePanel } from '@/components/results/tieban/TiebanCorePanel';
-import { ZiweiCorePanel } from '@/components/results/ziwei/ZiweiCorePanel';
-import { LiuYaoCorePanel } from '@/components/results/liuyao/LiuYaoCorePanel';
-import { MeihuaCorePanel } from '@/components/results/meihua/MeihuaCorePanel';
-import { QimenCorePanel } from '@/components/results/qimen/QimenCorePanel';
-import { LiuRenCorePanel } from '@/components/results/liuren/LiuRenCorePanel';
-import { TaiyiCorePanel } from '@/components/results/taiyi/TaiyiCorePanel';
-import { WesternCorePanel } from '@/components/results/western/WesternCorePanel';
-import { VedicCorePanel } from '@/components/results/vedic/VedicCorePanel';
-import { NumerologyCorePanel } from '@/components/results/numerology/NumerologyCorePanel';
-import { MayanCorePanel } from '@/components/results/mayan/MayanCorePanel';
-import { KabbalahCorePanel } from '@/components/results/kabbalah/KabbalahCorePanel';
-import { QuantumCollapsePanel } from '@/components/results/quantum-collapse/QuantumCollapsePanel';
-import { YearByYearPanel } from '@/components/results/YearByYearPanel';
-
-import { HeroMission } from '@/components/hpulse/HeroMission';
-import { SystemStatusBar } from '@/components/hpulse/SystemStatusBar';
-import { EngineStatusGrid } from '@/components/hpulse/EngineStatusGrid';
+import { AppHeader } from '@/components/layout/AppHeader';
+import { InputConsole } from '@/components/steps/InputConsole';
+import { ResultTabsView } from '@/components/results/ResultTabsView';
 import { HolographicPanel } from '@/components/hpulse/HolographicPanel';
 import { SectionHeader } from '@/components/hpulse/SectionHeader';
 import { QuantumLoadingScreen } from '@/components/hpulse/QuantumLoadingScreen';
 import { CollapseLoadingScreen } from '@/components/hpulse/CollapseLoadingScreen';
-import { ResultShell } from '@/components/hpulse/ResultShell';
-import { HPulseLogo } from '@/components/brand';
-import { HPulseProjectionPanel } from '@/components/hpulse/HPulseProjectionPanel';
-import { EventTimelinePanel } from '@/components/hpulse/EventTimelinePanel';
-import { useHPulsePipeline } from '@/hpulse/react';
-
-type AppStep = 'input' | 'calculating' | 'verification' | 'projecting' | 'result';
-
-const FLOW_STEPS = [
-  { n: 1, label: '标准化出生时空', en: 'Standardize Birth Spacetime' },
-  { n: 2, label: '多引擎独立执行', en: 'Independent Engine Execution' },
-  { n: 3, label: '冲突检测与权重融合', en: 'Conflict Detection & Fusion' },
-  { n: 4, label: '世界树生成', en: 'Destiny Tree Generation' },
-  { n: 5, label: '唯一路径坍缩', en: 'Unique Path Collapse' },
-  { n: 6, label: '生命轨迹报告', en: 'Life Trajectory Report' },
-];
+import { usePredictionFlow } from '@/hooks/usePredictionFlow';
+import { useState } from 'react';
 
 const Index = () => {
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(() => hasConsented());
-  const [step, setStep] = useState<AppStep>('input');
-  const [birthInput, setBirthInput] = useState<TiebanInput | null>(null);
-  const [rawBirthForm, setRawBirthForm] = useState<BirthDataWithGeo | null>(null);
-  const [ganZhiDisplay, setGanZhiDisplay] = useState('');
-  const [baseNumber, setBaseNumber] = useState(0);
-  const [theoreticalBase, setTheoreticalBase] = useState(0);
-  const [fullReport, setFullReport] = useState<FullDestinyReport | null>(null);
-  const [calibrationResult, setCalibrationResult] = useState<CalibrationResult | null>(null);
-  const [quantumResult, setQuantumResult] = useState<QuantumPredictionResult | null>(null);
-  const [clauseCount, setClauseCount] = useState<number | null>(null);
-  const [activeResultTab, setActiveResultTab] = useState('overview');
-  const [unifiedReport, setUnifiedReport] = useState<ReturnType<typeof PredictionOrchestrator.execute> | null>(null);
-  const [selectedKaoKe, setSelectedKaoKe] = useState<KaoKeWithMatch | null>(null);
-
-  const { isSuperAdmin } = useAdminAccess();
-  const { profile } = useAuth();
-  const { toast } = useToast();
-  const { t, lang } = useI18n();
-  const hpulse = useHPulsePipeline();
-
-  useEffect(() => {
-    getClauseCount().then(count => setClauseCount(count));
-  }, []);
-
-  const handleBirthDataSubmit = useCallback(async (birthData: BirthDataWithGeo) => {
-    setStep('calculating');
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setBirthInput(birthData);
-      setRawBirthForm(birthData);
-      const result = TiebanEngine.calculateBaseNumber(birthData);
-      setBaseNumber(result.baseNumber);
-      setGanZhiDisplay(result.pillars.fullDisplay);
-      const theoreticBase = TiebanEngine.calculateTheoreticalBase(birthData);
-      setTheoreticalBase(theoreticBase);
-      setStep('verification');
-    } catch (error) {
-      console.error('Calculation error:', error);
-      toast({ title: t('ui.calc_error'), description: t('ui.calc_error_desc'), variant: 'destructive' });
-      setStep('input');
-    }
-  }, [toast, t]);
-
-  const handleTimeLocked = useCallback(async (
-    lockedKeIndex: number,
-    selectedOption: KaoKeWithMatch
-  ) => {
-    setStep('projecting');
-    setSelectedKaoKe(selectedOption);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const systemOffset = TiebanEngine.calculateSystemOffset(theoreticalBase, selectedOption.clauseNumber);
-      const calibration: CalibrationResult = {
-        theoreticalBase,
-        confirmedClauseId: selectedOption.clauseNumber,
-        systemOffset,
-        lockedQuarterIndex: lockedKeIndex
-      };
-      setCalibrationResult(calibration);
-      const report: FullDestinyReport = TiebanEngine.generateFullDestinyReport(birthInput!, theoreticalBase, systemOffset);
-      setFullReport(report);
-      // Single query timestamp shared by both pipelines — keeps legacy quantum
-      // result and HPU pipeline deterministic relative to the same instant.
-      const queryTimeUtc = new Date().toISOString();
-      const qResult = QuantumPredictionEngine.predict({ ...birthInput!, queryTimeUtc }, systemOffset);
-      setQuantumResult(qResult);
-      if (qResult.unifiedResult) {
-        setUnifiedReport(PredictionOrchestrator.execute(qResult.unifiedResult.input));
-        // P6: archive run into the verification ledger (no-op when logged out
-        // or audit-blocked); failures never interrupt the prediction flow.
-        void savePredictionRun(qResult.unifiedResult).catch(() => {});
-      }
-
-      // HPU-2..9 pipeline (deterministic, parallel to legacy result).
-      if (rawBirthForm) {
-        const pad = (n: number) => String(n).padStart(2, '0');
-        const raw = {
-          birth_date: `${rawBirthForm.year}-${pad(rawBirthForm.month)}-${pad(rawBirthForm.day)}`,
-          birth_time: `${pad(rawBirthForm.hour)}:${pad(rawBirthForm.minute)}`,
-          calendar: 'gregorian' as const,
-          location_name: rawBirthForm.normalizedLocationName,
-          latitude: rawBirthForm.geoLatitude,
-          longitude: rawBirthForm.geoLongitude,
-          timezone: rawBirthForm.timezoneIana,
-          gender: rawBirthForm.gender,
-          query_time_utc: queryTimeUtc,
-          query_type: 'natal' as const,
-          granularity: 'year' as const,
-        };
-        void hpulse.run(raw, { event: 'general', granularity: 'year' });
-      }
-
-      setStep('result');
-      toast({ title: t('ui.prediction_complete'), description: t('ui.prediction_complete_desc') });
-    } catch (error) {
-      console.error('Projection error:', error);
-      toast({ title: t('ui.proj_error'), description: t('ui.proj_error_desc'), variant: 'destructive' });
-      setStep('verification');
-    }
-  }, [theoreticalBase, birthInput, rawBirthForm, hpulse, toast, t]);
-
-  const handleReset = useCallback(() => {
-    setStep('input');
-    setBirthInput(null);
-    setRawBirthForm(null);
-    setGanZhiDisplay('');
-    setBaseNumber(0);
-    setTheoreticalBase(0);
-    setFullReport(null);
-    setCalibrationResult(null);
-    setQuantumResult(null);
-    setUnifiedReport(null);
-    setActiveResultTab('overview');
-    setSelectedKaoKe(null);
-    hpulse.reset();
-  }, [hpulse]);
-
-  const resultTabs = useMemo(() => {
-    // Public tabs — visible to all users
-    const publicTabs = [
-      { id: 'overview', label: t('tab.overview'), icon: Sparkles },
-      { id: 'engines', label: t('tab.engines'), icon: Layers },
-      { id: 'holographic', label: lang === 'zh' ? '全息命盘' : 'Holographic Map', icon: Layers },
-      { id: 'tree', label: lang === 'zh' ? '命运树·唯一路径' : 'Destiny Tree & Path', icon: TreePine },
-      { id: 'yearly', label: lang === 'zh' ? '逐年详批' : 'Yearly Detail', icon: CalendarDays },
-      { id: 'destiny', label: lang === 'zh' ? '铁板命盘' : 'Destiny Chart', icon: Scroll },
-      { id: 'quantum', label: t('tab.quantum'), icon: Atom },
-    ];
-    // Super-admin-only algorithm tabs (含铁板原始面板，待算法修订)
-    const adminAlgoTabs = [
-      { id: 'tieban', label: lang === 'zh' ? '铁板' : 'Tieban', icon: Scroll },
-      { id: 'bazi', label: lang === 'zh' ? '八字' : 'Bazi', icon: BookOpen },
-      { id: 'ziwei', label: lang === 'zh' ? '紫微' : 'Ziwei', icon: Atom },
-      { id: 'liuyao', label: lang === 'zh' ? '六爻' : 'Liu Yao', icon: Layers },
-      { id: 'meihua', label: lang === 'zh' ? '梅花' : 'Meihua', icon: Layers },
-      { id: 'qimen', label: lang === 'zh' ? '奇门' : 'Qi Men', icon: Layers },
-      { id: 'liuren', label: lang === 'zh' ? '六壬' : 'Liu Ren', icon: Layers },
-      { id: 'taiyi', label: lang === 'zh' ? '太乙' : 'Taiyi', icon: Layers },
-      { id: 'western', label: lang === 'zh' ? '西方占星' : 'Western', icon: Atom },
-      { id: 'vedic', label: lang === 'zh' ? '吠陀' : 'Vedic', icon: Atom },
-      { id: 'numerology', label: lang === 'zh' ? '数字命理' : 'Numerology', icon: BookOpen },
-      { id: 'mayan', label: lang === 'zh' ? '玛雅' : 'Mayan', icon: BookOpen },
-      { id: 'kabbalah', label: lang === 'zh' ? '卡巴拉' : 'Kabbalah', icon: BookOpen },
-      { id: 'quantumCollapse', label: lang === 'zh' ? '量子坍缩' : 'Quantum Collapse', icon: Atom },
-      { id: 'audit', label: lang === 'zh' ? '算法审计' : 'Audit', icon: Activity },
-    ];
-    const tabs = isSuperAdmin ? [...publicTabs, ...adminAlgoTabs] : publicTabs;
-    if (isSuperAdmin) {
-      tabs.push({ id: 'orchestration', label: t('tab.orchestration'), icon: Shield });
-    }
-    return tabs;
-  }, [isSuperAdmin, t, lang]);
+  const flow = usePredictionFlow();
+  const {
+    step, birthInput, ganZhiDisplay, baseNumber, theoreticalBase,
+    fullReport, calibrationResult, quantumResult, clauseCount,
+    unifiedReport, selectedKaoKe, hpulse,
+    handleBirthDataSubmit, handleTimeLocked, handleReset,
+  } = flow;
 
   const isResultStep = step === 'result';
 
@@ -251,120 +37,21 @@ const Index = () => {
         onAccept={() => setDisclaimerAccepted(true)}
       />
 
-      {/* Header */}
-      <header className="relative border-b border-border/40 backdrop-blur-md bg-background/70 sticky top-0 z-30">
-        <div className="container max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            {/* Brand */}
-            <Link to="/" className="flex items-center gap-3 min-w-0 group" aria-label="H-Pulse">
-              <HPulseLogo variant="full" size="md" tone="light" className="shrink-0" />
-              <span className="hidden md:inline text-[9px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono border-l border-border/40 pl-3 ml-1 truncate">
-                Quantum Prediction System
-              </span>
-            </Link>
+      <AppHeader clauseCount={clauseCount} />
 
-            {/* Status (desktop) */}
-            <div className="hidden lg:flex">
-              <SystemStatusBar clauseCount={clauseCount} />
-            </div>
-
-            {/* Right cluster */}
-            <div className="flex items-center gap-1.5 md:gap-2">
-              <LanguageToggle />
-              <Button asChild variant="ghost" size="sm" className="h-9 px-2 hidden sm:inline-flex">
-                <Link to="/prediction-history">
-                  <Archive className="w-3.5 h-3.5 sm:mr-1.5" />
-                  <span className="hidden md:inline text-xs">预测档案</span>
-                </Link>
-              </Button>
-              {isSuperAdmin && (
-                <Button asChild variant="ghost" size="sm" className="h-9 px-2 hidden md:inline-flex">
-                  <Link to="/admin-users">
-                    <Shield className="w-3.5 h-3.5 mr-1.5 text-accent" />
-                    <span className="text-xs">Admin</span>
-                  </Link>
-                </Button>
-              )}
-              <UserMenu />
-            </div>
-          </div>
-          {/* Status (mobile) */}
-          <div className="lg:hidden mt-2 flex justify-center">
-            <SystemStatusBar clauseCount={clauseCount} />
-          </div>
-          {clauseCount === 0 && isSuperAdmin && (
-            <div className="mt-2 text-center">
-              <span className="text-accent/80 text-[10px] font-mono">
-                {t('admin.clause_empty')} →{' '}
-                <Link to="/admin-import" className="underline hover:text-accent">
-                  {t('admin.import')}
-                </Link>
-              </span>
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* Main */}
       <main className="flex-1 py-6 md:py-10">
         <div className={`container mx-auto px-4 ${isResultStep ? 'max-w-7xl' : 'max-w-6xl'}`}>
 
-          {/* Step: Input — Prediction Console */}
           {step === 'input' && (
-            <div className="space-y-6 animate-fade-in-up">
-              <HeroMission />
-              <div className="grid lg:grid-cols-5 gap-6">
-                {/* Left: 40% input */}
-                <div className="lg:col-span-2">
-                  <HolographicPanel variant="elevated" innerPadding="lg">
-                    <BirthDataForm onSubmit={handleBirthDataSubmit} isLoading={false} />
-                  </HolographicPanel>
-                </div>
-
-                {/* Right: 60% engines + flow */}
-                <div className="lg:col-span-3 space-y-6">
-                  <EngineStatusGrid status="ready" />
-
-                  <HolographicPanel innerPadding="md">
-                    <SectionHeader
-                      titleZh="推演流程"
-                      titleEn="Prediction Pipeline"
-                      icon={<Database className="w-4 h-4" />}
-                    />
-                    <ol className="mt-4 grid sm:grid-cols-2 gap-2.5">
-                      {FLOW_STEPS.map(s => (
-                        <li
-                          key={s.n}
-                          className="flex items-start gap-3 p-2.5 rounded-lg border border-border/25 bg-card/30 hover:border-primary/30 transition-colors"
-                        >
-                          <span className="shrink-0 w-7 h-7 rounded-md border border-primary/30 bg-primary/[0.06] text-primary font-mono text-xs flex items-center justify-center">
-                            {String(s.n).padStart(2, '0')}
-                          </span>
-                          <div className="min-w-0">
-                            <div className="text-xs text-foreground/85 font-serif tracking-wider">
-                              {s.label}
-                            </div>
-                            <div className="text-[9px] text-muted-foreground/55 font-mono uppercase tracking-[0.18em] truncate">
-                              {s.en}
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ol>
-                  </HolographicPanel>
-                </div>
-              </div>
-            </div>
+            <InputConsole onSubmit={handleBirthDataSubmit} />
           )}
 
-          {/* Step: Calculating */}
           {step === 'calculating' && (
             <div className="max-w-2xl mx-auto animate-fade-in-up">
               <QuantumLoadingScreen />
             </div>
           )}
 
-          {/* Step: Verification */}
           {step === 'verification' && (
             <div className="max-w-3xl mx-auto animate-fade-in-up">
               <HolographicPanel variant="elevated" innerPadding="lg">
@@ -385,7 +72,6 @@ const Index = () => {
             </div>
           )}
 
-          {/* Step: Projecting */}
           {step === 'projecting' && (
             <div className="max-w-2xl mx-auto animate-fade-in-up">
               <CollapseLoadingScreen
@@ -399,210 +85,20 @@ const Index = () => {
             </div>
           )}
 
-          {/* Step: Result */}
           {isResultStep && fullReport && birthInput && quantumResult && (
-            <div className="animate-fade-in-up">
-              <ResultShell
-                quantumSignature={quantumResult.quantumSignature}
-                coherence={quantumResult.overallCoherence}
-                worldsGenerated={quantumResult.totalWorldsGenerated}
-                engineCount={13}
-                dominantElement={quantumResult.dominantElement}
-                deathAge={quantumResult.collapseResult?.deathAge}
-                ganZhiDisplay={ganZhiDisplay}
-                lifeSummary={quantumResult.lifeSummary}
-              >
-                {/* Tabs */}
-                <Tabs value={activeResultTab} onValueChange={setActiveResultTab}>
-                  <div className="overflow-x-auto -mx-2 px-2 scrollbar-thin">
-                    <TabsList className="inline-flex w-auto min-w-full bg-card/40 border border-primary/15 h-auto p-1 rounded-xl gap-1">
-                      {resultTabs.map(tab => {
-                        const Icon = tab.icon;
-                        return (
-                          <TabsTrigger
-                            key={tab.id}
-                            value={tab.id}
-                            className="text-[11px] sm:text-xs py-2 px-3 rounded-lg font-sans whitespace-nowrap data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_12px_hsl(40_65%_55%_/_0.25)] data-[state=active]:border-b-2 data-[state=active]:border-primary transition-all"
-                          >
-                            <Icon className="w-3.5 h-3.5 mr-1.5 inline" />
-                            {tab.label}
-                          </TabsTrigger>
-                        );
-                      })}
-                    </TabsList>
-                  </div>
-
-                  <TabsContent value="overview" className="mt-5 space-y-5">
-                    <HPulseProjectionPanel
-                      status={hpulse.status}
-                      view={hpulse.view}
-                      error={hpulse.error}
-                    />
-                    <EventTimelinePanel
-                      collapseResult={quantumResult.collapseResult}
-                      birthYear={birthInput?.year ?? new Date().getFullYear()}
-                      birthMonth={birthInput?.month ?? 1}
-                      kaoKeVerified={selectedKaoKe !== null}
-                    />
-                    {quantumResult.unifiedResult && (
-                      <PredictionOverview result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
-                    )}
-                  </TabsContent>
-
-                  {isSuperAdmin && (() => {
-                    const engineOutput = (name: string) =>
-                      quantumResult.unifiedResult?.engineOutputs?.find(e => e.engineName === name);
-                    const adminEnginePanels: Array<[string, React.ReactNode]> = [
-                      ['bazi', <BaziCorePanel bazi={engineOutput('bazi')} />],
-                      ['tieban', (
-                        <TiebanCorePanel
-                          engineOutput={engineOutput('tieban')}
-                          fullReport={fullReport}
-                          calibration={calibrationResult}
-                          selectedKaoKe={selectedKaoKe}
-                          baseNumber={baseNumber}
-                          theoreticalBase={theoreticalBase}
-                          pillarsDisplay={ganZhiDisplay}
-                        />
-                      )],
-                      ['ziwei', <ZiweiCorePanel engineOutput={engineOutput('ziwei')} birthYear={birthInput.year} />],
-                      ['liuyao', <LiuYaoCorePanel engineOutput={engineOutput('liuyao')} />],
-                      ['meihua', <MeihuaCorePanel engineOutput={engineOutput('meihua')} />],
-                      ['qimen', <QimenCorePanel engineOutput={engineOutput('qimen')} />],
-                      ['liuren', <LiuRenCorePanel engineOutput={engineOutput('liuren')} />],
-                      ['taiyi', <TaiyiCorePanel engineOutput={engineOutput('taiyi')} />],
-                      ['western', <WesternCorePanel engineOutput={engineOutput('western')} />],
-                      ['vedic', <VedicCorePanel engineOutput={engineOutput('vedic')} />],
-                      ['mayan', <MayanCorePanel engineOutput={engineOutput('mayan')} />],
-                      ['numerology', (
-                        <NumerologyCorePanel
-                          engineOutput={engineOutput('numerology')}
-                          userName={profile?.display_name ?? null}
-                          currentYear={quantumResult.timestamp.getFullYear()}
-                        />
-                      )],
-                      ['kabbalah', <KabbalahCorePanel engineOutput={engineOutput('kabbalah')} userName={profile?.display_name ?? null} />],
-                    ];
-                    return adminEnginePanels.map(([id, panel]) => (
-                      <TabsContent key={id} value={id} className="mt-5">
-                        <HolographicPanel innerPadding="md">{panel}</HolographicPanel>
-                      </TabsContent>
-                    ));
-                  })()}
-
-                  <TabsContent value="engines" className="mt-5">
-                    {quantumResult.unifiedResult && (
-                      <EngineContributionPanel result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
-                    )}
-                  </TabsContent>
-
-                  {isSuperAdmin && (
-                  <TabsContent value="audit" className="mt-5">
-                    <HolographicPanel innerPadding="md">
-                      <AuditTracePanel engineOutputs={quantumResult.unifiedResult?.engineOutputs} />
-                    </HolographicPanel>
-                  </TabsContent>
-                  )}
-
-                  <TabsContent value="tree" className="mt-5 space-y-5">
-                    {quantumResult.destinyTree && quantumResult.collapseResult ? (
-                      <>
-                        <DestinyTreeLayer tree={quantumResult.destinyTree} collapse={quantumResult.collapseResult} />
-                        <UniquePathLayer collapse={quantumResult.collapseResult} birthYear={birthInput.year} />
-                      </>
-                    ) : (
-                      <HolographicPanel innerPadding="lg" className="text-center text-xs text-muted-foreground">
-                        {lang === 'zh' ? '命运树数据加载中...' : 'Loading destiny tree...'}
-                      </HolographicPanel>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="holographic" className="mt-5">
-                    <HolographicFateMapPanel
-                      map={quantumResult.holographicFateMap ?? null}
-                      birthYear={birthInput.year}
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="yearly" className="mt-5">
-                    <YearByYearPanel
-                      report={fullReport}
-                      birth={birthInput}
-                      collapse={quantumResult.collapseResult}
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="destiny" className="mt-5">
-                    <DestinyDashboard
-                      report={fullReport}
-                      pillarsDisplay={ganZhiDisplay}
-                      birthYear={birthInput.year}
-                      onReset={handleReset}
-                    />
-                  </TabsContent>
-                  <TabsContent value="quantum" className="mt-5">
-                    <UnifiedQuantumPanel result={quantumResult} birthYear={birthInput.year} />
-                  </TabsContent>
-
-                  {isSuperAdmin && (
-                  <TabsContent value="quantumCollapse" className="mt-5">
-                    <HolographicPanel innerPadding="md">
-                      <QuantumCollapsePanel quantumResult={quantumResult} />
-                    </HolographicPanel>
-                  </TabsContent>
-                  )}
-
-                  {isSuperAdmin && unifiedReport && (
-                    <TabsContent value="orchestration" className="mt-5">
-                      <div className="space-y-4">
-                        <HolographicPanel innerPadding="md" className="border-accent/30">
-                          <div className="flex items-center gap-2">
-                            <Shield className="w-4 h-4 text-accent" />
-                            <span className="text-xs text-accent/90 font-sans">{t('admin.super_admin')}</span>
-                          </div>
-                        </HolographicPanel>
-                        <AdminOrchestrationConsole profile={profile} snapshot={unifiedReport.adminSnapshot} />
-                      </div>
-                    </TabsContent>
-                  )}
-                </Tabs>
-
-                {/* Footer Actions */}
-                <div className="space-y-3 pt-4">
-                  <HolographicPanel innerPadding="sm" className="text-center">
-                    <div className="flex items-center justify-center gap-1.5 text-accent/85">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      <span className="text-[11px] font-semibold tracking-[0.2em] uppercase">
-                        {t('disclaimer.title')}
-                      </span>
-                    </div>
-                    <p className="mt-1.5 text-[10px] text-muted-foreground/65 leading-relaxed font-sans max-w-3xl mx-auto">
-                      {t('disclaimer.text')}
-                    </p>
-                  </HolographicPanel>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="py-5 text-sm font-sans tracking-wider border-border/40 hover:border-primary/40 hover:bg-primary/5 rounded-xl"
-                    >
-                      <Link to="/prediction-history">
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        返回控制台 · 预测档案
-                      </Link>
-                    </Button>
-                    <Button
-                      onClick={handleReset}
-                      variant="outline"
-                      className="py-5 text-sm font-sans tracking-wider border-primary/30 hover:border-primary/60 hover:bg-primary/5 rounded-xl group"
-                    >
-                      <RotateCcw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
-                      重新启动推演
-                    </Button>
-                  </div>
-                </div>
-              </ResultShell>
-            </div>
+            <ResultTabsView
+              quantumResult={quantumResult}
+              unifiedReport={unifiedReport}
+              fullReport={fullReport}
+              birthInput={birthInput}
+              ganZhiDisplay={ganZhiDisplay}
+              baseNumber={baseNumber}
+              theoreticalBase={theoreticalBase}
+              calibrationResult={calibrationResult}
+              selectedKaoKe={selectedKaoKe}
+              hpulse={hpulse}
+              onReset={handleReset}
+            />
           )}
         </div>
       </main>

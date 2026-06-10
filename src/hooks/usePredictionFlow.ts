@@ -1,0 +1,160 @@
+import { useState, useCallback, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/useI18n';
+import { useHPulsePipeline } from '@/hpulse/react';
+import { getClauseCount } from '@/services/SupabaseService';
+import { savePredictionRun } from '@/services/predictionLedger';
+import { PredictionOrchestrator } from '@/utils/predictionOrchestrator';
+import type { BirthDataWithGeo } from '@/components/BirthDataForm';
+import {
+  TiebanEngine,
+  type TiebanInput,
+  type KaoKeWithMatch,
+  type CalibrationResult,
+  type FullDestinyReport,
+} from '@/utils/tiebanAlgorithm';
+import {
+  QuantumPredictionEngine,
+  type QuantumPredictionResult,
+} from '@/utils/quantumPredictionEngine';
+
+export type AppStep = 'input' | 'calculating' | 'verification' | 'projecting' | 'result';
+
+export type UnifiedReport = ReturnType<typeof PredictionOrchestrator.execute>;
+
+/**
+ * State machine + orchestration for the prediction console:
+ * input → calculating → verification (Kao Ke) → projecting → result.
+ */
+export function usePredictionFlow() {
+  const [step, setStep] = useState<AppStep>('input');
+  const [birthInput, setBirthInput] = useState<TiebanInput | null>(null);
+  const [rawBirthForm, setRawBirthForm] = useState<BirthDataWithGeo | null>(null);
+  const [ganZhiDisplay, setGanZhiDisplay] = useState('');
+  const [baseNumber, setBaseNumber] = useState(0);
+  const [theoreticalBase, setTheoreticalBase] = useState(0);
+  const [fullReport, setFullReport] = useState<FullDestinyReport | null>(null);
+  const [calibrationResult, setCalibrationResult] = useState<CalibrationResult | null>(null);
+  const [quantumResult, setQuantumResult] = useState<QuantumPredictionResult | null>(null);
+  const [clauseCount, setClauseCount] = useState<number | null>(null);
+  const [unifiedReport, setUnifiedReport] = useState<UnifiedReport | null>(null);
+  const [selectedKaoKe, setSelectedKaoKe] = useState<KaoKeWithMatch | null>(null);
+
+  const { toast } = useToast();
+  const { t } = useI18n();
+  const hpulse = useHPulsePipeline();
+
+  useEffect(() => {
+    getClauseCount().then(count => setClauseCount(count));
+  }, []);
+
+  const handleBirthDataSubmit = useCallback(async (birthData: BirthDataWithGeo) => {
+    setStep('calculating');
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setBirthInput(birthData);
+      setRawBirthForm(birthData);
+      const result = TiebanEngine.calculateBaseNumber(birthData);
+      setBaseNumber(result.baseNumber);
+      setGanZhiDisplay(result.pillars.fullDisplay);
+      const theoreticBase = TiebanEngine.calculateTheoreticalBase(birthData);
+      setTheoreticalBase(theoreticBase);
+      setStep('verification');
+    } catch (error) {
+      console.error('Calculation error:', error);
+      toast({ title: t('ui.calc_error'), description: t('ui.calc_error_desc'), variant: 'destructive' });
+      setStep('input');
+    }
+  }, [toast, t]);
+
+  const handleTimeLocked = useCallback(async (
+    lockedKeIndex: number,
+    selectedOption: KaoKeWithMatch
+  ) => {
+    setStep('projecting');
+    setSelectedKaoKe(selectedOption);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const systemOffset = TiebanEngine.calculateSystemOffset(theoreticalBase, selectedOption.clauseNumber);
+      const calibration: CalibrationResult = {
+        theoreticalBase,
+        confirmedClauseId: selectedOption.clauseNumber,
+        systemOffset,
+        lockedQuarterIndex: lockedKeIndex
+      };
+      setCalibrationResult(calibration);
+      const report: FullDestinyReport = TiebanEngine.generateFullDestinyReport(birthInput!, theoreticalBase, systemOffset);
+      setFullReport(report);
+      // Single query timestamp shared by both pipelines — keeps legacy quantum
+      // result and HPU pipeline deterministic relative to the same instant.
+      const queryTimeUtc = new Date().toISOString();
+      const qResult = QuantumPredictionEngine.predict({ ...birthInput!, queryTimeUtc }, systemOffset);
+      setQuantumResult(qResult);
+      if (qResult.unifiedResult) {
+        setUnifiedReport(PredictionOrchestrator.execute(qResult.unifiedResult.input));
+        // P6: archive run into the verification ledger (no-op when logged out
+        // or audit-blocked); failures never interrupt the prediction flow.
+        void savePredictionRun(qResult.unifiedResult).catch(() => {});
+      }
+
+      // HPU-2..9 pipeline (deterministic, parallel to legacy result).
+      if (rawBirthForm) {
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const raw = {
+          birth_date: `${rawBirthForm.year}-${pad(rawBirthForm.month)}-${pad(rawBirthForm.day)}`,
+          birth_time: `${pad(rawBirthForm.hour)}:${pad(rawBirthForm.minute)}`,
+          calendar: 'gregorian' as const,
+          location_name: rawBirthForm.normalizedLocationName,
+          latitude: rawBirthForm.geoLatitude,
+          longitude: rawBirthForm.geoLongitude,
+          timezone: rawBirthForm.timezoneIana,
+          gender: rawBirthForm.gender,
+          query_time_utc: queryTimeUtc,
+          query_type: 'natal' as const,
+          granularity: 'year' as const,
+        };
+        void hpulse.run(raw, { event: 'general', granularity: 'year' });
+      }
+
+      setStep('result');
+      toast({ title: t('ui.prediction_complete'), description: t('ui.prediction_complete_desc') });
+    } catch (error) {
+      console.error('Projection error:', error);
+      toast({ title: t('ui.proj_error'), description: t('ui.proj_error_desc'), variant: 'destructive' });
+      setStep('verification');
+    }
+  }, [theoreticalBase, birthInput, rawBirthForm, hpulse, toast, t]);
+
+  const handleReset = useCallback(() => {
+    setStep('input');
+    setBirthInput(null);
+    setRawBirthForm(null);
+    setGanZhiDisplay('');
+    setBaseNumber(0);
+    setTheoreticalBase(0);
+    setFullReport(null);
+    setCalibrationResult(null);
+    setQuantumResult(null);
+    setUnifiedReport(null);
+    setSelectedKaoKe(null);
+    hpulse.reset();
+  }, [hpulse]);
+
+  return {
+    step,
+    birthInput,
+    ganZhiDisplay,
+    baseNumber,
+    theoreticalBase,
+    fullReport,
+    calibrationResult,
+    quantumResult,
+    clauseCount,
+    unifiedReport,
+    selectedKaoKe,
+    hpulse,
+    handleBirthDataSubmit,
+    handleTimeLocked,
+    handleReset,
+  };
+}
