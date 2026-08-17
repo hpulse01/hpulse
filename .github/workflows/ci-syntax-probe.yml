@@ -1,0 +1,13 @@
+name: CI syntax probe
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "workflow parsed"
