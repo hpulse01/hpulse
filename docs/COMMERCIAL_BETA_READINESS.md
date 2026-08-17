@@ -4,6 +4,8 @@ Last updated: 2026-08-17
 
 Current verdict: **not ready for public store submission yet**. The native foundation, privacy controls, and automated quality gates are being built, but algorithm validation, device QA, store assets, and production operations remain release blockers.
 
+The mobile pipeline no longer depends on a checked-in placeholder WASM: local development has an explicitly reported deterministic TypeScript fallback, while CI generates and verifies the real Rust/WASM artifact for web, Android and iOS builds. A missing real WASM remains a hard commercial-release blocker.
+
 ## Implemented in the current foundation branch
 
 - Capacitor iOS and Android projects with bundle/application ID `com.hpulse.app`.
@@ -13,9 +15,14 @@ Current verdict: **not ready for public store submission yet**. The native found
 - In-app privacy policy, terms, account-deletion page, and authenticated deletion edge function.
 - User-owned prediction tables linked for deletion; new foreign keys enforce cascade for new writes without breaking on legacy orphan rows.
 - Registration IP values keyed-hashed at the edge; plaintext legacy profile values are one-way transformed.
-- Public result surface hides raw death age, lifespan, cause, terminus tree, yearly terminal output, and unvalidated deep panels. Super-admin retains them for audit only.
+- Runtime mortality/lifespan fusion and termination logic has been removed. Historical Tieban source text remains in the controlled admin corpus, while every public report/fetch path redacts high-risk individualized outcome text.
 - The one-megabyte Tieban clause import payload and its admin import route are excluded from client/native bundles; data import remains a controlled backend operation.
 - Source-registry policy caps every partial/unverified engine before fusion.
+- A fail-closed commercial-readiness report blocks release for missing engines, incomplete registry scope, weak/unstable sources, failed validation/core adapters, low completeness, or unsafe individualized mortality content.
+- Meihua time casting now uses lunar year branch/month/day plus the local hour branch instead of Gregorian surrogate values; the local civil-day and leap-month policy is recorded in the trace.
+- Optional name spelling now flows explicitly into Numerology and Kabbalah, is never inferred from an account profile, and is omitted from the persisted prediction ledger.
+- Identical explicit input now produces a byte-stable full result, including execution traces and scenario timestamps.
+- Public product language now describes the former “quantum” layer as classical deterministic scenario scoring, not quantum computing or event probability.
 
 ## Required before TestFlight / Play internal testing
 
@@ -29,7 +36,7 @@ Current verdict: **not ready for public store submission yet**. The native found
 ## Required before public commercial release
 
 - Complete the per-engine gates in `ALGORITHM_VERIFICATION_MATRIX.md`; do not market unverified systems as accurate or complete.
-- Remove or redesign synthetic lifespan/death algorithms rather than relying only on UI hiding.
+- Keep the executable commercial gate at zero blockers; do not add any synthetic mortality/lifespan algorithm back into runtime output.
 - Obtain legal review of privacy policy, terms, age restriction, consumer disclosures, and regional availability.
 - Complete App Store / Play Store privacy declarations, screenshots, review notes, support URL, deletion URL, signing, and release automation.
 - Run security review: committed-secret history, dependency/SBOM scan, RLS tests, edge-function authorization, abuse/rate limits, and incident response.

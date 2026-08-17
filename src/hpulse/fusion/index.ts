@@ -1,3 +1,3 @@
 export * from "./types";
-export * from "./death";
+export * from "./evidence";
 export * from "./fuse";

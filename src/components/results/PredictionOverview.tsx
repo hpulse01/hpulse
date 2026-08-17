@@ -8,7 +8,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { normalizePercent, formatPercent } from '@/utils/displayFormat';
 import {
   Sun, Coins, Heart, Activity, Brain, Sparkles,
-  CheckCircle, AlertTriangle, Zap, Crown, Palette, Clover, Home,
+  CheckCircle, AlertTriangle, Zap, Crown, Palette, Clover, Home, ShieldAlert, ShieldCheck,
 } from 'lucide-react';
 
 const DIM_ICONS: Record<FateDimension, typeof Sun> = {
@@ -52,6 +52,28 @@ export function PredictionOverview({ result }: Props) {
 
   return (
     <div className="space-y-6">
+      <div className={`glass rounded-xl p-3 border ${result.commercialReadiness.ready ? 'border-emerald-500/25' : 'border-amber-500/25'}`}>
+        <div className="flex items-start gap-2.5">
+          {result.commercialReadiness.ready
+            ? <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-emerald-400" />
+            : <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0 text-amber-300" />}
+          <div className="min-w-0">
+            <div className={`text-xs font-medium ${result.commercialReadiness.ready ? 'text-emerald-300' : 'text-amber-200'}`}>
+              {result.commercialReadiness.ready
+                ? (lang === 'zh' ? '商用算法门禁已通过' : 'Commercial algorithm gate passed')
+                : (lang === 'zh' ? '免费公测：商用算法门禁尚未通过' : 'Free beta: commercial algorithm gate not passed')}
+            </div>
+            <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/70">
+              {result.commercialReadiness.ready
+                ? (lang === 'zh' ? '仅表示实现、来源和回归审计达标，不代表科学预测有效性。' : 'This certifies implementation, sourcing and regression gates only—not scientific predictive validity.')
+                : (lang === 'zh'
+                    ? `仍有 ${result.commercialReadiness.blockers.length} 个实现/来源阻塞项；本结果仅作文化规则研究。`
+                    : `${result.commercialReadiness.blockers.length} implementation/source blockers remain; results are for cultural-rule exploration only.`)}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Stats row */}
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
         {[

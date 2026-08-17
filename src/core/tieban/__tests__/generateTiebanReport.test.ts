@@ -3,6 +3,7 @@ import { generateTiebanReport } from '../generateTiebanReport';
 import { applyCalibration } from '../systemOffset';
 import { SECTION_SPECS } from '../constants';
 import type { FamilyVerificationCandidate, QuarterKeResult, TheoreticalBaseResult } from '../types';
+import { PUBLIC_CLAUSE_REDACTION } from '../sensitiveContent';
 
 const base: TheoreticalBaseResult = {
   theoreticalBase: 1234,
@@ -79,6 +80,20 @@ describe('generateTiebanReport', () => {
     const health = report.destinySections.find((s) => s.sectionKey === 'health');
     expect(health?.sensitiveFlags.length).toBeGreaterThan(0);
     expect(health?.interpretation).toContain('仅作命理参考');
+  });
+
+  it('removes high-risk personal outcome text from every public report field', async () => {
+    const cal = applyCalibration(base, candidate);
+    const unsafe = '寿元七旬，大数已尽。';
+    const report = await generateTiebanReport(base, quarter, cal, {
+      clauseProvider: () => ({ content: unsafe }),
+    });
+
+    expect(report.clauseLookups.every((match) => match.payload == null)).toBe(true);
+    expect(report.destinySections.every((section) => section.interpretation === PUBLIC_CLAUSE_REDACTION)).toBe(true);
+    expect(JSON.stringify(report)).not.toContain(unsafe);
+    expect(report.sensitiveFlags).toContain('high_risk_personal_outcome_excluded');
+    expect(report.warnings.some((warning) => warning.code === 'TIEBAN_HIGH_RISK_CONTENT_EXCLUDED')).toBe(true);
   });
 
   it('is deterministic for identical inputs', async () => {

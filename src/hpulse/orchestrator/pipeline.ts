@@ -15,7 +15,7 @@ import type { NormalizeOutcome } from "@/hpulse/input/types";
 import { runAll } from "@/hpulse/engines/registry";
 import type { EngineRunResult } from "@/hpulse/engines/runner";
 import { buildWorldTree, type WorldTree } from "@/hpulse/worldtree";
-import { fuseDestiny, type DeathFusionResult } from "@/hpulse/fusion";
+import { fuseDestiny, type DestinyFusionResult } from "@/hpulse/fusion";
 import type { EventType, Granularity } from "@/hpulse/weights/types";
 import type { FamilyFacts } from "@/core/tieban/types";
 import { toLegacyInput } from "./adapter";
@@ -35,7 +35,7 @@ export type PipelineReport =
       normalize: NormalizeOutcome;
       engineResults: EngineRunResult[];
       worldTree: WorldTree;
-      fusion: DeathFusionResult;
+      fusion: DestinyFusionResult;
     }
   | {
       ok: false;

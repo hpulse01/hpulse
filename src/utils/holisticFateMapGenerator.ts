@@ -11,7 +11,7 @@ import type {
   HolographicFateMap, MacroFateLayer, MesoEventLayer, MicroDailyLayer,
   MacroPhaseOverview, MesoEvent, FateCurvePoint, LifePhase, FateNode,
 } from '@/types/holisticFateMap';
-import type { CollapsedPathNode, CollapseResult } from '@/types/destinyTree';
+import type { CollapseResult } from '@/types/destinyTree';
 import type { FateVector, FateDimension } from '@/types/prediction';
 import { ALL_FATE_DIMENSIONS, FATE_DIMENSION_LABELS } from '@/types/prediction';
 
@@ -152,8 +152,8 @@ function generateMacroLayer(collapse: CollapseResult, birthYear: number): MacroF
     lifetimeAverageFate: lifetimeAvg,
     strongestDimension: strongest,
     weakestDimension: findWeakest(lifetimeAvg),
-    estimatedLifespan: collapse.deathAge,
-    deathCause: collapse.deathCause,
+    analysisHorizonAge: collapse.planningHorizonAge,
+    modelBoundaryReason: collapse.horizonReason,
     totalNodes: path.length,
   };
 }
@@ -168,7 +168,7 @@ function generateMesoLayer(collapse: CollapseResult, birthYear: number): MesoEve
   const keyEvents: MesoEvent[] = [];
   for (let i = 0; i < path.length; i++) {
     const node = path[i];
-    if (node.event.intensity === 'minor' && !node.isDeath) continue;
+    if (node.event.intensity === 'minor' && !node.isTerminal) continue;
 
     const prevFV = i > 0 ? path[i - 1].fateVector : node.fateVector;
     const currFV = node.fateVector;
@@ -278,10 +278,11 @@ export function generateHolographicFateMap(
   birthYear: number,
   gender: string,
   currentAge: number = 30,
+  generatedAt: string = `${birthYear}-01-01T00:00:00.000Z`,
 ): HolographicFateMap {
   return {
     version: '1.0.0',
-    generatedAt: new Date().toISOString(),
+    generatedAt,
     birthYear,
     gender,
     macroLayer: generateMacroLayer(collapse, birthYear),
@@ -289,7 +290,7 @@ export function generateHolographicFateMap(
     microLayer: generateMicroLayer(collapse, currentAge),
     collapseInfo: {
       totalPathsConsidered: collapse.totalPathsConsidered,
-      collapseConfidence: collapse.collapseConfidence,
+      selectionStability: collapse.selectionStability,
       selectedReason: collapse.selectedReason,
       dominantEngines: collapse.dominantEngines,
     },

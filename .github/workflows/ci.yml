@@ -54,8 +54,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: hpulse-input-wasm
-          path: src/lib/wasm/hpulse-input
+          path: ${{ runner.temp }}/hpulse-input-wasm
+      - name: Install verified browser WASM
+        run: node scripts/install-wasm-artifact.mjs "${RUNNER_TEMP}/hpulse-input-wasm"
       - run: npm ci
+      - run: npm run verify:runtime-assets
       - run: npm run check
 
   android:
@@ -77,8 +80,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: hpulse-input-wasm
-          path: src/lib/wasm/hpulse-input
+          path: ${{ runner.temp }}/hpulse-input-wasm
+      - name: Install verified browser WASM
+        run: node scripts/install-wasm-artifact.mjs "${RUNNER_TEMP}/hpulse-input-wasm"
       - run: npm ci
+      - run: npm run verify:runtime-assets
       - run: npm run build
       - run: npx cap sync android
       - name: Assemble unsigned debug APK
@@ -104,8 +110,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: hpulse-input-wasm
-          path: src/lib/wasm/hpulse-input
+          path: ${{ runner.temp }}/hpulse-input-wasm
+      - name: Install verified browser WASM
+        run: node scripts/install-wasm-artifact.mjs "${RUNNER_TEMP}/hpulse-input-wasm"
       - run: npm ci
+      - run: npm run verify:runtime-assets
       - run: npm run build
       - run: npx cap sync ios
       - name: Build without code signing

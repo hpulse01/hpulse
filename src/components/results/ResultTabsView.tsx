@@ -93,7 +93,7 @@ export function ResultTabsView({
     // Unvalidated or sensitive projections stay in the super-admin audit surface.
     const adminAlgoTabs = [
       { id: 'holographic', label: lang === 'zh' ? '全息命盘' : 'Holographic Map', icon: Layers },
-      { id: 'tree', label: lang === 'zh' ? '命运树·唯一路径' : 'Destiny Tree & Path', icon: TreePine },
+      { id: 'tree', label: lang === 'zh' ? '情景树·排序路径' : 'Scenario Tree & Ranked Path', icon: TreePine },
       { id: 'yearly', label: lang === 'zh' ? '逐年详批' : 'Yearly Detail', icon: CalendarDays },
       { id: 'destiny', label: lang === 'zh' ? '铁板命盘' : 'Destiny Chart', icon: Scroll },
       { id: 'quantum', label: t('tab.quantum'), icon: Atom },
@@ -110,7 +110,7 @@ export function ResultTabsView({
       { id: 'numerology', label: lang === 'zh' ? '数字命理' : 'Numerology', icon: BookOpen },
       { id: 'mayan', label: lang === 'zh' ? '玛雅' : 'Mayan', icon: BookOpen },
       { id: 'kabbalah', label: lang === 'zh' ? '卡巴拉' : 'Kabbalah', icon: BookOpen },
-      { id: 'quantumCollapse', label: lang === 'zh' ? '量子坍缩' : 'Quantum Collapse', icon: Atom },
+      { id: 'quantumCollapse', label: lang === 'zh' ? '情景融合' : 'Scenario Fusion', icon: Atom },
       { id: 'audit', label: lang === 'zh' ? '算法审计' : 'Audit', icon: Activity },
     ];
     const tabs = isSuperAdmin ? [...publicTabs, ...adminAlgoTabs] : publicTabs;
@@ -128,7 +128,6 @@ export function ResultTabsView({
         worldsGenerated={quantumResult.totalWorldsGenerated}
         engineCount={13}
         dominantElement={quantumResult.dominantElement}
-        deathAge={isSuperAdmin ? quantumResult.collapseResult?.deathAge : undefined}
         ganZhiDisplay={ganZhiDisplay}
         lifeSummary={
           isSuperAdmin
@@ -157,14 +156,12 @@ export function ResultTabsView({
               status={hpulse.status}
               view={hpulse.view}
               error={hpulse.error}
-              showSensitiveTerminus={isSuperAdmin}
             />
             <EventTimelinePanel
               collapseResult={quantumResult.collapseResult}
               birthYear={birthInput?.year ?? new Date().getFullYear()}
               birthMonth={birthInput?.month ?? 1}
               kaoKeVerified={selectedKaoKe !== null}
-              showSensitiveTerminus={isSuperAdmin}
             />
             {quantumResult.unifiedResult && (
               <PredictionOverview result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />

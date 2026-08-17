@@ -9,7 +9,6 @@
  */
 
 import type { FateVector, FateDimension } from './prediction';
-import type { DeathCause, CollapsedPathNode } from './destinyTree';
 
 // ═══════════════════════════════════════════════
 // 1. FateNode Schema (Notion 详细人生节点数据结构)
@@ -80,10 +79,10 @@ export interface MacroFateLayer {
   strongestDimension: FateDimension;
   /** 最弱维度 */
   weakestDimension: FateDimension;
-  /** 寿命预估 */
-  estimatedLifespan: number;
-  /** 死亡方式 */
-  deathCause: DeathCause;
+  /** 有限分析窗口；不是寿命预估。 */
+  analysisHorizonAge: number;
+  /** 模型为何在该边界停止。 */
+  modelBoundaryReason: string;
   /** 总节点数 */
   totalNodes: number;
 }
@@ -184,7 +183,7 @@ export interface HolographicFateMap {
   /** 量子坍缩信息 */
   collapseInfo: {
     totalPathsConsidered: number;
-    collapseConfidence: number;
+    selectionStability: number;
     selectedReason: string;
     dominantEngines: string[];
   };

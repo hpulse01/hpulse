@@ -87,7 +87,7 @@ export function meihuaChartToEngineOutput(chart: MeihuaChart): EngineOutput {
     engineName: 'meihua',
     engineNameCN: '梅花易数',
     engineVersion: 'P4.6-core',
-    sourceUrls: ['classical: 邵雍《梅花易数》'],
+    sourceUrls: ['https://zh.wikisource.org/zh-hans/梅花易數/卷一'],
     sourceGrade: chart.sourceGrade,
     ruleSchool: '邵雍先天数 + 体用生克',
     confidence: normalizeConfidence01(chart.confidence),
@@ -121,7 +121,7 @@ export function meihuaChartToEngineOutput(chart: MeihuaChart): EngineOutput {
     warnings: chart.warnings.map((w) => `${w.code}: ${w.message}`),
     uncertaintyNotes: [
       '梅花易数以体用生克为骨干，结果仅供参考，不构成行动建议。',
-      ...(chart.castingMode === 'time' ? ['时间起卦中年支序数为公历近似，建议接入农历核心以提升精度。'] : []),
+      ...(chart.castingMode === 'time' ? ['时间起卦采用当地民用日界、农历年月日与本地时支；闰月按同月序数取数。'] : []),
     ],
     timingBasis: chart.castingMode === 'time' ? 'query' : 'hybrid',
     explanationTrace,

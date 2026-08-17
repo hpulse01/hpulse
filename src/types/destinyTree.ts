@@ -39,7 +39,7 @@ export interface DestinyEventSeed {
   causalFactors: string[];
   /** Conditions that must be met for this event to trigger */
   triggerConditions: string[];
-  /** Is this event death-related? */
+  /** @deprecated Commercial pipelines exclude these legacy unsafe signals. */
   deathRelated: boolean;
   /** Key for merging similar events across engines */
   mergeKey: string;
@@ -95,41 +95,18 @@ export interface UnifiedEventCandidate {
 }
 
 // ═══════════════════════════════════════════════
-// 3. Death Candidate types
+// 3. Analysis-horizon types
 // ═══════════════════════════════════════════════
 
-export type DeathStrength = 'strong' | 'weak' | 'illness_only';
-
-export interface DeathCandidate {
-  eventId: string;
-  mergeKey: string;
-  strength: DeathStrength;
-  estimatedAge: number;
-  ageWindow: [number, number];
-  fusedProbability: number;
-  engines: string[];
-  consensusCount: number;
-  cause: DeathCause;
-  causalChain: string[];
-  description: string;
-}
-
-export interface DeathFusionResult {
-  candidates: DeathCandidate[];
-  strongCandidates: DeathCandidate[];
-  weakCandidates: DeathCandidate[];
-  illnessOnly: DeathCandidate[];
-  primaryDeath: DeathCandidate;
-  fusionReasoning: string;
-}
+export type TerminalReason =
+  | 'analysis_horizon'
+  | 'no_further_events'
+  | 'depth_limit'
+  | 'node_limit';
 
 // ═══════════════════════════════════════════════
 // 4. World Node — single node in the destiny tree
 // ═══════════════════════════════════════════════
-
-export type DeathCause =
-  | 'natural_aging' | 'illness' | 'accident'
-  | 'violence' | 'sudden' | 'lifespan_limit';
 
 export interface WorldNode {
   id: string;
@@ -137,9 +114,8 @@ export interface WorldNode {
   depth: number;
   age: number;
   year: number;
-  alive: boolean;
-  isDeath: boolean;
-  deathCause?: DeathCause;
+  isTerminal: boolean;
+  terminalReason?: TerminalReason;
   /** The dominant event at this node */
   dominantEvent: UnifiedEventCandidate;
   /** Contributing side events */
@@ -180,14 +156,14 @@ export interface RecursiveWorldTree {
   totalNodes: number;
   totalPaths: number;
   maxDepth: number;
-  /** All leaf (death/terminal) nodes */
+  /** All leaf nodes at a finite analysis/model boundary. */
   terminalNodes: WorldNode[];
   /** Generation metadata */
   generatedAt: string;
   birthYear: number;
   gender: string;
-  /** Death fusion result used for tree generation */
-  deathFusion: DeathFusionResult;
+  /** Finite modeling boundary. It is not a lifespan estimate. */
+  planningHorizonAge: number;
 }
 
 // ═══════════════════════════════════════════════
@@ -201,8 +177,8 @@ export interface CollapsedPathNode {
   fateVector: FateVector;
   cumulativeProbability: number;
   engineSupports: string[];
-  isDeath: boolean;
-  deathCause?: DeathCause;
+  isTerminal: boolean;
+  terminalReason?: TerminalReason;
 }
 
 export interface RejectedBranchSummary {
@@ -217,16 +193,17 @@ export interface RejectedBranchSummary {
 export interface CollapseResult {
   /** The unique collapsed fate path */
   collapsedPath: CollapsedPathNode[];
-  /** Death node details */
-  deathAge: number;
-  deathCause: DeathCause;
-  deathDescription: string;
+  /** Finite scenario-model boundary; never a lifespan estimate. */
+  planningHorizonAge: number;
+  terminalAge: number;
+  terminalReason: TerminalReason;
+  terminalDescription: string;
   /** Major rejected branches */
   rejectedBranches: RejectedBranchSummary[];
   /** Collapse reasoning */
   collapseReasoning: string;
-  /** 0-1 confidence */
-  collapseConfidence: number;
+  /** 0-1 deterministic selection stability; not event probability. */
+  selectionStability: number;
   /** Final life summary */
   finalLifeSummary: string;
   /** How many total paths were considered */
@@ -237,8 +214,8 @@ export interface CollapseResult {
   dominantEngines: string[];
   /** How conflicts were resolved during collapse */
   conflictResolutionNotes: string[];
-  /** Why the death boundary was placed here */
-  deathBoundaryReason: string;
+  /** Why the finite analysis boundary was placed here. */
+  horizonReason: string;
 }
 
 // ═══════════════════════════════════════════════
@@ -248,7 +225,7 @@ export interface CollapseResult {
 export interface EngineEventExtraction {
   engineName: string;
   eventSeeds: DestinyEventSeed[];
-  deathSignals: DestinyEventSeed[];
+  excludedSensitiveSignals: DestinyEventSeed[];
   confidence: number;
 }
 
@@ -327,9 +304,9 @@ export const LIFE_PHASES: LifePhaseDescriptor[] = [
   { name: 'Senior', nameCN: '壮暮期', ageRange: [60, 74], eventDensity: 0.6,
     dominantCategories: ['health', 'family', 'spiritual'], baseTendency: { spirit: 70, health: 45 } },
   { name: 'Elderly', nameCN: '晚年期', ageRange: [75, 89], eventDensity: 0.4,
-    dominantCategories: ['health', 'family', 'death'], baseTendency: { spirit: 75, health: 35 } },
+    dominantCategories: ['health', 'family', 'spiritual'], baseTendency: { spirit: 75, health: 35 } },
   { name: 'Longevity', nameCN: '长寿期', ageRange: [90, 120], eventDensity: 0.2,
-    dominantCategories: ['health', 'death', 'spiritual'], baseTendency: { spirit: 80, wisdom: 75, health: 25 } },
+    dominantCategories: ['health', 'family', 'spiritual'], baseTendency: { spirit: 80, wisdom: 75, health: 25 } },
 ];
 
 // ═══════════════════════════════════════════════
@@ -340,9 +317,8 @@ export interface EventFusionResult {
   candidates: UnifiedEventCandidate[];
   mainlineEvents: UnifiedEventCandidate[];
   sidelineEvents: UnifiedEventCandidate[];
-  deathEvents: UnifiedEventCandidate[];
+  /** Number of legacy mortality/lifespan signals excluded before fusion. */
+  excludedSensitiveCount: number;
   mergeLog: Array<{ mergeKey: string; mergedCount: number; engines: string[] }>;
   conflictLog: Array<{ eventA: string; eventB: string; resolution: string }>;
-  /** Death candidate fusion result */
-  deathFusion: DeathFusionResult;
 }

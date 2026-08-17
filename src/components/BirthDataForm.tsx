@@ -21,6 +21,7 @@ import { hourBranchOf } from '@/core/calendar/chineseHour';
 import { offsetMinutesAt, resolveLocalTime } from '@/core/astro-time/timezone';
 import { LocationSearch, type GeocodedLocation } from '@/components/LocationSearch';
 import { useI18n } from '@/hooks/useI18n';
+import { normalizeCalculationName } from '@/core/shared/calculationName';
 
 const CHINESE_HOUR_RANGES: Record<string, string> = {
   子: '23-01', 丑: '01-03', 寅: '03-05', 卯: '05-07',
@@ -30,6 +31,8 @@ const CHINESE_HOUR_RANGES: Record<string, string> = {
 
 /** Extended birth data that includes P0.5 location metadata */
 export interface BirthDataWithGeo extends TiebanInput {
+  /** Explicit optional spelling for Numerology/Kabbalah; never profile-derived. */
+  calculationName?: string;
   normalizedLocationName: string;
   timezoneIana: string;
   sourceProvider: string;
@@ -63,6 +66,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
     timezoneOffsetMinutes: 480,
   });
   const [locationName, setLocationName] = useState('北京');
+  const [calculationName, setCalculationName] = useState('');
   const [timezoneIana, setTimezoneIana] = useState('Asia/Shanghai');
   const [sourceProvider, setSourceProvider] = useState('default');
   const [sourceConfidence, setSourceConfidence] = useState(0.9);
@@ -133,6 +137,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
 
     onSubmit({
       ...formData,
+      calculationName: normalizeCalculationName(calculationName),
       timezoneOffsetMinutes,
       normalizedLocationName: locationName,
       timezoneIana,
@@ -243,6 +248,28 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
           <span className="text-muted-foreground text-xs font-sans">{t('form.chinese_hour')} </span>
           <span className="text-primary font-serif text-sm">{chineseHour}</span>
         </div>
+      </div>
+
+      {/* Optional name-based systems input */}
+      <div className="space-y-2.5">
+        <Label htmlFor="calculation-name" className="text-xs text-muted-foreground font-sans">
+          {t('form.calculation_name')}
+        </Label>
+        <Input
+          id="calculation-name"
+          type="text"
+          value={calculationName}
+          onChange={(event) => setCalculationName(event.target.value)}
+          maxLength={120}
+          autoComplete="off"
+          spellCheck={false}
+          placeholder={t('form.calculation_name_placeholder')}
+          aria-describedby="calculation-name-help"
+          className="bg-input border-border/50 h-11 rounded-lg text-sm"
+        />
+        <p id="calculation-name-help" className="text-[10px] leading-relaxed text-muted-foreground/70 font-sans">
+          {t('form.calculation_name_help')}
+        </p>
       </div>
 
       {/* Location */}

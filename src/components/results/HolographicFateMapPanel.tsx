@@ -104,7 +104,7 @@ function MacroSection({ map }: { map: HolographicFateMap }) {
         <div className="flex flex-wrap gap-3 mt-3 text-[11px] text-muted-foreground">
           <span>最强：<span className="text-emerald-300">{FATE_DIMENSION_LABELS[macro.strongestDimension]}</span></span>
           <span>最弱：<span className="text-rose-300">{FATE_DIMENSION_LABELS[macro.weakestDimension]}</span></span>
-          <span>寿命预估：<span className="text-primary">{macro.estimatedLifespan} 岁</span></span>
+          <span>分析窗口：<span className="text-primary">0–{macro.analysisHorizonAge} 岁</span></span>
           <span>命运节点：<span className="text-foreground">{macro.totalNodes}</span></span>
         </div>
       </HolographicPanel>
@@ -325,11 +325,11 @@ export function HolographicFateMapPanel({ map, birthYear }: HolographicFateMapPa
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
             <span>考察路径 <span className="text-primary">{map.collapseInfo.totalPathsConsidered}</span></span>
             <span>·</span>
-            <span>坍缩置信 <span className="text-primary">{Math.round(map.collapseInfo.collapseConfidence * 100)}%</span></span>
+            <span>选择稳定度 <span className="text-primary">{Math.round(map.collapseInfo.selectionStability * 100)}%</span></span>
           </div>
         </div>
         <div className="text-[10px] text-muted-foreground mt-1.5">
-          坍缩依据：{map.collapseInfo.selectedReason}
+          排序依据：{map.collapseInfo.selectedReason}
         </div>
       </HolographicPanel>
 

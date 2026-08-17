@@ -10,11 +10,11 @@ interface CollapseLoadingScreenProps {
 }
 
 const STAGES = [
-  '从多重可能世界中选择唯一生命路径',
-  '生成世界树',
-  '坍缩关键事件序列',
-  '校准死亡候选',
-  '输出最终命运向量',
+  '汇总各体系候选情景',
+  '生成有限情景树',
+  '按确定性规则排序事件序列',
+  '校准证据覆盖',
+  '输出融合规则向量',
 ];
 
 export function CollapseLoadingScreen({
@@ -41,7 +41,7 @@ export function CollapseLoadingScreen({
 
         <div>
           <p className="text-[10px] uppercase tracking-[0.45em] text-primary/70 font-mono">
-            Quantum Collapse
+            Scenario Fusion
           </p>
           <p className="mt-2 text-lg md:text-xl font-serif text-gradient-gold tracking-[0.2em]">
             {STAGES[stage]}

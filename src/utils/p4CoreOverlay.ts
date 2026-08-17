@@ -4,16 +4,15 @@
  * Bridges the deterministic P4 `src/core/*` engine adapters into the legacy
  * `quantumPredictionEngine` orchestrator.
  *
- * Strategy: each legacy runner still produces its EngineOutput for backward
- * compatibility (the rich `normalizedOutput` keys etc. are consumed by older
- * UI). After the legacy runner returns, we run the matching P4 core engine
- * and OVERLAY its deterministic metadata (sourceGrade, completenessScore,
- * confidence, warnings, uncertaintyNotes, explanationTrace, implementation
- * status flag, validationFlags) onto the legacy EngineOutput.
+ * Strategy: each legacy runner still produces presentation-only data for
+ * backward-compatible UI panels. The matching P4 core engine is the sole
+ * authority for every value consumed by scoring, weighting or event fusion.
+ * Legacy normalized data remains available under `legacyNormalizedOutput`,
+ * but can never override a core result.
  *
- * If the core engine throws or returns nothing, the legacy EO passes through
- * unchanged — but a warning is appended so we never silently swallow the
- * core failure.
+ * If the core engine throws, the result is quarantined with zero confidence
+ * and a neutral FateVector. A legacy heuristic must never become an implicit
+ * fallback for a failed authoritative engine.
  *
  * NO randomness, NO Date.now() in OUTPUT — only used for trace timestamps
  * inside the orchestrator.
@@ -156,6 +155,7 @@ function runCoreVedic(si: StandardizedInput): EngineOutput {
 
 function runCoreNumerology(si: StandardizedInput): EngineOutput {
   const result = calculateNumerology({
+    fullName: si.calculationName,
     birthYear: si.birthLocalDateTime.year,
     birthMonth: si.birthLocalDateTime.month,
     birthDay: si.birthLocalDateTime.day,
@@ -171,6 +171,7 @@ function runCoreMayanEngine(si: StandardizedInput): EngineOutput {
 
 function runCoreKabbalahEngine(si: StandardizedInput): EngineOutput {
   const result = calculateKabbalah({
+    name: si.calculationName,
     birthYear: si.birthLocalDateTime.year,
     birthMonth: si.birthLocalDateTime.month,
     birthDay: si.birthLocalDateTime.day,
@@ -224,43 +225,37 @@ export function runCoreEngine(name: string, si: StandardizedInput): CoreOverlayR
 }
 
 /**
- * Merge deterministic P4 core metadata into a legacy EngineOutput.
+ * Merge a deterministic P4 core result with legacy presentation data.
  *
- *   - Truth fields overridden by core: sourceGrade, confidence,
- *     completenessScore, validationFlags, timingBasis.
- *   - Aggregated: warnings, uncertaintyNotes, explanationTrace, eventCandidates.
- *   - Preserved from legacy (do not overwrite — UI depends on them):
- *     engineName, engineNameCN, engineVersion, ruleSchool, normalizedOutput,
- *     fateVector, aspectScores, rawInputSnapshot, computationTimeMs, sourceUrls.
+ * All score-bearing and provenance-bearing fields are copied from `core`.
+ * Only human-readable legacy normalized data is retained, explicitly nested.
  */
 export function mergeCoreOverlay(legacy: EngineOutput, core: EngineOutput): EngineOutput {
-  // Track P4 core wiring inside normalizedOutput so trace consumers can see it.
+  // Track core wiring inside normalizedOutput so trace consumers can see it.
   const merged: EngineOutput = {
-    ...legacy,
+    engineName: core.engineName,
+    engineNameCN: core.engineNameCN || legacy.engineNameCN,
+    engineVersion: core.engineVersion,
+    ruleSchool: core.ruleSchool,
     sourceGrade: core.sourceGrade,
     confidence: normalizeConfidence01(core.confidence),
     completenessScore: core.completenessScore,
-    timingBasis: core.timingBasis ?? legacy.timingBasis,
+    timingBasis: core.timingBasis,
+    computationTimeMs: core.computationTimeMs,
+    rawInputSnapshot: core.rawInputSnapshot,
+    fateVector: core.fateVector,
+    timeWindows: core.timeWindows,
+    aspectScores: core.aspectScores,
+    eventCandidates: core.eventCandidates,
     sourceUrls: Array.from(new Set([...legacy.sourceUrls, ...core.sourceUrls])),
     warnings: dedupe([...legacy.warnings, ...core.warnings]),
     uncertaintyNotes: dedupe([...legacy.uncertaintyNotes, ...core.uncertaintyNotes]),
     explanationTrace: [
-      ...legacy.explanationTrace,
-      `[p4-core overlay applied: ${core.engineVersion}]`,
+      `[authoritative core applied: ${core.engineVersion}]`,
       ...core.explanationTrace,
     ],
-    eventCandidates: dedupe([...legacy.eventCandidates, ...core.eventCandidates]),
-    validationFlags: {
-      passed: dedupe([...legacy.validationFlags.passed, ...core.validationFlags.passed]),
-      failed: dedupe([...legacy.validationFlags.failed, ...core.validationFlags.failed]),
-      warnings: dedupe([...legacy.validationFlags.warnings, ...core.validationFlags.warnings]),
-    },
-    aspectScores: { ...legacy.aspectScores, ...core.aspectScores },
+    validationFlags: core.validationFlags,
     normalizedOutput: {
-      // P5-FIX: merge legacy + core normalizedOutput so UI panels can read
-      // canonical core keys (yearGZ/dayMaster/palaces/sihua/...) AND legacy
-      // 中文 keys (四柱/日主/格局/...) without re-stringifying structured data.
-      ...legacy.normalizedOutput,
       ...core.normalizedOutput,
       legacyNormalizedOutput: legacy.normalizedOutput,
       coreNormalizedOutput: core.normalizedOutput,
@@ -275,17 +270,43 @@ export function mergeCoreOverlay(legacy: EngineOutput, core: EngineOutput): Engi
 export function applyCoreOverlay(legacy: EngineOutput, overlay: CoreOverlayResult): EngineOutput {
   if (overlay.coreOutput) return mergeCoreOverlay(legacy, overlay.coreOutput);
   if (!overlay.coreError) return legacy; // engine has no core adapter — pass-through
+  const neutralFateVector: EngineOutput['fateVector'] = {
+    life: 50,
+    wealth: 50,
+    relation: 50,
+    health: 50,
+    wisdom: 50,
+    spirit: 50,
+    socialStatus: 50,
+    creativity: 50,
+    luck: 50,
+    homeStability: 50,
+  };
   return {
     ...legacy,
+    computationTimeMs: 0,
+    sourceGrade: 'D',
+    confidence: 0,
+    completenessScore: 0,
+    fateVector: neutralFateVector,
+    aspectScores: {},
+    eventCandidates: [],
+    timeWindows: [],
     warnings: dedupe([...legacy.warnings, `p4_core_failed: ${overlay.coreError}`]),
     validationFlags: {
-      ...legacy.validationFlags,
-      failed: dedupe([...legacy.validationFlags.failed, 'p4_core_overlay_failed']),
+      passed: [],
+      failed: ['authoritative_core_failed'],
+      warnings: dedupe([...legacy.validationFlags.warnings, 'legacy_output_quarantined']),
     },
     explanationTrace: [
-      ...legacy.explanationTrace,
-      `[p4-core overlay FAILED: ${overlay.coreError}] — using legacy output only`,
+      `[authoritative core FAILED: ${overlay.coreError}]`,
+      '[legacy output quarantined: neutral vector, zero confidence, no events]',
     ],
+    normalizedOutput: {
+      legacyNormalizedOutput: legacy.normalizedOutput,
+      p4ImplementationStatus: 'failed',
+      authoritativeCoreError: overlay.coreError,
+    },
   };
 }
 

@@ -5,7 +5,7 @@ const PALACE_NAMES = ['命宫', '兄弟', '夫妻', '子女', '财帛', '疾厄'
 const MAIN_14 = ['紫微', '天机', '太阳', '武曲', '天同', '廉贞', '天府', '太阴', '贪狼', '巨门', '天相', '天梁', '七杀', '破军'];
 
 function getReport(): ZiweiReport {
-  return ZiweiEngine.generateReport({ year: 1990, month: 6, day: 15, hour: 14, gender: 'male' });
+  return ZiweiEngine.generateReport({ year: 1990, month: 6, day: 15, hour: 14, gender: 'male', targetYear: 2026 });
 }
 
 describe('ZiweiEngine', () => {

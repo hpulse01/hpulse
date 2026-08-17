@@ -36,6 +36,7 @@ export function toLegacyInput(
   si: HpulseStandardizedInput,
 ): LegacyStandardizedInput {
   return {
+    calculationName: si.calculation_name,
     birthLocalDateTime: splitLocal(si.birth.date_iso, si.birth.time_iso),
     birthUtcDateTime: si.birth.birth_utc,
     geoLatitude: si.birth.latitude,

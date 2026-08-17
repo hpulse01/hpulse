@@ -69,6 +69,8 @@ describe('WesternAstrologyEngine', () => {
       hour: MOCK_INPUT.hour, minute: MOCK_INPUT.minute, gender: 'male',
       geoLatitude: MOCK_INPUT.geoLatitude, geoLongitude: MOCK_INPUT.geoLongitude,
       timezoneOffsetMinutes: MOCK_INPUT.timezoneOffsetMinutes,
+      timezoneIana: 'Asia/Shanghai',
+      queryTimeUtc: '2026-01-01T00:00:00.000Z',
     });
     const unified = QuantumPredictionEngine.orchestrate(si);
     const westernEo = unified.engineOutputs.find(eo => eo.engineName === 'western');

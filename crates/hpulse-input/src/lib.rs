@@ -14,7 +14,7 @@ use sha2::{Digest, Sha256};
 use wasm_bindgen::prelude::*;
 
 pub const SCHEMA_VERSION: &str = "hpulse.input.v1";
-pub const ALGORITHM_VERSION: &str = "hpu2.normalizer.v2-offset-injection";
+pub const ALGORITHM_VERSION: &str = "hpu2.normalizer.v3-calculation-name";
 
 // ============================================================================
 // Raw input (untrusted, from UI / API)
@@ -29,6 +29,10 @@ pub struct RawUserInput {
     /// "gregorian" (lunar input is rejected until an explicit converter ships)
     #[serde(default = "default_calendar")]
     pub calendar: String,
+    /// Optional spelling supplied explicitly for name-based rule systems.
+    /// It is never populated from an account profile.
+    #[serde(default)]
+    pub calculation_name: Option<String>,
     /// Free-form location name as typed by the user (for audit only)
     pub location_name: String,
     pub latitude: f64,
@@ -100,8 +104,10 @@ pub struct StandardizedInput {
     pub birth: BirthData,
     pub query: QueryContext,
     pub identity: UserIdentity,
-    /// 64-hex sha256 of a canonical projection of (birth + query). Drives all
-    /// seeded RNG in downstream engines.
+    /// Whitespace-normalized, length-capped calculation spelling.
+    pub calculation_name: Option<String>,
+    /// 64-hex sha256 of a canonical projection of birth + query + optional
+    /// calculation spelling. Drives all seeded RNG in downstream engines.
     pub seed_material: String,
     /// Echo of raw input, kept verbatim for audit / replay.
     pub raw: RawUserInput,
@@ -171,15 +177,20 @@ fn tz_offset_minutes(tz: &str) -> Option<i32> {
     }
 }
 
-fn canonical_seed_material(birth: &BirthData, query: &QueryContext) -> String {
+fn canonical_seed_material(
+    birth: &BirthData,
+    query: &QueryContext,
+    calculation_name: Option<&str>,
+) -> String {
     // Order-stable, locale-free string. Anything not here cannot influence the seed.
     let canonical = format!(
-        "v1|birth_utc={}|lat={:.6}|lng={:.6}|cal={}|gender={}|qt={}|qtype={}|gran={}",
+        "v1|birth_utc={}|lat={:.6}|lng={:.6}|cal={}|gender={}|cname_hex={}|qt={}|qtype={}|gran={}",
         birth.birth_utc,
         birth.latitude,
         birth.longitude,
         birth.calendar,
         birth.gender,
+        hex::encode(calculation_name.unwrap_or("").as_bytes()),
         query.query_time_utc,
         query.query_type,
         query.granularity,
@@ -325,7 +336,13 @@ pub fn normalize(raw: RawUserInput) -> NormalizeOutcome {
         locale: raw.locale.clone().unwrap_or_else(|| "zh-CN".to_string()),
     };
 
-    let seed_material = canonical_seed_material(&birth, &query);
+    let calculation_name = raw.calculation_name.as_deref().and_then(|value| {
+        let normalized = value.split_whitespace().collect::<Vec<_>>().join(" ");
+        let capped = cap_str(&normalized, 120);
+        if capped.is_empty() { None } else { Some(capped) }
+    });
+
+    let seed_material = canonical_seed_material(&birth, &query, calculation_name.as_deref());
 
     let std_input = StandardizedInput {
         schema_version: SCHEMA_VERSION.into(),
@@ -333,6 +350,7 @@ pub fn normalize(raw: RawUserInput) -> NormalizeOutcome {
         birth,
         query,
         identity,
+        calculation_name,
         seed_material,
         raw,
     };
@@ -388,6 +406,7 @@ mod tests {
             birth_date: "1990-04-15".into(),
             birth_time: "08:30".into(),
             calendar: "gregorian".into(),
+            calculation_name: Some("  John   Smith  ".into()),
             location_name: "上海".into(),
             latitude: 31.2304,
             longitude: 121.4737,
@@ -410,6 +429,7 @@ mod tests {
         assert_eq!(s.schema_version, SCHEMA_VERSION);
         assert_eq!(s.birth.birth_utc, "1990-04-15T00:30:00Z");
         assert_eq!(s.birth.tz_offset_minutes, 480);
+        assert_eq!(s.calculation_name.as_deref(), Some("John Smith"));
         assert_eq!(s.seed_material.len(), 64);
     }
 
@@ -424,6 +444,15 @@ mod tests {
     fn seed_changes_with_minute() {
         let mut r = sample(); r.birth_time = "08:31".into();
         let a = normalize(sample()).input.unwrap().seed_material;
+        let b = normalize(r).input.unwrap().seed_material;
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn seed_changes_with_explicit_calculation_name() {
+        let a = normalize(sample()).input.unwrap().seed_material;
+        let mut r = sample();
+        r.calculation_name = Some("Jane Smith".into());
         let b = normalize(r).input.unwrap().seed_material;
         assert_ne!(a, b);
     }

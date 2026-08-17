@@ -25,7 +25,7 @@ interface Props {
 
 const SECTION_LABELS: Record<string, string> = {
   overview: '命运总论', marriage: '婚姻姻缘', wealth: '财运财富', career: '事业前程',
-  health: '健康寿元', children: '子嗣后代', parents: '父母六亲', migration: '迁移远行', disaster: '灾厄风险',
+  health: '健康趋势', children: '子嗣后代', parents: '父母六亲', migration: '迁移远行', disaster: '灾厄风险',
 };
 
 /** TiebanCorePanel — orchestrates the full Tieban result view (desktop 2-col, mobile accordion). */
@@ -208,7 +208,7 @@ function parseCalibrationTrace(eo?: EngineOutput | null): string[] {
 function nameToKey(name: string): string {
   const m: Record<string, string> = {
     '命运总论': 'overview', '婚姻姻缘': 'marriage', '财运财富': 'wealth', '事业前程': 'career',
-    '健康寿元': 'health', '子嗣后代': 'children', '父母六亲': 'parents', '迁移远行': 'migration', '灾厄风险': 'disaster',
+    '健康趋势': 'health', '健康寿元': 'health', '子嗣后代': 'children', '父母六亲': 'parents', '迁移远行': 'migration', '灾厄风险': 'disaster',
   };
   return m[name] ?? name;
 }

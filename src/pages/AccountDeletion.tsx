@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/useAuth';
+import { PublicSupportContact } from '@/components/legal/PublicSupportContact';
 
 export default function AccountDeletion() {
   const { isAuthenticated, user, deleteAccount } = useAuth();
@@ -69,7 +70,7 @@ export default function AccountDeletion() {
       )}
 
       <LegalSection title="无法登录">
-        <p>请从注册邮箱发送请求至 <a className="text-primary underline" href="mailto:hpulse001@gmail.com?subject=H-Pulse%20Account%20Deletion">hpulse001@gmail.com</a>。完成所有权验证后，我们会处理删除请求。</p>
+        <p>请从注册邮箱发送请求至 <PublicSupportContact className="text-primary underline" subject="H-Pulse Account Deletion" />。完成所有权验证后，我们会处理删除请求。</p>
       </LegalSection>
 
       <AuthModal open={authOpen} onOpenChange={setAuthOpen} />

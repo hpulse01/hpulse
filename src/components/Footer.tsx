@@ -1,5 +1,6 @@
 import { useI18n } from '@/hooks/useI18n';
 import { Link } from 'react-router-dom';
+import { PublicSupportContact } from '@/components/legal/PublicSupportContact';
 
 export function Footer() {
   const { t } = useI18n();
@@ -14,10 +15,10 @@ export function Footer() {
             <div className="h-px w-10 bg-gradient-to-l from-transparent to-primary/20" />
           </div>
           <p className="text-muted-foreground/40 text-[10px] font-sans leading-relaxed max-w-md mx-auto">
-            Quantum Destiny Prediction System · {t('footer.desc')}
+            Cultural Rule Analysis System · {t('footer.desc')}
           </p>
           <p className="text-muted-foreground/30 text-[10px] font-sans">
-            联系方式：<a href="mailto:hpulse001@gmail.com" className="hover:text-primary/50 transition-colors">hpulse001@gmail.com</a>
+            联系方式：<PublicSupportContact className="hover:text-primary/50 transition-colors" />
             <span className="mx-2">·</span>
             © {new Date().getFullYear()} H-Pulse
           </p>

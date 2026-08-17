@@ -52,7 +52,7 @@ const ASPECT_CONFIG = [
   { key: 'marriage' as const, label: '婚姻姻缘', icon: Heart, color: 'text-rose-400' },
   { key: 'wealth' as const, label: '财运财富', icon: Coins, color: 'text-emerald-400' },
   { key: 'career' as const, label: '事业前程', icon: Briefcase, color: 'text-sky-400' },
-  { key: 'health' as const, label: '健康寿元', icon: Activity, color: 'text-purple-400' },
+  { key: 'health' as const, label: '健康趋势', icon: Activity, color: 'text-purple-400' },
   { key: 'children' as const, label: '子嗣后代', icon: Baby, color: 'text-pink-400' },
 ];
 

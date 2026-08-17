@@ -7,8 +7,7 @@ interface Props {
 }
 
 /**
- * QuantumCollapsePanel — surfaces existing legacy/event-driven destiny tree
- * + collapse summary so the user has a "量子坍缩" view available.
+ * Scenario-fusion diagnostic panel for the deterministic event tree.
  *
  * Super-admin diagnostic view: read-only summary of what already exists in
  * QuantumPredictionResult (event-driven collapse pipeline).
@@ -17,7 +16,7 @@ export function QuantumCollapsePanel({ quantumResult }: Props) {
   if (!quantumResult) {
     return (
       <div className="rounded-xl border border-primary/15 bg-card/30 p-4 text-xs text-muted-foreground">
-        量子坍缩数据尚未生成 / Quantum collapse not available.
+        情景融合数据尚未生成 / Scenario fusion not available.
       </div>
     );
   }
@@ -30,17 +29,17 @@ export function QuantumCollapsePanel({ quantumResult }: Props) {
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-center gap-2">
-        <h3 className="text-sm font-serif tracking-[0.22em] text-gradient-gold">量子坍缩 · Quantum Collapse</h3>
+        <h3 className="text-sm font-serif tracking-[0.22em] text-gradient-gold">情景融合 · Scenario Fusion</h3>
         <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-amber-500/40 text-amber-300/85 bg-amber-500/5">
           legacy / event-driven
         </span>
         <span className="ml-auto text-[10px] font-mono text-primary/85 tabular-nums">
-          coherence {formatPercent(quantumResult.overallCoherence)}
+          agreement {formatPercent(quantumResult.overallCoherence)}
         </span>
       </header>
 
       <div className="rounded-md border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-100/85">
-        ⚠ 当前展示为 event-driven collapse 管线的诊断汇总，仅供管理员核验。
+        当前展示确定性情景排序诊断；稳定度和权重不是事件发生概率。
       </div>
 
       {/* Top metrics */}
@@ -53,14 +52,14 @@ export function QuantumCollapsePanel({ quantumResult }: Props) {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
         <Metric label="paths considered" value={collapse?.totalPathsConsidered ?? '—'} />
-        <Metric label="death age" value={collapse?.deathAge ?? '—'} />
-        <Metric label="coherence" value={formatScore((quantumResult.overallCoherence ?? 0) * 100)} />
+        <Metric label="analysis horizon" value={collapse?.planningHorizonAge ?? '—'} />
+        <Metric label="agreement" value={formatScore((quantumResult.overallCoherence ?? 0) * 100)} />
         <Metric label="phases" value={phases.length} />
       </div>
 
       {/* Collapsed path summary */}
       {collapse?.collapsedPath && collapse.collapsedPath.length > 0 && (
-        <Section title={`唯一路径 · Collapsed Path (${collapse.collapsedPath.length} steps)`}>
+        <Section title={`最高排序路径 · Top-Ranked Path (${collapse.collapsedPath.length} steps)`}>
           <div className="overflow-x-auto -mx-1 px-1 scrollbar-thin">
             <ol className="inline-flex gap-1.5 min-w-full">
               {collapse.collapsedPath.slice(0, 24).map((node, i) => (

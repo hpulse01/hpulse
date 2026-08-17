@@ -40,7 +40,7 @@ Quantum prediction console layout, holographic panel system, multi-engine result
 - Deterministic scoring in `src/utils/ledgerScoring.ts`: per-engine, per-domain claims/hits, hit rate, average capped confidence, calibration gap — surfaced on the Prediction Ledger page.
 - Ledger writes are blocked when `auditEngineOutputs(...).blockers.length > 0`.
 - `EngineOutput.confidence` is now normalized to the canonical 0-1 scale at every adapter boundary (`normalizeConfidence01`).
-- `tieban` cannot enter the death-fusion vote weight until it leaves `needs_source_validation`.
+- `tieban` remains low-quality/degraded in evidence fusion until it leaves `needs_source_validation` and gains an authoritative core adapter.
 
 ## Upcoming
 

@@ -1,5 +1,5 @@
 /**
- * H-Pulse Quantum Prediction Engine v4.1 (量子预测引擎)
+ * H-Pulse Deterministic Ensemble Engine v5.0
  *
  * v4.1 升级:
  * - 所有引擎版本号更新至 v2.0+
@@ -57,6 +57,8 @@ import { detectConflicts, fuseFateVectors, generateConflictReport } from '@/util
 import { calculateFateVectorCoherence } from '@/utils/quantumMath';
 import { QUANTUM_ASPECT_LABELS, QUANTUM_EVENT_TYPE_LABELS } from '@/utils/quantumLabels';
 import { applySourceRegistryPolicy } from '@/core/shared/algorithmSourceRegistry';
+import { assessCommercialReadiness } from '@/core/shared/commercialReadiness';
+import { normalizeCalculationName } from '@/core/shared/calculationName';
 import {
   getActiveEngines,
   getSkippedEngines,
@@ -69,6 +71,8 @@ import {
 // ═══════════════════════════════════════════════
 
 export interface QuantumInput {
+  /** Explicit optional spelling used only by name-based rule systems. */
+  calculationName?: string;
   year: number;
   month: number;
   day: number;
@@ -78,8 +82,11 @@ export interface QuantumInput {
   geoLatitude: number;
   geoLongitude: number;
   timezoneOffsetMinutes: number;
-  /** Query time (UTC ISO). Same input + same query time → identical result. */
-  queryTimeUtc?: string;
+  /** IANA zone is required; a numeric offset cannot represent DST history. */
+  timezoneIana: string;
+  normalizedLocationName?: string;
+  /** Query time (UTC ISO). Required so identical input is reproducible. */
+  queryTimeUtc: string;
 }
 
 export type LifeAspect =
@@ -180,7 +187,8 @@ export interface QuantumPredictionResult {
   overallCoherence: number;
   destinyPhases: DestinyPhase[];
   lifeSummary: string;
-  deathAge: number;
+  /** Finite model boundary; explicitly not a lifespan estimate. */
+  analysisHorizonAge: number;
   quantumSignature: string;
   dominantElement: string;
   baziProfile: BaZiProfile;
@@ -254,6 +262,7 @@ function lifeVectorsToFateVector(lifeVectors: Record<string, number>): FateVecto
 
 function standardizedToQuantumInput(si: StandardizedInput): QuantumInput {
   return {
+    calculationName: normalizeCalculationName(si.calculationName),
     year: si.birthLocalDateTime.year,
     month: si.birthLocalDateTime.month,
     day: si.birthLocalDateTime.day,
@@ -263,6 +272,9 @@ function standardizedToQuantumInput(si: StandardizedInput): QuantumInput {
     geoLatitude: si.geoLatitude,
     geoLongitude: si.geoLongitude,
     timezoneOffsetMinutes: si.timezoneOffsetMinutesAtBirth,
+    timezoneIana: si.timezoneIana,
+    normalizedLocationName: si.normalizedLocationName,
+    queryTimeUtc: si.queryTimeUtc,
   };
 }
 
@@ -276,22 +288,31 @@ function quantumInputToStandardized(
   locationName: string = '',
   timezoneIana: string = '',
 ): StandardizedInput {
-  const queryTimeUtc = input.queryTimeUtc ?? new Date().toISOString();
+  const resolvedTimezoneIana = input.timezoneIana || timezoneIana;
+  if (!resolvedTimezoneIana) {
+    throw new Error('timezoneIana_required_for_historical_time_resolution');
+  }
+  const resolvedLocationName = input.normalizedLocationName ?? locationName;
+  if (!input.queryTimeUtc) {
+    throw new Error('queryTimeUtc_required_for_deterministic_prediction');
+  }
+  const queryTimeUtc = input.queryTimeUtc;
   const utcMs = Date.UTC(input.year, input.month - 1, input.day, input.hour, input.minute, 0)
     - input.timezoneOffsetMinutes * 60_000;
   const utcDate = new Date(utcMs);
   return {
+    calculationName: normalizeCalculationName(input.calculationName),
     birthLocalDateTime: { year: input.year, month: input.month, day: input.day, hour: input.hour, minute: input.minute },
     birthUtcDateTime: utcDate.toISOString(),
     geoLatitude: input.geoLatitude,
     geoLongitude: input.geoLongitude,
-    timezoneIana,
+    timezoneIana: resolvedTimezoneIana,
     timezoneOffsetMinutesAtBirth: input.timezoneOffsetMinutes,
     gender: input.gender,
-    normalizedLocationName: locationName,
+    normalizedLocationName: resolvedLocationName,
     queryType,
     queryTimeUtc,
-    sourceMetadata: { provider: 'legacy_quantum_input', confidence: 0.8, normalizedLocationName: locationName, timezoneIana },
+    sourceMetadata: { provider: 'legacy_quantum_input', confidence: 0.8, normalizedLocationName: resolvedLocationName, timezoneIana: resolvedTimezoneIana },
   };
 }
 
@@ -305,16 +326,30 @@ function simpleHash(str: string): string {
   return Math.abs(h).toString(16).padStart(8, '0');
 }
 
+function canonicalJson(value: unknown): string {
+  if (value === undefined) return 'undefined';
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'undefined';
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
+    .join(',')}}`;
+}
+
 function makeTraceEntry(
   engineName: string, timingBasis: TimingBasis,
-  startMs: number, endMs: number, success: boolean,
+  traceTimeUtc: string, inputHash: string, outputHash: string, success: boolean,
   dependencies: string[] = [], errorMessage?: string,
 ): ExecutionTraceEntry {
   return {
-    engineName, startedAt: new Date(startMs).toISOString(), finishedAt: new Date(endMs).toISOString(),
-    durationMs: Math.round(endMs - startMs), timingBasis,
-    inputHash: simpleHash(`${engineName}-input`),
-    outputHash: success ? simpleHash(`${engineName}-output-${endMs}`) : '',
+    engineName,
+    startedAt: traceTimeUtc,
+    finishedAt: traceTimeUtc,
+    durationMs: 0,
+    timingBasis,
+    inputHash,
+    outputHash: success ? outputHash : '',
     dependenciesUsed: dependencies, success, errorMessage,
   };
 }
@@ -474,6 +509,7 @@ function runZiwei(si: StandardizedInput): { eo: EngineOutput; ziweiReport: Ziwei
   const ziweiReport = ZiweiEngine.generateReport({
     year: si.birthLocalDateTime.year, month: si.birthLocalDateTime.month,
     day: si.birthLocalDateTime.day, hour: si.birthLocalDateTime.hour, gender: si.gender,
+    targetYear: new Date(si.queryTimeUtc).getUTCFullYear(),
   });
   const ziweiVectors: Record<string, number> = {};
   const palAspectMap: Record<string, LifeAspect> = {
@@ -854,16 +890,23 @@ function orchestrate(
     runner: () => { eo: EngineOutput } & T,
   ): ({ eo: EngineOutput } & T) | null {
     if (!isActive(name as EngineName)) return null;
-    const startMs = Date.now();
+    const inputHash = simpleHash(canonicalJson({ engineName: name, input: standardizedInput }));
     try {
       const result = runner();
       // P4.11 — overlay deterministic core metadata onto legacy EngineOutput
       const overlay = runCoreEngine(name, standardizedInput);
       const finalEo = applySourceRegistryPolicy(applyCoreOverlay(result.eo, overlay));
-      const endMs = Date.now();
       engineOutputs.push(finalEo);
       executedEngines.push(name);
-      const trace = makeTraceEntry(name, timingBasis, startMs, endMs, true);
+      const outputHash = simpleHash(canonicalJson(finalEo));
+      const trace = makeTraceEntry(
+        name,
+        timingBasis,
+        standardizedInput.queryTimeUtc,
+        inputHash,
+        outputHash,
+        true,
+      );
       trace.warnings = finalEo.warnings;
       trace.completenessScore = finalEo.completenessScore;
       trace.implementationStatus = String(finalEo.normalizedOutput?.p4ImplementationStatus
@@ -872,10 +915,18 @@ function orchestrate(
       executionTrace.push(trace);
       return { ...result, eo: finalEo };
     } catch (err) {
-      const endMs = Date.now();
       const errorMsg = err instanceof Error ? err.message : String(err);
       failedEngines.push({ engineName: name, error: errorMsg });
-      executionTrace.push(makeTraceEntry(name, timingBasis, startMs, endMs, false, [], errorMsg));
+      executionTrace.push(makeTraceEntry(
+        name,
+        timingBasis,
+        standardizedInput.queryTimeUtc,
+        inputHash,
+        '',
+        false,
+        [],
+        errorMsg,
+      ));
       return null;
     }
   }
@@ -948,13 +999,16 @@ function orchestrate(
     `最弱维度：${FATE_DIMENSION_LABELS[weakDim]}(${fusedFateVector[weakDim]}分)。` +
     `检测到${conflicts.length}个体系冲突，` +
     (failedEngines.length > 0 ? `${failedEngines.length}个引擎执行失败，` : '') +
-    `综合置信度${Math.round(finalConfidence * 100)}%。` +
-    (conflicts.length > 0 ? `主要分歧：${conflicts[0].explanation}` : '各体系高度共振。');
+    `规则覆盖可靠度${Math.round(finalConfidence * 100)}%。` +
+    (conflicts.length > 0 ? `主要分歧：${conflicts[0].explanation}` : '当前规则输出未检测到显著分歧。') +
+    `以上是文化算法的可重复计算结果，不是事件发生概率或科学预测。`;
 
   // Prediction ID
   const { year, month, day, hour } = standardizedInput.birthLocalDateTime;
   const hex = ((year * 13 + month * 7 + day * 3 + hour) % 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
   const predictionId = `UPR-${hex}-${new Date(standardizedInput.queryTimeUtc).getTime().toString(36)}`;
+
+  const commercialReadiness = assessCommercialReadiness(engineOutputs, { failedEngines });
 
   const unifiedResult: UnifiedPredictionResult = {
     predictionId,
@@ -977,6 +1031,7 @@ function orchestrate(
     engineCompletenessScores: Object.fromEntries(engineOutputs.map(e => [e.engineName, e.completenessScore])),
     engineEventCandidateCounts: Object.fromEntries(engineOutputs.map(e => [e.engineName, e.eventCandidates.length])),
     engineContributionWeights: Object.fromEntries(weightsUsed.map(w => [w.engineName, w.weight])),
+    commercialReadiness,
   };
 
   // Legacy data assembly
@@ -1034,6 +1089,7 @@ function orchestrate(
       ziweiReport: ziweiResult?.ziweiReport ?? ZiweiEngine.generateReport({
         year: standardizedInput.birthLocalDateTime.year, month: standardizedInput.birthLocalDateTime.month,
         day: standardizedInput.birthLocalDateTime.day, hour: standardizedInput.birthLocalDateTime.hour, gender: standardizedInput.gender,
+        targetYear: new Date(standardizedInput.queryTimeUtc).getUTCFullYear(),
       }),
       liuYaoResult,
       westernReport: westernResult?.westernReport ?? WesternAstrologyEngine.calculate(standardizedToQuantumInput(standardizedInput)),
@@ -1093,7 +1149,7 @@ function calculateBranchProbability(baseScore: number, age: number, seed: number
 }
 
 // ═══════════════════════════════════════════════
-// Phase 3: Quantum Collapse (legacy)
+// Phase 3: deterministic ensemble synthesis (legacy presentation adapter)
 // ═══════════════════════════════════════════════
 
 function quantumCollapse(
@@ -1101,7 +1157,7 @@ function quantumCollapse(
   baziProfile: BaZiProfile, fullReport: FullDestinyReport,
   vedicReport: VedicReport, numerologyReport: NumerologyReport,
   currentYear: number,
-): { timeline: CollapsedEvent[]; states: QuantumState[]; entanglements: QuantumEntanglement[]; overallCoherence: number; deathAge: number } {
+): { timeline: CollapsedEvent[]; states: QuantumState[]; entanglements: QuantumEntanglement[]; overallCoherence: number } {
   const fav = baziProfile.favorableElements;
   const unfav = baziProfile.unfavorableElements;
   const timeline: CollapsedEvent[] = [];
@@ -1194,13 +1250,7 @@ function quantumCollapse(
   });
 
   const overallCoherence = states.reduce((s, st) => s + st.coherence, 0) / states.length;
-  const healthState = states.find(s => s.aspect === 'health')!;
-  const baseLifespan = 75;
-  const healthBonus = (healthState.probability - 50) * 0.3;
-  const coherenceBonus = overallCoherence * 5;
-  const deathAge = clamp(Math.round(baseLifespan + healthBonus + coherenceBonus));
-
-  return { timeline, states, entanglements, overallCoherence, deathAge };
+  return { timeline, states, entanglements, overallCoherence };
 }
 
 // ═══════════════════════════════════════════════
@@ -1208,7 +1258,7 @@ function quantumCollapse(
 // ═══════════════════════════════════════════════
 
 function revealDestiny(
-  timeline: CollapsedEvent[], states: QuantumState[], deathAge: number, input: QuantumInput,
+  timeline: CollapsedEvent[], states: QuantumState[],
 ): { phases: DestinyPhase[]; lifeSummary: string } {
   const phaseConfig = [
     { name: '启蒙期', start: 1, end: 12, theme: '基础塑造' },
@@ -1236,8 +1286,8 @@ function revealDestiny(
   const lifeSummary =
     `此命${top3}为强，${weak}需修。` +
     `一生关键转折在${tpDesc || '平稳无大波'}。` +
-    `量子共振度${Math.round(states.reduce((s, st) => s + st.coherence, 0) / states.length * 100)}%，` +
-    `多体系高度共振，命运轨迹已完全坍缩为唯一确定态。`;
+    `规则输出一致度${Math.round(states.reduce((s, st) => s + st.coherence, 0) / states.length * 100)}%。` +
+    `该结果是确定性文化规则的情景汇总，不表示唯一命运或科学预测。`;
   return { phases, lifeSummary };
 }
 
@@ -1255,7 +1305,7 @@ function generateEventDescription(
   const highEnergy = energy >= 65;
   return {
     title: `${aspectCN}${typeCN}`,
-    description: `${ganZhi}年${aspectCN}方面发生${typeCN}事件，${highEnergy ? '能量充沛' : '需蓄势待发'}。${systemCount}系共振确认。`,
+    description: `${ganZhi}年${aspectCN}方面出现${typeCN}候选情景，${highEnergy ? '融合评分较高' : '融合评分较低'}。${systemCount}个体系规则支持；不代表事件会发生。`,
   };
 }
 
@@ -1263,7 +1313,7 @@ function generateStateDescription(aspect: LifeAspect, prob: number, trend: strin
   const label = ASPECT_LABELS[aspect];
   const level = prob >= 70 ? '强盛' : prob >= 50 ? '中等' : '偏弱';
   const trendWord = trend === 'rising' ? '呈上升态势' : trend === 'declining' ? '呈下行趋势' : '保持稳定';
-  return `${label}量子场${level}，${trendWord}`;
+  return `${label}规则融合评分${level}，${trendWord}`;
 }
 
 // ═══════════════════════════════════════════════
@@ -1294,7 +1344,7 @@ export const QuantumPredictionEngine = {
     // Legacy Phase 2-4
     const { branches, totalGenerated, perSystem } = generateInfiniteWorlds(systems, input, vedicReport, numerologyReport, fullReport);
     const queryYear = new Date(si.queryTimeUtc).getUTCFullYear();
-    const { timeline, states, entanglements, overallCoherence: legacyCoherence, deathAge: legacyDeathAge } = quantumCollapse(systems, branches, input, baziProfile, fullReport, vedicReport, numerologyReport, queryYear);
+    const { timeline, states, entanglements, overallCoherence: legacyCoherence } = quantumCollapse(systems, branches, input, baziProfile, fullReport, vedicReport, numerologyReport, queryYear);
 
     // Cross-engine FateVector coherence (weighted variance across 10 dimensions)
     const engineWeightLookup: Record<string, number> = {};
@@ -1305,7 +1355,7 @@ export const QuantumPredictionEngine = {
     const overallCoherence = fvInputs.length > 0
       ? legacyCoherence * 0.5 + fvCoherence.overall * 0.5
       : legacyCoherence;
-    const { phases, lifeSummary: legacyLifeSummary } = revealDestiny(timeline, states, legacyDeathAge, input);
+    const { phases, lifeSummary: legacyLifeSummary } = revealDestiny(timeline, states);
 
     // Phase 5: Event-Driven Destiny Tree
     let destinyTree: RecursiveWorldTree | undefined;
@@ -1329,21 +1379,33 @@ export const QuantumPredictionEngine = {
       const engineWeightMap: Record<string, number> = {};
       for (const w of unifiedResult.weightsUsed) engineWeightMap[w.engineName] = w.weight;
       const fusionResult = fuseEventSeeds(allSeeds, engineWeightMap);
-      destinyTree = generateWorldTree(fusionResult, unifiedResult.fusedFateVector, input.year, input.gender);
+      destinyTree = generateWorldTree(
+        fusionResult,
+        unifiedResult.fusedFateVector,
+        input.year,
+        input.gender,
+        si.queryTimeUtc,
+      );
       collapseResult = collapseWorldTree(destinyTree);
 
       // v5.1 — 三层全息命盘：基于 collapseResult 生成宏/中/微三层
       if (collapseResult) {
         const queryYear = new Date(si.queryTimeUtc).getUTCFullYear();
         const currentAge = Math.max(0, queryYear - input.year);
-        holographicFateMap = generateHolographicFateMap(collapseResult, input.year, input.gender, currentAge);
+        holographicFateMap = generateHolographicFateMap(
+          collapseResult,
+          input.year,
+          input.gender,
+          currentAge,
+          si.queryTimeUtc,
+        );
       }
     } catch (err) {
       console.error('Destiny tree / holographic fate map error:', err);
     }
 
 
-    const deathAge = collapseResult?.deathAge ?? legacyDeathAge;
+    const analysisHorizonAge = collapseResult?.planningHorizonAge ?? 80;
     const lifeSummary = collapseResult?.finalLifeSummary ?? legacyLifeSummary;
 
     const elCounts: Record<string, number> = {};
@@ -1360,14 +1422,18 @@ export const QuantumPredictionEngine = {
     return {
       systems, totalWorldsGenerated: destinyTree ? destinyTree.totalNodes : totalGenerated, branchesPerSystem: perSystem,
       states, destinyTimeline: timeline, entanglements, overallCoherence,
-      destinyPhases: phases, lifeSummary, deathAge, quantumSignature, dominantElement,
+      destinyPhases: phases, lifeSummary, analysisHorizonAge, quantumSignature, dominantElement,
       baziProfile, fullReport, ziweiReport, liuYaoResult, westernReport, vedicReport, numerologyReport, mayanReport, kabbalahReport,
       timestamp, unifiedResult, destinyTree, collapseResult, holographicFateMap,
     };
   },
 
   orchestrate(standardizedInput: StandardizedInput, systemOffset: number = 0): UnifiedPredictionResult {
-    return orchestrate(standardizedInput, systemOffset).unifiedResult;
+    const normalizedInput = {
+      ...standardizedInput,
+      calculationName: normalizeCalculationName(standardizedInput.calculationName),
+    };
+    return orchestrate(normalizedInput, systemOffset).unifiedResult;
   },
 
   buildStandardizedInput: quantumInputToStandardized,

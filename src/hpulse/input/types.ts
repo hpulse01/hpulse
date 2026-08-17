@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeCalculationName } from "@/core/shared/calculationName";
 
 /** HPU-2 RawUserInput Zod schema — client-side fast-fail before WASM call. */
 export const RawUserInputSchema = z.object({
@@ -7,6 +8,10 @@ export const RawUserInputSchema = z.object({
   // Lunar-date conversion is not yet implemented in HPU-2. Reject it instead
   // of interpreting lunar components as Gregorian and producing a wrong chart.
   calendar: z.literal("gregorian").default("gregorian"),
+  calculation_name: z.preprocess(
+    (value) => typeof value === "string" ? normalizeCalculationName(value) : value,
+    z.string().min(1).max(120).optional(),
+  ),
   location_name: z.string().trim().min(1).max(120),
   latitude: z.number().gte(-90).lte(90),
   longitude: z.number().gte(-180).lte(180),
@@ -52,6 +57,7 @@ export interface StandardizedInput {
   birth: BirthData;
   query: QueryContext;
   identity: UserIdentity;
+  calculation_name?: string;
   seed_material: string;
   raw: RawUserInput;
 }

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { LegalPage, LegalSection } from '@/components/legal/LegalPage';
+import { PublicSupportContact } from '@/components/legal/PublicSupportContact';
 
 export default function Privacy() {
   return (
@@ -10,7 +11,7 @@ export default function Privacy() {
     >
       <LegalSection title="1. 我们处理的数据">
         <p>账户数据：邮箱、显示名称、认证标识及账户等级。</p>
-        <p>计算数据：出生日期与时间、出生地点、坐标、时区、性别、查询时间、校时事实及由此生成的结果和验证记录。</p>
+        <p>计算数据：出生日期与时间、出生地点、坐标、时区、性别、查询时间、校时事实、用户自愿填写的姓名算法拼写，以及由此生成的结果和验证记录。姓名算法拼写不会从账户昵称自动获取；留空时相关算法明确跳过。</p>
         <p>安全数据：注册时的 IP 会先在服务端做单向键控哈希；短期防滥用记录保留不超过 24 小时，账户资料中的哈希值保留至账户删除。我们不在客户端保存 Supabase 服务角色密钥。</p>
       </LegalSection>
 
@@ -22,11 +23,12 @@ export default function Privacy() {
       <LegalSection title="3. 存储、共享与保留">
         <p>账户与应用数据由 Supabase 提供的认证、数据库及边缘函数服务处理。仅在提供服务、履行安全义务或法律要求所必需的范围内向服务提供商传输。</p>
         <p>账户资料及用户保存的预测记录默认保留至用户主动删除；用户可单独删除预测与事件记录，也可删除整个账户。</p>
+        <p>姓名算法拼写只在当前设备的本次计算中使用，不写入预测验证账本；账本仅保存经审计的评分、规则轨迹与必要出生上下文。</p>
       </LegalSection>
 
       <LegalSection title="4. 用户控制">
         <p>用户可以在账户菜单中选择“永久删除账户”，删除认证账户、个人资料、预测记录和真实事件回填。也可访问 <Link className="text-primary underline" to="/account-deletion">删除账户页面</Link>。</p>
-        <p>如无法登录，可发送邮件至 <a className="text-primary underline" href="mailto:hpulse001@gmail.com">hpulse001@gmail.com</a> 发起请求；我们会先验证账户所有权。</p>
+        <p>如无法登录，可从注册邮箱联系 <PublicSupportContact className="text-primary underline" subject="H-Pulse Account Deletion" /> 发起请求；我们会先验证账户所有权。</p>
       </LegalSection>
 
       <LegalSection title="5. 敏感结论与未成年人">
@@ -34,7 +36,7 @@ export default function Privacy() {
       </LegalSection>
 
       <LegalSection title="6. 联系与更新">
-        <p>隐私问题请联系 <a className="text-primary underline" href="mailto:hpulse001@gmail.com">hpulse001@gmail.com</a>。政策发生实质变化时，应用会要求用户重新确认。</p>
+        <p>隐私问题请联系 <PublicSupportContact className="text-primary underline" subject="H-Pulse Privacy" />。政策发生实质变化时，应用会要求用户重新确认。</p>
       </LegalSection>
     </LegalPage>
   );

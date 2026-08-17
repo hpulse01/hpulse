@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RawUserInputSchema, type RawUserInput } from '../types';
-import { resolveBirthInstant } from '../normalize';
+import { normalizeInput, resolveBirthInstant } from '../normalize';
 
 const base: RawUserInput = {
   birth_date: '1990-06-15',
@@ -17,6 +17,19 @@ const base: RawUserInput = {
 };
 
 describe('resolveBirthInstant', () => {
+  it('normalizes the optional calculation spelling without reading an account name', () => {
+    const parsed = RawUserInputSchema.parse({
+      ...base,
+      calculation_name: '  Ｊｏｈｎ   Smith  ',
+    });
+    expect(parsed.calculation_name).toBe('John Smith');
+  });
+
+  it('treats a blank calculation spelling as omitted', () => {
+    const parsed = RawUserInputSchema.parse({ ...base, calculation_name: '   ' });
+    expect(parsed.calculation_name).toBeUndefined();
+  });
+
   it('rejects lunar components until an explicit lunar-to-Gregorian converter exists', () => {
     expect(RawUserInputSchema.safeParse({ ...base, calendar: 'lunar' }).success).toBe(false);
   });
@@ -53,5 +66,15 @@ describe('resolveBirthInstant', () => {
     const result = resolveBirthInstant({ ...base, timezone_offset_minutes: 480 });
     expect(result.ok).toBe(false);
     if (result.ok === false) expect(result.issue.code).toBe('timezone_offset_mismatch');
+  });
+});
+
+describe('normalizeInput runtime fallback', () => {
+  it('keeps the pipeline usable and explicitly reports when WASM is unavailable', async () => {
+    const result = await normalizeInput({ ...base, calculation_name: '  Ｊｏｈｎ   Smith  ' });
+    expect(result.ok).toBe(true);
+    expect(result.input?.calculation_name).toBe('John Smith');
+    expect(result.input?.seed_material).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.issues.some((issue) => issue.code === 'wasm_unavailable_typescript_fallback')).toBe(true);
   });
 });

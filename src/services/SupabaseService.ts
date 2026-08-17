@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizePublicClauseContent } from '@/core/tieban/sensitiveContent';
 
 export interface Clause {
   id: number;
@@ -11,6 +12,10 @@ export interface Clause {
   content: string;
   category: string | null;
   created_at: string;
+}
+
+function sanitizePublicClause<T extends { content: string }>(clause: T): T {
+  return { ...clause, content: sanitizePublicClauseContent(clause.content).content };
 }
 
 // Cache for valid clause numbers (populated on first load)
@@ -65,7 +70,7 @@ export async function fetchClauseByNumber(
   }
 
   if (exactMatch) {
-    return exactMatch as Clause;
+    return sanitizePublicClause(exactMatch as Clause);
   }
 
   // Fallback: search nearby numbers (±1, ±2, etc.)
@@ -81,7 +86,7 @@ export async function fetchClauseByNumber(
 
     if (plusMatch) {
       console.log(`Found fallback clause: ${clauseNumber + offset}`);
-      return plusMatch as Clause;
+      return sanitizePublicClause(plusMatch as Clause);
     }
 
     // Try -offset
@@ -93,7 +98,7 @@ export async function fetchClauseByNumber(
 
     if (minusMatch) {
       console.log(`Found fallback clause: ${clauseNumber - offset}`);
-      return minusMatch as Clause;
+      return sanitizePublicClause(minusMatch as Clause);
     }
   }
 
@@ -117,7 +122,7 @@ export async function fetchClausesByNumbers(
     return [];
   }
 
-  return (data || []) as Clause[];
+  return ((data || []) as Clause[]).map(sanitizePublicClause);
 }
 
 /**
@@ -165,7 +170,7 @@ export async function searchClauses(
     return [];
   }
 
-  return (data || []) as Clause[];
+  return ((data || []) as Clause[]).map(sanitizePublicClause);
 }
 
 /**
@@ -200,7 +205,7 @@ export async function findClauseByContent(keyword: string): Promise<{ content: s
   }
 
   return {
-    content: data.content,
+    content: sanitizePublicClauseContent(data.content).content,
     clauseNumber: data.clause_number,
   };
 }
@@ -246,7 +251,7 @@ export async function findClauseByFamilyFacts(
 
     if (fatherOnlyData) {
       return {
-        content: fatherOnlyData.content,
+        content: sanitizePublicClauseContent(fatherOnlyData.content).content,
         clauseNumber: fatherOnlyData.clause_number,
       };
     }
@@ -255,7 +260,7 @@ export async function findClauseByFamilyFacts(
   }
 
   return {
-    content: data.content,
+    content: sanitizePublicClauseContent(data.content).content,
     clauseNumber: data.clause_number,
   };
 }
@@ -473,7 +478,9 @@ export async function findDetailedFamilyMatches(
   });
 
   // Remove internal _priority field and return
-  return sortedResults.slice(0, limit).map(({ _priority, ...clause }) => clause) as Clause[];
+  return sortedResults
+    .slice(0, limit)
+    .map(({ _priority, ...clause }) => sanitizePublicClause(clause as Clause));
 }
 
 /**
@@ -493,7 +500,7 @@ export async function fetchClausesByCategory(
     return [];
   }
 
-  return (data || []) as Clause[];
+  return ((data || []) as Clause[]).map(sanitizePublicClause);
 }
 
 /**
@@ -570,5 +577,7 @@ export async function searchClausesFreeText(
   }
   
   // Sort by content length (more detailed first)
-  return (data || []).sort((a, b) => b.content.length - a.content.length);
+  return (data || [])
+    .sort((a, b) => b.content.length - a.content.length)
+    .map(sanitizePublicClause);
 }

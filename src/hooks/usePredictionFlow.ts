@@ -6,7 +6,6 @@ import { getClauseCount } from '@/services/SupabaseService';
 import { savePredictionRun } from '@/services/predictionLedger';
 import type { BirthDataWithGeo } from '@/components/BirthDataForm';
 import type {
-  TiebanInput,
   KaoKeWithMatch,
   CalibrationResult,
   FullDestinyReport,
@@ -24,7 +23,7 @@ export type UnifiedReport = FullPredictionReport;
  */
 export function usePredictionFlow() {
   const [step, setStep] = useState<AppStep>('input');
-  const [birthInput, setBirthInput] = useState<TiebanInput | null>(null);
+  const [birthInput, setBirthInput] = useState<BirthDataWithGeo | null>(null);
   const [rawBirthForm, setRawBirthForm] = useState<BirthDataWithGeo | null>(null);
   const [ganZhiDisplay, setGanZhiDisplay] = useState('');
   const [baseNumber, setBaseNumber] = useState(0);
@@ -106,6 +105,7 @@ export function usePredictionFlow() {
           birth_date: `${rawBirthForm.year}-${pad(rawBirthForm.month)}-${pad(rawBirthForm.day)}`,
           birth_time: `${pad(rawBirthForm.hour)}:${pad(rawBirthForm.minute)}`,
           calendar: 'gregorian' as const,
+          calculation_name: rawBirthForm.calculationName,
           location_name: rawBirthForm.normalizedLocationName,
           latitude: rawBirthForm.geoLatitude,
           longitude: rawBirthForm.geoLongitude,

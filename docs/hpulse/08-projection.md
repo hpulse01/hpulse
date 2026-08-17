@@ -7,11 +7,11 @@ no i18n, no IO. Same input ⇒ same output (deterministic; FNV-1a signature).
 
 | Field | Source | Purpose |
 |---|---|---|
-| `header` | WorldTree.meta + DeathFusion.verdict + deathWindow | Banner / hero card |
+| `header` | WorldTree.meta + DestinyFusion.verdict + evidenceQuality | Banner / hero card |
 | `fateDimensions[10]` | `fusion.verdict.lifetimeFateVector` | Radar / metric grid (`rank`, `bucket: top/mid/bottom`) |
 | `engines[13]` | WorldTree + EngineRunResult[] | Engine status cards (`ok/degraded/skipped`, avg weight, contribution, obs count) |
-| `stages[5]` | `tree.stages` + `fusion.stageConfidence` | Timeline rows (stage score, top dims, dominant engine, transition magnitude) |
-| `death` | `fusion.deathWindow` | Lifespan panel |
+| `stages[5]` | `tree.stages` + `fusion.stageEvidenceQuality` | Timeline rows (stage score, top dims, dominant engine, transition magnitude) |
+| `evidenceQuality` | `fusion.evidenceQuality` | Rule coverage, agreement, source quality and observation count |
 | `explanationTrace` | `fusion.explanationTrace` | Audit trail |
 | `warnings` | `engineResults[*].output.warnings` + failures | Warning Center |
 

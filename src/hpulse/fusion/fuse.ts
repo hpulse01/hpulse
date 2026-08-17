@@ -2,7 +2,7 @@
  * HPU-6 — Final fusion entrypoint.
  *
  *   WorldTree (HPU-5) + EngineRunResult[] (HPU-4)
- *     ──► fuseDestiny() ──► DeathFusionResult
+ *     ──► fuseDestiny() ──► DestinyFusionResult
  *
  * Deterministic: identical inputs always produce identical output (no
  * Math.random / Date.now / iteration over non-deterministic structures).
@@ -19,16 +19,12 @@ import {
   type LifeStage,
 } from "@/hpulse/weights/types";
 import type { StageNode, WorldTree } from "@/hpulse/worldtree/types";
+import { summarizeEvidenceQuality } from './evidence';
 import {
-  attenuateByTree,
-  collectDeathSignals,
-  fuseDeathWindow,
-} from "./death";
-import {
-  DEATH_FUSION_VERSION,
-  type DeathFusionResult,
+  FUSION_VERSION,
+  type DestinyFusionResult,
   type DestinyVerdict,
-  type StageConfidence,
+  type StageEvidenceQuality,
 } from "./types";
 
 /** Dimension importance weights — sum to 1, deterministic. */
@@ -52,10 +48,10 @@ function round4(n: number): number {
   return Math.round(n * 10000) / 10000;
 }
 
-function stageConfidence(
+function stageEvidenceQuality(
   stage: StageNode,
   resultsById: Map<EngineId, EngineRunResult>,
-): StageConfidence {
+): StageEvidenceQuality {
   let wSum = 0;
   let confSum = 0;
   for (const id of ALL_ENGINES) {
@@ -77,10 +73,21 @@ function stageConfidence(
       0,
     ),
   );
+  const observations = stage.domains.flatMap((domain) => domain.observations);
+  const agreement = observations.length >= 2
+    ? (() => {
+        const mean = observations.reduce((sum, observation) => sum + observation.score, 0) / observations.length;
+        const variance = observations.reduce((sum, observation) => sum + (observation.score - mean) ** 2, 0) / observations.length;
+        return round4(Math.max(0, Math.min(1, 1 - Math.sqrt(variance) / 50)));
+      })()
+    : 0;
+  const weightedConfidence = wSum > 0 ? confSum / wSum : 0;
+  const reliability = round4(Math.max(0, Math.min(1, coverage * 0.4 + agreement * 0.3 + weightedConfidence * 0.3)));
   return {
     stage: stage.window.stage,
-    confidence: wSum > 0 ? round4(confSum / wSum) : 0,
+    reliability,
     coverage,
+    agreement,
     transitionMagnitude: stage.transitionToNext?.magnitude ?? 0,
   };
 }
@@ -138,7 +145,7 @@ function rankDimensions(fv: FateVector) {
 
 function buildVerdict(
   tree: WorldTree,
-  stageConf: StageConfidence[],
+  stageEvidence: StageEvidenceQuality[],
 ): DestinyVerdict {
   const fv = tree.lifetimeFateVector;
   const overallScore = round2(
@@ -147,19 +154,19 @@ function buildVerdict(
       0,
     ),
   );
-  // Confidence = coverage-weighted mean of stage confidence.
+  // Reliability = coverage-weighted mean of descriptive stage reliability.
   let confNum = 0;
   let confDen = 0;
-  for (const sc of stageConf) {
-    confNum += sc.coverage * sc.confidence;
+  for (const sc of stageEvidence) {
+    confNum += sc.coverage * sc.reliability;
     confDen += sc.coverage;
   }
-  const overallConfidence = confDen > 0 ? round4(confNum / confDen) : 0;
+  const overallReliability = confDen > 0 ? round4(confNum / confDen) : 0;
   const { top, bottom } = rankDimensions(fv);
   return {
     lifetimeFateVector: fv,
     overallScore,
-    overallConfidence,
+    overallReliability,
     dominantStage: pickDominantStage(tree.stages),
     pivotalTransition: pickPivotalTransition(tree.stages),
     topDimensions: top,
@@ -168,37 +175,32 @@ function buildVerdict(
 }
 
 export interface FuseDestinyOptions {
-  /** If true, applies elder-stage health attenuation. Default true. */
-  attenuateByTree?: boolean;
+  /** Reserved for versioned fusion policies. */
+  policyVersion?: string;
 }
 
 /**
- * Final fusion: WorldTree + raw engine results ⇒ unified DeathFusionResult.
+ * Final fusion: WorldTree + raw engine results ⇒ evidence-aware result.
  */
 export function fuseDestiny(
   tree: WorldTree,
   results: EngineRunResult[],
   opts: FuseDestinyOptions = {},
-): DeathFusionResult {
+): DestinyFusionResult {
   const resultsById = new Map<EngineId, EngineRunResult>();
   for (const r of results) resultsById.set(r.id, r);
 
-  const signals = collectDeathSignals(results);
-  let deathWindow = fuseDeathWindow(signals);
-  if (opts.attenuateByTree !== false) {
-    deathWindow = attenuateByTree(deathWindow, tree);
-  }
-
-  const stageConf = tree.stages.map((s) => stageConfidence(s, resultsById));
-  const verdict = buildVerdict(tree, stageConf);
+  const stageEvidence = tree.stages.map((s) => stageEvidenceQuality(s, resultsById));
+  const verdict = buildVerdict(tree, stageEvidence);
+  const evidenceQuality = summarizeEvidenceQuality(tree, results);
 
   const degradedEngines = Object.keys(tree.permanentlyDegraded) as EngineId[];
 
   const trace: string[] = [
-    `[HPU-6] version=${DEATH_FUSION_VERSION}`,
+    `[HPU-6] version=${FUSION_VERSION}`,
     `[HPU-6] enginesConsidered=${tree.meta.enginesConsidered} succeeded=${tree.meta.enginesSucceeded}`,
-    `[HPU-6] deathSignals=${signals.length} ⇒ window=${deathWindow.startAge}-${deathWindow.endAge} peak=${deathWindow.peakAge} strength=${deathWindow.strength} cause=${deathWindow.cause} p=${deathWindow.fusedProbability}`,
-    `[HPU-6] dominantStage=${verdict.dominantStage} overallScore=${verdict.overallScore} confidence=${verdict.overallConfidence}`,
+    `[HPU-6] evidence coverage=${evidenceQuality.ruleCoverage} agreement=${evidenceQuality.engineAgreement} sourceQuality=${evidenceQuality.sourceQuality} observations=${evidenceQuality.observationCount}`,
+    `[HPU-6] dominantStage=${verdict.dominantStage} overallScore=${verdict.overallScore} reliability=${verdict.overallReliability}`,
     ...(verdict.pivotalTransition
       ? [
           `[HPU-6] pivotalTransition=${verdict.pivotalTransition.from}→${verdict.pivotalTransition.to} magnitude=${verdict.pivotalTransition.magnitude}`,
@@ -208,12 +210,11 @@ export function fuseDestiny(
   ];
 
   return {
-    version: DEATH_FUSION_VERSION,
+    version: FUSION_VERSION,
     seedMaterial: tree.meta.seedMaterial,
-    signals,
-    deathWindow,
+    evidenceQuality,
     verdict,
-    stageConfidence: stageConf,
+    stageEvidence,
     degradedEngines,
     explanationTrace: trace,
   };

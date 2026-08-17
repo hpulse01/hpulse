@@ -719,7 +719,7 @@ function divineByTime(year: number, month: number, day: number, hour: number): M
 // 数字起卦
 // ═══════════════════════════════════════════════
 
-function divineByNumber(num1: number, num2: number): MeihuaResult {
+function divineByNumber(num1: number, num2: number, referenceMonth: number = 1): MeihuaResult {
   const upperRem = ((num1 % 8) || 8);
   const lowerRem = ((num2 % 8) || 8);
   const totalNum = num1 + num2;
@@ -732,8 +732,10 @@ function divineByNumber(num1: number, num2: number): MeihuaResult {
   const huGua = computeHuGua(upper, lower);
   const bianGua = computeBianGua(upper, lower, dongYao);
   const tiYong = determineTiYong(benGua, dongYao);
-  const now = new Date();
-  const analysis = performDeepAnalysis(benGua, huGua, bianGua, tiYong, dongYao, now.getMonth() + 1);
+  const month = Number.isInteger(referenceMonth) && referenceMonth >= 1 && referenceMonth <= 12
+    ? referenceMonth
+    : 1;
+  const analysis = performDeepAnalysis(benGua, huGua, bianGua, tiYong, dongYao, month);
   const score = calculateScore(tiYong, analysis.seasonalStrength);
 
   return {
@@ -807,6 +809,17 @@ export function runMeihua(standardizedInput: StandardizedInput): {
   const t0 = performance.now();
 
   let result: MeihuaResult;
+  const queryInstant = new Date(standardizedInput.queryTimeUtc);
+  if (Number.isNaN(queryInstant.getTime())) throw new Error('meihua: invalid queryTimeUtc');
+  const localParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: standardizedInput.timezoneIana,
+    year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', hourCycle: 'h23',
+  }).formatToParts(queryInstant);
+  const part = (type: string) => Number(localParts.find((item) => item.type === type)?.value);
+  const localYear = part('year');
+  const localMonth = part('month');
+  const localDay = part('day');
+  const localHour = part('hour') % 24;
 
   if (standardizedInput.questionText) {
     const chars = standardizedInput.questionText;
@@ -818,10 +831,9 @@ export function runMeihua(standardizedInput: StandardizedInput): {
     }
     if (n1 === 0) n1 = 1;
     if (n2 === 0) n2 = 1;
-    result = divineByNumber(n1, n2);
+    result = divineByNumber(n1, n2, localMonth);
   } else {
-    const qt = new Date(standardizedInput.queryTimeUtc);
-    result = divineByTime(qt.getFullYear(), qt.getMonth() + 1, qt.getDate(), qt.getHours());
+    result = divineByTime(localYear, localMonth, localDay, localHour);
   }
 
   const fateVector = meihuaToFateVector(result);

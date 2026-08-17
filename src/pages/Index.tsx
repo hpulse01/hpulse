@@ -33,8 +33,8 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background bg-scroll-texture">
       <SEO
-        title="H-Pulse — Quantum Prediction System"
-        description="Run a deterministic, multi-engine quantum destiny projection across BaZi, Ziwei, Liu Yao, Qi Men, Tieban, Vedic, Western, Kabbalah and more."
+        title="H-Pulse — Multi-System Cultural Rule Analysis"
+        description="Run deterministic, source-traceable cultural-rule calculations across BaZi, Ziwei, Liu Yao, Qi Men, Tieban, Vedic, Western, Kabbalah and more. Not scientific prediction or quantum computing."
         path="/"
       />
       <DisclaimerDialog

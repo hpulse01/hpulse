@@ -246,7 +246,7 @@ const PredictionHistory = () => {
     <div className="min-h-screen flex flex-col bg-background bg-scroll-texture">
       <SEO
         title="Prediction Ledger — H-Pulse"
-        description="Browse your archived H-Pulse quantum destiny reports. Past birth-input projections, Kao Ke calibrations and engine consensus runs in one ledger."
+        description="Browse your archived H-Pulse cultural-rule reports, input calibrations and engine-audit runs in one private ledger."
         path="/prediction-history"
       />
       <AppHeader variant="subpage" />

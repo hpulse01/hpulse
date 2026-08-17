@@ -40,6 +40,14 @@ function baseSeed(engine: string, version: string, timing: 'birth' | 'query'): P
   return { engineName: engine, engineVersion: version, timingBasis: timing };
 }
 
+/**
+ * Commercial safety boundary: mortality, lifespan and bereavement guesses are
+ * not evidence-based and are never returned by any extractor.
+ */
+function commercialSafeSeeds(seeds: DestinyEventSeed[]): DestinyEventSeed[] {
+  return seeds.filter((seed) => !seed.deathRelated && seed.category !== 'death');
+}
+
 // ═══════════════════════════════════════════════
 // 1. Tieban Event Extraction (铁板神数 → 事件引擎)
 // ═══════════════════════════════════════════════
@@ -132,14 +140,14 @@ export function extractTiebanEvents(
       earliestAge: riskAge - 5, latestAge: riskAge + 10,
       probability: 0.4, intensity: 'critical',
       causalFactors: [`疾厄宫条文${proj.health}`, `健康数值${healthStrength}`],
-      triggerConditions: ['大运逢忌', '流年天克'], deathRelated: true,
-      mergeKey: 'death-illness-late',
+      triggerConditions: ['大运逢忌', '流年天克'], deathRelated: false,
+      mergeKey: `age-${riskAge}-health`,
       fateImpact: { health: -20 },
       sourceDetail: `铁板疾厄宫条文${proj.health}(健康值${healthStrength})`,
       sourceFieldPath: 'destinyProjection.health',
       sourceEvidence: `疾厄宫条文${proj.health}，健康值${healthStrength}(<400)`,
       reasoning: `健康数值${healthStrength}低于400阈值，推算${riskAge}岁前后有重疾风险`,
-      confidence: 0.4, conflictTags: ['health-risk', 'death-illness'],
+      confidence: 0.4, conflictTags: ['health-risk'],
     });
   }
 
@@ -221,7 +229,7 @@ export function extractTiebanEvents(
       probability: isFavorable ? 0.7 : isUnfavorable ? 0.45 : 0.55,
       intensity: intensityFromScore(isFavorable ? 70 : isUnfavorable ? 40 : 55),
       causalFactors: [`条文${fy.clauseNumber}`, `年干${ganChar}(${stemEl})`, isFavorable ? '喜用年' : isUnfavorable ? '忌年' : '平年'],
-      triggerConditions: [], deathRelated: fy.age >= 70 && isUnfavorable,
+      triggerConditions: [], deathRelated: false,
       mergeKey: `age-${fy.age}-${cat}`,
       fateImpact: { life: isFavorable ? 8 : isUnfavorable ? -8 : 0 },
       sourceDetail: `铁板条文${fy.clauseNumber}(流年${fy.ganZhi})`,
@@ -232,27 +240,7 @@ export function extractTiebanEvents(
     });
   }
 
-  // ── 1H. Death/longevity signal ──
-  const lifeDestinyStrength = proj.lifeDestiny % 1000;
-  const estimatedDeathAge = lifeDestinyStrength < 200 ? 60 : lifeDestinyStrength < 400 ? 68 : lifeDestinyStrength < 600 ? 75 : lifeDestinyStrength < 800 ? 82 : 88;
-  seeds.push({
-    ...B, id: seedId('tieban', 'death', estimatedDeathAge, 'longevity'),
-    category: 'death', subcategory: '寿限推断',
-    description: `铁板命宫条文${proj.lifeDestiny}号推算寿限约${estimatedDeathAge}岁`,
-    earliestAge: estimatedDeathAge - 5, latestAge: estimatedDeathAge + 5,
-    probability: 0.5, intensity: 'life_defining',
-    causalFactors: [`命宫条文${proj.lifeDestiny}`, `命局数值${lifeDestinyStrength}`],
-    triggerConditions: ['大运逢死墓绝'], deathRelated: true,
-    mergeKey: 'death-natural-late',
-    fateImpact: { health: -30 },
-    sourceDetail: `铁板命宫条文${proj.lifeDestiny}(寿限推算)`,
-    sourceFieldPath: 'destinyProjection.lifeDestiny',
-    sourceEvidence: `命宫条文${proj.lifeDestiny}，命局数值${lifeDestinyStrength}`,
-    reasoning: `命宫数值${lifeDestinyStrength}按阈值映射推算寿限约${estimatedDeathAge}岁`,
-    confidence: 0.5, conflictTags: ['death-natural', 'longevity'],
-  });
-
-  // ── 1I. Migration event ──
+  // ── 1H. Migration event ──
   const propertyStrength = proj.lifeDestiny % 500;
   if (propertyStrength < 200) {
     seeds.push({
@@ -336,29 +324,7 @@ export function extractTiebanEvents(
     });
   }
 
-  // ── 1M. Parent/Family Death (父母宫弱期) ──
-  const parentStrength = proj.lifeDestiny % 800;
-  if (parentStrength < 300) {
-    const parentDeathAge = parentStrength < 150 ? 35 : 45;
-    seeds.push({
-      ...B, id: seedId('tieban', 'death', parentDeathAge, 'parent-death-risk'),
-      category: 'death', subcategory: '亲人离世',
-      description: `铁板推算${parentDeathAge}岁前后有父母健康或离世之忧`,
-      earliestAge: parentDeathAge - 5, latestAge: parentDeathAge + 10,
-      probability: 0.3, intensity: 'critical',
-      causalFactors: [`命局子数值${parentStrength}`, '父母宫弱'],
-      triggerConditions: ['流年冲年柱'], deathRelated: true,
-      mergeKey: `age-${parentDeathAge}-death-parent`,
-      fateImpact: { relation: -10, homeStability: -12 },
-      sourceDetail: '铁板父母宫推算',
-      sourceFieldPath: 'destinyProjection.lifeDestiny(parent-sub)',
-      sourceEvidence: `命局子数值${parentStrength}(<300)`,
-      reasoning: `命局子数值${parentStrength}偏低推算父母健康风险期`,
-      confidence: 0.3, conflictTags: ['death-parent', 'family-loss'],
-    });
-  }
-
-  // ── 1N. Migration (迁移宫 mid-life) ──
+  // ── 1L. Migration (迁移宫 mid-life) ──
   const migrationStrength = proj.career % 500;
   if (migrationStrength < 250) {
     seeds.push({
@@ -379,7 +345,7 @@ export function extractTiebanEvents(
     });
   }
 
-  return seeds;
+  return commercialSafeSeeds(seeds);
 }
 
 // ═══════════════════════════════════════════════
@@ -536,14 +502,14 @@ export function extractBaziEvents(
       earliestAge: 45, latestAge: 70,
       probability: 0.4, intensity: 'critical',
       causalFactors: ['日主极弱', `${unfavorable.elements.join('')}克泄过重`],
-      triggerConditions: ['大运逢忌', '流年天克'], deathRelated: true,
-      mergeKey: 'death-illness-mid',
+      triggerConditions: ['大运逢忌', '流年天克'], deathRelated: false,
+      mergeKey: 'age-55-health',
       fateImpact: { health: -15 },
       sourceDetail: `日主${dayMaster.stem}极弱`,
       sourceFieldPath: 'dayMaster.strengthLevel',
       sourceEvidence: `日主${dayMaster.stem}(${dayMaster.element})，强度${dayMaster.strengthLevel}`,
       reasoning: '日主极弱表示体质薄弱，中老年逢忌运易生大病',
-      confidence: 0.4, conflictTags: ['health-risk', 'death-illness'],
+      confidence: 0.4, conflictTags: ['health-risk'],
     });
   }
 
@@ -586,24 +552,6 @@ export function extractBaziEvents(
       confidence: 0.25, conflictTags: ['accident-water'],
     });
   }
-
-  // Death signal
-  seeds.push({
-    ...B, id: seedId('bazi', 'death', 70, 'aging'),
-    category: 'death', subcategory: '寿限推断',
-    description: `八字推断${dayMaster.strengthLevel === '偏旺' || dayMaster.strengthLevel === '极旺' ? '体质较强，预期寿命偏长' : '需注意养生，预期寿命中等'}`,
-    earliestAge: 65, latestAge: 85,
-    probability: 0.5, intensity: 'life_defining',
-    causalFactors: [`日主${dayMaster.strengthLevel}`, `喜用${favorable.elements.join('')}`],
-    triggerConditions: ['大运逢死墓绝'], deathRelated: true,
-    mergeKey: 'death-natural-late',
-    fateImpact: { health: -30 },
-    sourceDetail: '八字寿限推算',
-    sourceFieldPath: 'dayMaster.strengthLevel',
-    sourceEvidence: `日主${dayMaster.stem}(${dayMaster.element})强度${dayMaster.strengthLevel}`,
-    reasoning: `日主${dayMaster.strengthLevel}推算寿限`,
-    confidence: 0.5, conflictTags: ['death-natural', 'longevity'],
-  });
 
   // ── Accident/Trauma: 羊刃/劫煞 indicators ──
   const yangRen = tenGods.find(t => t.tenGod === '劫财');
@@ -716,27 +664,6 @@ export function extractBaziEvents(
     });
   }
 
-  // ── Parent/Family Death: 年柱受克 ──
-  if (dayMaster.strengthLevel === '极旺' || dayMaster.strengthLevel === '偏旺') {
-    const parentAge = 45;
-    seeds.push({
-      ...B, id: seedId('bazi', 'death', parentAge, 'parent-death'),
-      category: 'death', subcategory: '亲人离世',
-      description: `八字日主${dayMaster.strengthLevel}克泄年柱，${parentAge}岁前后有父母健康或离世之忧`,
-      earliestAge: parentAge - 5, latestAge: parentAge + 10,
-      probability: 0.25, intensity: 'critical',
-      causalFactors: [`日主${dayMaster.strengthLevel}`, '年柱受克'],
-      triggerConditions: ['流年冲年柱', '大运克年柱'], deathRelated: true,
-      mergeKey: `age-${parentAge}-death-parent`,
-      fateImpact: { relation: -10, homeStability: -12 },
-      sourceDetail: '八字年柱受克分析',
-      sourceFieldPath: 'dayMaster.strengthLevel+yearPillar',
-      sourceEvidence: `日主${dayMaster.stem}(${dayMaster.element})${dayMaster.strengthLevel}，年柱受克`,
-      reasoning: '日主过旺克泄年柱表示父母宫受损，推算父母健康风险期',
-      confidence: 0.25, conflictTags: ['death-parent', 'family-loss'],
-    });
-  }
-
   // ── Education: 印星+食伤学业 ──
   const foodGod = tenGods.find(t => t.tenGod === '食神' || t.tenGod === '伤官');
   if (foodGod) {
@@ -759,7 +686,7 @@ export function extractBaziEvents(
     });
   }
 
-  return seeds;
+  return commercialSafeSeeds(seeds);
 }
 
 // ═══════════════════════════════════════════════
@@ -813,7 +740,7 @@ export function extractZiweiEvents(
         probability: 0.6, intensity: 'major',
         causalFactors: [`${starNames}入${palace.name}`, '化忌'],
         triggerConditions: shaStars.length > 0 ? ['煞星同宫加剧'] : [],
-        deathRelated: cat === 'health',
+        deathRelated: false,
         mergeKey: `age-${baseAge}-${cat}`,
         fateImpact: { [fateDim]: -10 },
         sourceDetail: `紫微${palace.name}化忌(${starNames})`,
@@ -872,7 +799,7 @@ export function extractZiweiEvents(
         probability: 0.4, intensity: 'major',
         causalFactors: shaStars.map(s => `${s.name}(${s.brightness})`),
         triggerConditions: ['大限逢煞', '流年再叠煞'],
-        deathRelated: palace.name === '疾厄' || palace.name === '命宫',
+        deathRelated: false,
         mergeKey: `age-${baseAge}-${cat === 'health' ? 'health' : 'accident'}`,
         fateImpact: { [fateDim]: -12 },
         sourceDetail: `紫微${palace.name}煞聚`,
@@ -950,7 +877,7 @@ export function extractZiweiEvents(
       probability: 0.8, intensity,
       causalFactors: [`大限${dx.palaceName}`, dxMajors ? `主星${dxMajors}` : '空宫'],
       triggerConditions: hasSha ? ['煞星同宫'] : [],
-      deathRelated: dx.palaceName === '疾厄' && (hasSha || hasJi),
+      deathRelated: false,
       mergeKey: `dayun-${dx.startAge}`,
       fateImpact: { life: (hasJi && hasSha) ? -10 : hasLu ? 8 : hasSha ? -5 : 3 },
       sourceDetail: `紫微大限${dx.palaceName}`,
@@ -968,14 +895,14 @@ export function extractZiweiEvents(
         earliestAge: dx.startAge, latestAge: dx.endAge,
         probability: 0.45, intensity: 'critical',
         causalFactors: [`大限疾厄宫`, ...dx.stars.filter(s => s.type === 'sha').map(s => s.name)],
-        triggerConditions: ['流年再逢煞'], deathRelated: true,
-        mergeKey: `death-illness-daxian-${dx.startAge}`,
+        triggerConditions: ['流年再逢煞'], deathRelated: false,
+        mergeKey: `age-${dx.startAge + 5}-health`,
         fateImpact: { health: -15 },
         sourceDetail: `紫微大限疾厄宫`,
         sourceFieldPath: `daxian[startAge=${dx.startAge}].palaceName=疾厄`,
         sourceEvidence: `大限疾厄宫，煞星${dx.stars.filter(s => s.type === 'sha').map(s => s.name).join('、')}`,
         reasoning: '大限行至疾厄宫且有煞星，为健康高危期',
-        confidence: 0.45, conflictTags: ['health-risk', 'death-illness'],
+        confidence: 0.45, conflictTags: ['health-risk'],
       });
     }
 
@@ -1133,54 +1060,6 @@ export function extractZiweiEvents(
     }
   }
 
-  // ── 3E. Death/longevity from illness palace ──
-  const illPalace = report.palaces.find(p => p.name === '疾厄');
-  if (illPalace) {
-    const shaCount = illPalace.stars.filter(s => s.type === 'sha').length;
-    const hasJi = illPalace.stars.some(s => s.sihua === '忌');
-    const brightHealth = illPalace.stars.filter(s => s.type === 'major' && ['庙', '旺'].includes(s.brightness));
-
-    if (shaCount >= 2 || hasJi) {
-      seeds.push({
-        ...B, id: seedId('ziwei', 'death', 60, 'illness-palace'),
-        category: 'death', subcategory: '疾厄宫凶象',
-        description: `疾厄宫${hasJi ? '化忌' : ''}${shaCount >= 2 ? '多煞' : ''}，晚年健康需高度关注`,
-        earliestAge: 55, latestAge: 80,
-        probability: shaCount >= 2 && hasJi ? 0.5 : 0.3,
-        intensity: 'critical',
-        causalFactors: illPalace.stars.filter(s => s.type === 'sha').map(s => s.name),
-        triggerConditions: ['大限逢疾厄'], deathRelated: true,
-        mergeKey: 'death-illness-late',
-        fateImpact: { health: -20 },
-        sourceDetail: '紫微疾厄宫分析',
-        sourceFieldPath: 'palaces[疾厄]',
-        sourceEvidence: `疾厄宫：${hasJi ? '化忌' : ''}${shaCount >= 2 ? `煞星${shaCount}颗` : ''}`,
-        reasoning: '疾厄宫化忌或多煞表示健康高危',
-        confidence: shaCount >= 2 && hasJi ? 0.5 : 0.3,
-        conflictTags: ['death-illness', 'health-risk'],
-      });
-    }
-
-    if (brightHealth.length > 0 && shaCount === 0 && !hasJi) {
-      seeds.push({
-        ...B, id: seedId('ziwei', 'health', 75, 'longevity-good'),
-        category: 'death', subcategory: '疾厄宫吉象',
-        description: `疾厄宫主星${brightHealth.map(s => s.name).join('、')}明亮无煞，体质较佳`,
-        earliestAge: 75, latestAge: 92,
-        probability: 0.5, intensity: 'life_defining',
-        causalFactors: brightHealth.map(s => `${s.name}(${s.brightness})`),
-        triggerConditions: [], deathRelated: true,
-        mergeKey: 'death-natural-late',
-        fateImpact: { health: 10 },
-        sourceDetail: '紫微疾厄宫吉象',
-        sourceFieldPath: 'palaces[疾厄].stars(major,bright)',
-        sourceEvidence: brightHealth.map(s => `${s.name}(${s.brightness})`).join('、'),
-        reasoning: '疾厄宫主星明亮无煞表示体质佳，寿命偏长',
-        confidence: 0.5, conflictTags: ['death-natural', 'longevity'],
-      });
-    }
-  }
-
   // ── 3F. Migration palace ──
   const migPalace = report.palaces.find(p => p.name === '迁移');
   if (migPalace) {
@@ -1308,32 +1187,6 @@ export function extractZiweiEvents(
     }
   }
 
-  // ── 3K. Parent/Family Death (父母宫化忌) ──
-  const fmPalace = report.palaces.find(p => p.name === '父母');
-  if (fmPalace) {
-    const fmHasJi = fmPalace.stars.some(s => s.sihua === '忌');
-    const fmShaStars = fmPalace.stars.filter(s => s.type === 'sha');
-    if (fmHasJi || fmShaStars.length >= 2) {
-      const fmJiStar = fmPalace.stars.find(s => s.sihua === '忌')?.name || '';
-      seeds.push({
-        ...B, id: seedId('ziwei', 'death', 45, 'fm-palace-parent-death'),
-        category: 'death', subcategory: '亲人离世',
-        description: `父母宫${fmHasJi ? fmJiStar + '化忌' : ''}${fmShaStars.length >= 2 ? '煞聚' : ''}，45岁前后有父母健康或离世之忧`,
-        earliestAge: 40, latestAge: 55,
-        probability: fmHasJi && fmShaStars.length >= 2 ? 0.35 : 0.25, intensity: 'critical',
-        causalFactors: [fmHasJi ? `${fmJiStar}化忌入父母` : '', ...fmShaStars.map(s => s.name)].filter(Boolean),
-        triggerConditions: ['大限逢父母宫', '流年冲父母宫'], deathRelated: true,
-        mergeKey: 'age-45-death-parent',
-        fateImpact: { relation: -10, homeStability: -12 },
-        sourceDetail: '紫微父母宫分析',
-        sourceFieldPath: 'palaces[父母]',
-        sourceEvidence: `父母宫${fmHasJi ? fmJiStar + '化忌' : ''}${fmShaStars.length >= 2 ? '煞星' + fmShaStars.map(s => s.name).join('') : ''}`,
-        reasoning: '父母宫化忌或煞聚表示父母健康风险',
-        confidence: fmHasJi && fmShaStars.length >= 2 ? 0.35 : 0.25, conflictTags: ['death-parent', 'family-loss'],
-      });
-    }
-  }
-
   // ── 3L. Education (命宫/福德宫 activity in youth) ──
   const mingPalace = report.palaces.find(p => p.name === '命宫');
   if (mingPalace) {
@@ -1359,7 +1212,7 @@ export function extractZiweiEvents(
     }
   }
 
-  return seeds;
+  return commercialSafeSeeds(seeds);
 }
 
 // ═══════════════════════════════════════════════
@@ -1546,24 +1399,6 @@ export function extractWesternEvents(
     confidence: 0.5, conflictTags: ['education-21'],
   });
 
-  // Death signal from Saturn/Pluto
-  seeds.push({
-    ...B, id: seedId('western', 'death', 78, 'saturn-pluto-death'),
-    category: 'death', subcategory: '土冥死亡信号',
-    description: '土星-冥王星周期推算：78岁前后为生命终点候选期',
-    earliestAge: 72, latestAge: 85,
-    probability: 0.3, intensity: 'life_defining',
-    causalFactors: ['Saturn-Pluto cycle'],
-    triggerConditions: [], deathRelated: true,
-    mergeKey: 'death-natural-late',
-    fateImpact: { health: -15 },
-    sourceDetail: '西方占星寿限推算',
-    sourceFieldPath: 'planetary_cycles.saturn_pluto',
-    sourceEvidence: '土星-冥王星周期约33年，第2-3次重叠',
-    reasoning: '土冥周期重叠推算生命终点',
-    confidence: 0.3, conflictTags: ['death-natural', 'longevity'],
-  });
-
   // ── Accident/Trauma: Mars hard aspects ──
   const marsInSign = marsSign?.sign || 'Aries';
   const hardAspectSigns = ['Aries', 'Scorpio', 'Capricorn'];
@@ -1694,28 +1529,7 @@ export function extractWesternEvents(
     });
   }
 
-  // ── Parent/Family Death: Saturn/Moon aspects ──
-  const moonSign = report.planets?.find(p => p.planet === 'Moon');
-  if (saturnSign && moonSign) {
-    seeds.push({
-      ...B, id: seedId('western', 'death', 50, 'saturn-moon-parent-death'),
-      category: 'death', subcategory: '亲人离世',
-      description: `土星${saturnSign.sign}与月亮${moonSign.sign}形成张力，50岁前后有父母健康或离世之忧`,
-      earliestAge: 45, latestAge: 58,
-      probability: 0.25, intensity: 'critical',
-      causalFactors: [`Saturn in ${saturnSign.sign}`, `Moon in ${moonSign.sign}`],
-      triggerConditions: ['Saturn transit square natal Moon'], deathRelated: true,
-      mergeKey: 'age-50-death-parent',
-      fateImpact: { relation: -10, homeStability: -12 },
-      sourceDetail: `土星${saturnSign.sign}+月亮${moonSign.sign}亲人分析`,
-      sourceFieldPath: 'planets.Saturn+Moon',
-      sourceEvidence: `土星${saturnSign.sign}，月亮${moonSign.sign}`,
-      reasoning: '土月张力表示家庭结构压力，影响父母健康',
-      confidence: 0.25, conflictTags: ['death-parent', 'family-loss'],
-    });
-  }
-
-  return seeds;
+  return commercialSafeSeeds(seeds);
 }
 
 // ═══════════════════════════════════════════════
@@ -1743,7 +1557,7 @@ export function extractVedicEvents(
       earliestAge: dasha.startAge, latestAge: dasha.startAge + 2,
       probability: 0.65, intensity: dasha.years >= 10 ? 'major' : 'moderate',
       causalFactors: [`${dasha.planet} Dasha`, dasha.quality],
-      triggerConditions: [], deathRelated: dasha.quality === 'malefic' && dasha.startAge >= 60,
+      triggerConditions: [], deathRelated: false,
       mergeKey: `dayun-${dasha.startAge}`,
       fateImpact: dasha.quality === 'benefic' ? { life: 8 } : dasha.quality === 'malefic' ? { life: -8 } : {},
       sourceDetail: `吠陀${dasha.planet}大周期`,
@@ -1782,7 +1596,7 @@ export function extractVedicEvents(
         earliestAge: dasha.startAge, latestAge: dasha.endAge,
         probability: 0.3, intensity: 'major',
         causalFactors: [`${dasha.planet} Dasha malefic`],
-        triggerConditions: [], deathRelated: dasha.startAge >= 60,
+        triggerConditions: [], deathRelated: false,
         mergeKey: `age-${dasha.startAge + 2}-accident`,
         fateImpact: { health: -5 },
         sourceDetail: `吠陀${dasha.planet}凶险期`,
@@ -1853,27 +1667,6 @@ export function extractVedicEvents(
     reasoning: '月亮星座推断迁移倾向',
     confidence: 0.4, conflictTags: ['migration'],
   });
-
-  // Death signal from malefic dasha
-  const lateMaleficDasha = report.dashas.find(d => d.quality === 'malefic' && d.startAge >= 60);
-  if (lateMaleficDasha) {
-    seeds.push({
-      ...B, id: seedId('vedic', 'death', lateMaleficDasha.startAge + 5, 'malefic-death'),
-      category: 'death', subcategory: `${lateMaleficDasha.planet}凶险寿限`,
-      description: `吠陀${lateMaleficDasha.planet}凶险大周期在晚年(${lateMaleficDasha.startAge}岁起)，为寿限候选`,
-      earliestAge: lateMaleficDasha.startAge, latestAge: lateMaleficDasha.endAge,
-      probability: 0.35, intensity: 'critical',
-      causalFactors: [`${lateMaleficDasha.planet} Dasha malefic late-life`],
-      triggerConditions: [], deathRelated: true,
-      mergeKey: 'death-illness-late',
-      fateImpact: { health: -15 },
-      sourceDetail: `吠陀晚年凶险Dasha`,
-      sourceFieldPath: `dashas[${lateMaleficDasha.planet}]`,
-      sourceEvidence: `${lateMaleficDasha.planet}凶险Dasha ${lateMaleficDasha.startAge}-${lateMaleficDasha.endAge}岁`,
-      reasoning: '晚年凶险Dasha为寿限候选',
-      confidence: 0.35, conflictTags: ['death-illness', 'longevity'],
-    });
-  }
 
   // Education from Mercury dasha
   const mercuryDasha = report.dashas.find(d => d.planet === 'Mercury' && d.startAge <= 25);
@@ -1980,29 +1773,6 @@ export function extractVedicEvents(
     });
   }
 
-  // ── Parent/Family Death: Sun/Moon malefic dasha ──
-  const sunDasha = report.dashas.find(d => d.planet === 'Sun' && d.quality === 'malefic' && d.startAge >= 35);
-  const moonDasha = report.dashas.find(d => d.planet === 'Moon' && d.quality === 'malefic' && d.startAge >= 35);
-  const parentDasha = sunDasha || moonDasha;
-  if (parentDasha) {
-    seeds.push({
-      ...B, id: seedId('vedic', 'death', parentDasha.startAge + 2, `${parentDasha.planet}-parent-death`),
-      category: 'death', subcategory: '亲人离世',
-      description: `吠陀${parentDasha.planet}凶险大周期(${parentDasha.startAge}-${parentDasha.endAge}岁)：父母健康或离世风险期`,
-      earliestAge: parentDasha.startAge, latestAge: parentDasha.endAge,
-      probability: 0.25, intensity: 'critical',
-      causalFactors: [`${parentDasha.planet} Dasha malefic`, '父母宫受压'],
-      triggerConditions: [`${parentDasha.planet} transit 4th house`], deathRelated: true,
-      mergeKey: `age-${parentDasha.startAge + 2}-death-parent`,
-      fateImpact: { relation: -10, homeStability: -12 },
-      sourceDetail: `吠陀${parentDasha.planet}凶险期亲人分析`,
-      sourceFieldPath: `dashas[${parentDasha.planet}].quality=malefic`,
-      sourceEvidence: `${parentDasha.planet}凶险Dasha ${parentDasha.startAge}-${parentDasha.endAge}岁`,
-      reasoning: `${parentDasha.planet}凶险大周期影响父母宫，有亲人离世风险`,
-      confidence: 0.25, conflictTags: ['death-parent', 'family-loss'],
-    });
-  }
-
   // ── Education: Jupiter dasha in youth ──
   const jupiterDasha = report.dashas.find(d => d.planet === 'Jupiter' && d.startAge <= 25);
   if (jupiterDasha) {
@@ -2044,7 +1814,7 @@ export function extractVedicEvents(
     });
   }
 
-  return seeds;
+  return commercialSafeSeeds(seeds);
 }
 
 // ═══════════════════════════════════════════════
@@ -2188,25 +1958,6 @@ export function extractNumerologyEvents(
     }
   }
 
-  // Death from life path
-  const deathAge = 65 + report.lifePath * 2;
-  seeds.push({
-    ...B, id: seedId('numerology', 'death', deathAge, 'lifepath-death'),
-    category: 'death', subcategory: '生命数寿限',
-    description: `数字命理生命数${report.lifePath}推算寿限约${deathAge}岁`,
-    earliestAge: deathAge - 5, latestAge: deathAge + 8,
-    probability: 0.25, intensity: 'life_defining',
-    causalFactors: [`生命数${report.lifePath}`],
-    triggerConditions: [], deathRelated: true,
-    mergeKey: 'death-natural-late',
-    fateImpact: { health: -10 },
-    sourceDetail: '数字命理寿限推算',
-    sourceFieldPath: 'lifePath(death-derived)',
-    sourceEvidence: `65 + 生命数*2 = ${deathAge}`,
-    reasoning: '生命数推算基础寿限',
-    confidence: 0.25, conflictTags: ['death-natural', 'longevity'],
-  });
-
   // ── Education: personal year 1/3/7 ──
   for (const py of report.personalYears) {
     if (py.age < 16 || py.age > 25) continue;
@@ -2349,31 +2100,7 @@ export function extractNumerologyEvents(
     }
   }
 
-  // ── Parent Death: personal year 9 in late period ──
-  for (const py of report.personalYears) {
-    if (py.age < 40 || py.age > 60) continue;
-    if (py.number === 9 && py.energy < 30) {
-      seeds.push({
-        ...B, id: seedId('numerology', 'death', py.age, `py-parent-death-${py.year}`),
-        category: 'death', subcategory: '亲人离世',
-        description: `数字命理${py.year}年(${py.age}岁)个人年9极低能量：周期结束，有亲人离世风险`,
-        earliestAge: py.age, latestAge: py.age + 2,
-        probability: 0.2, intensity: 'critical',
-        causalFactors: [`个人年数9`, `能量${py.energy}`, '周期终结'],
-        triggerConditions: [], deathRelated: true,
-        mergeKey: `age-${py.age}-death-parent`,
-        fateImpact: { relation: -10, homeStability: -8 },
-        sourceDetail: `数字命理个人年9亲人风险`,
-        sourceFieldPath: `personalYears[year=${py.year}]`,
-        sourceEvidence: `个人年9，能量${py.energy}(<30)`,
-        reasoning: '个人年9为终结年，极低能量期有亲人离世风险',
-        confidence: 0.2, conflictTags: ['death-parent', 'family-loss'],
-      });
-      break;
-    }
-  }
-
-  return seeds;
+  return commercialSafeSeeds(seeds);
 }
 
 // ═══════════════════════════════════════════════
@@ -2500,26 +2227,7 @@ export function extractMayanEvents(
     confidence: 0.35, conflictTags: ['wealth-mayan'],
   });
 
-  // Death from calendar round
-  const mayanDeathAge = 52 + report.galacticTone * 2 + (report.kin % 5);
-  seeds.push({
-    ...B, id: seedId('mayan', 'death', mayanDeathAge, 'mayan-death'),
-    category: 'death', subcategory: '玛雅寿限',
-    description: `玛雅历法推算寿限约${mayanDeathAge}岁(基于Kin${report.kin}与银河音${report.galacticTone})`,
-    earliestAge: mayanDeathAge - 5, latestAge: mayanDeathAge + 8,
-    probability: 0.2, intensity: 'life_defining',
-    causalFactors: [`Kin${report.kin}`, `银河音${report.galacticTone}`],
-    triggerConditions: [], deathRelated: true,
-    mergeKey: 'death-natural-late',
-    fateImpact: { health: -8 },
-    sourceDetail: '玛雅寿限推算',
-    sourceFieldPath: 'kin+galacticTone(death-derived)',
-    sourceEvidence: `52 + 银河音*2 + Kin%5 = ${mayanDeathAge}`,
-    reasoning: '玛雅历法轮回推算寿限',
-    confidence: 0.2, conflictTags: ['death-natural', 'longevity'],
-  });
-
-  return seeds;
+  return commercialSafeSeeds(seeds);
 }
 
 // ═══════════════════════════════════════════════
@@ -2648,26 +2356,7 @@ export function extractKabbalahEvents(
     confidence: 0.3, conflictTags: ['health-kabbalah'],
   });
 
-  // Death from tree of life
-  const kDeathAge = 70 + report.soulSephirah.index + report.personalitySephirah.index % 5;
-  seeds.push({
-    ...B, id: seedId('kabbalah', 'death', kDeathAge, 'kabbalah-death'),
-    category: 'death', subcategory: '生命树寿限',
-    description: `卡巴拉生命树推算寿限约${kDeathAge}岁`,
-    earliestAge: kDeathAge - 5, latestAge: kDeathAge + 8,
-    probability: 0.2, intensity: 'life_defining',
-    causalFactors: [`灵魂${report.soulSephirah.nameCN}`, `人格${report.personalitySephirah.nameCN}`],
-    triggerConditions: [], deathRelated: true,
-    mergeKey: 'death-natural-late',
-    fateImpact: { health: -8 },
-    sourceDetail: '卡巴拉生命树寿限推算',
-    sourceFieldPath: 'soulSephirah+personalitySephirah(death)',
-    sourceEvidence: `70 + 灵魂${report.soulSephirah.index} + 人格%5 = ${kDeathAge}`,
-    reasoning: '生命树推算寿限',
-    confidence: 0.2, conflictTags: ['death-natural', 'longevity'],
-  });
-
-  return seeds;
+  return commercialSafeSeeds(seeds);
 }
 
 // ═══════════════════════════════════════════════
@@ -2708,15 +2397,15 @@ export function extractInstantEvents(
   } else if (eo.engineName === 'meihua') {
     const benGua = no['本卦'] || no['benGua'] || '';
     const bianGua = no['变卦'] || no['bianGua'] || '';
-    const tiYong = no['体用'] || no['tiYong'] || '';
+    const tiYong = no['体用'] || no['tiYong'] || no['bodyUseRelation'] || '';
     cat = isInauspicious ? 'accident' : 'turning_point';
     desc = `梅花易数于${queryTimeUtc.slice(0, 10)}起卦：本卦${benGua}→变卦${bianGua}(${tiYong})`;
     fieldPath = 'meihua.benGua+bianGua';
     evidence = `本卦${benGua}，变卦${bianGua}，体用${tiYong}，吉凶${auspiciousness}`;
   } else if (eo.engineName === 'qimen') {
-    const dunType = no['遁局'] || '';
-    const zhiFu = no['值符'] || '';
-    const zhiShi = no['值使'] || '';
+    const dunType = no['遁局'] || `${no['dun'] || ''}${no['ju'] || ''}局`;
+    const zhiFu = no['值符'] || no['zhiFuStar'] || '';
+    const zhiShi = no['值使'] || no['zhiShiGate'] || '';
     cat = isInauspicious ? 'accident' : 'career';
     desc = `奇门遁甲于${queryTimeUtc.slice(0, 10)}起局：${dunType}，值符${zhiFu}值使${zhiShi}`;
     fieldPath = 'qimen.chart';
@@ -2783,5 +2472,5 @@ export function extractInstantEvents(
     });
   }
 
-  return seeds;
+  return commercialSafeSeeds(seeds);
 }

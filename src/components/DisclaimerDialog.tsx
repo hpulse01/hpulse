@@ -77,7 +77,7 @@ export function DisclaimerDialog({ open, onAccept }: DisclaimerDialogProps) {
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="text-xs text-muted-foreground/80 text-center font-sans leading-relaxed">
-              进入 H-Pulse 量子预测系统前,请确认您已理解以下条款。
+              进入 H-Pulse 多体系文化规则分析前，请确认您已理解以下条款。
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -94,6 +94,7 @@ export function DisclaimerDialog({ open, onAccept }: DisclaimerDialogProps) {
                 系统集成铁板神数、八字、紫微斗数、六爻、西方占星、吠陀、数字、玛雅、卡巴拉、
                 梅花易数、奇门、大六壬、太乙等十三大体系,
                 <strong className="text-primary">未经科学验证，不构成医疗、心理、法律、金融或人生决策建议</strong>。
+                本产品使用经典确定性软件算法，不使用量子计算；“情景融合”只是产品内的排序模型名称。
               </p>
             </div>
 

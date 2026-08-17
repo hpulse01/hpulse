@@ -1,8 +1,10 @@
 /**
  * HPU-2 StandardizedInput normalizer — TS facade over the Rust/WASM core.
  *
- * Browser-only. Do NOT import from server/edge code: the WASM binary lives
- * under /public/wasm/ and is fetched at runtime.
+ * Browser-only. The commercial build installs a generated Rust/WASM binary
+ * under /public/wasm/. A deterministic TypeScript implementation keeps local
+ * development usable if that generated artifact is unavailable, and reports
+ * the fallback explicitly so a commercial artifact gate can reject it.
  *
  * Usage:
  *   const out = await normalizeInput(rawForm);
@@ -26,7 +28,9 @@ type WasmModule = {
 
 let wasmPromise: Promise<WasmModule> | null = null;
 
-const INTL_ALGORITHM_VERSION = "hpu2.normalizer.v2-intl";
+const INTL_ALGORITHM_VERSION = "hpu2.normalizer.v3-intl-calculation-name";
+const TS_FALLBACK_ALGORITHM_VERSION = "hpu2.normalizer.v3-intl-typescript-fallback";
+const INPUT_SCHEMA_VERSION = "hpulse.input.v1";
 
 type BirthInstantResolution =
   | {
@@ -127,6 +131,71 @@ async function sha256Hex(value: string): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+function utf8Hex(value: string): string {
+  return Array.from(new TextEncoder().encode(value), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function canonicalSeedProjection(input: NonNullable<NormalizeOutcome["input"]>): string {
+  return `v1|birth_utc=${input.birth.birth_utc}`
+    + `|lat=${input.birth.latitude.toFixed(6)}`
+    + `|lng=${input.birth.longitude.toFixed(6)}`
+    + `|cal=${input.birth.calendar}`
+    + `|gender=${input.birth.gender}`
+    + `|cname_hex=${utf8Hex(input.calculation_name ?? "")}`
+    + `|qt=${input.query.query_time_utc}`
+    + `|qtype=${input.query.query_type}`
+    + `|gran=${input.query.granularity}`;
+}
+
+async function buildTypeScriptFallback(
+  raw: RawUserInput,
+  birthInstant: Extract<BirthInstantResolution, { ok: true }>,
+  cause: unknown,
+): Promise<NormalizeOutcome> {
+  const queryDate = new Date(raw.query_time_utc);
+  const queryTimeUtc = queryDate.toISOString().replace(/\.000Z$/, "Z");
+  const input: NonNullable<NormalizeOutcome["input"]> = {
+    schema_version: INPUT_SCHEMA_VERSION,
+    algorithm_version: TS_FALLBACK_ALGORITHM_VERSION,
+    birth: {
+      date_iso: raw.birth_date,
+      time_iso: raw.birth_time,
+      calendar: raw.calendar,
+      timezone: raw.timezone,
+      latitude: raw.latitude,
+      longitude: raw.longitude,
+      gender: raw.gender,
+      location_label: raw.location_name,
+      birth_utc: birthInstant.birthUtc,
+      tz_offset_minutes: birthInstant.offsetMinutes,
+    },
+    query: {
+      query_time_utc: queryTimeUtc,
+      query_type: raw.query_type,
+      granularity: raw.granularity,
+    },
+    identity: {
+      user_id: raw.user_id,
+      locale: raw.locale ?? "zh-CN",
+    },
+    calculation_name: raw.calculation_name,
+    seed_material: "",
+    raw,
+  };
+  input.seed_material = await sha256Hex(canonicalSeedProjection(input));
+  const detail = cause instanceof Error ? cause.message : String(cause);
+  return {
+    ok: true,
+    input,
+    issues: [{
+      field: "$runtime",
+      code: "wasm_unavailable_typescript_fallback",
+      message: `Rust/WASM 标准化器不可用，已使用等价的确定性 TypeScript 路径；商业构建必须安装真实 WASM 产物。${detail ? ` (${detail})` : ""}`,
+      severity: "warning",
+    }],
+  };
+}
+
 async function loadWasm(): Promise<WasmModule> {
   if (!wasmPromise) {
     wasmPromise = (async () => {
@@ -157,36 +226,41 @@ export async function normalizeInput(raw: unknown): Promise<NormalizeOutcome> {
     return { ok: false, input: null, issues: [birthInstant.issue] };
   }
 
-  const wasm = await loadWasm();
+  let wasm: WasmModule;
+  try {
+    wasm = await loadWasm();
+  } catch (error) {
+    return buildTypeScriptFallback(parsed.data, birthInstant, error);
+  }
   const outcome = wasm.normalize_input(parsed.data) as NormalizeOutcome;
   if (!outcome.ok || !outcome.input) return outcome;
 
-  // The Rust v1 binary has only a fixed-offset fallback table. Replace that
+  // The Rust core has only a fixed-offset fallback table. Replace that
   // timestamp with the historical IANA resolution before any engine runs.
   outcome.input.birth.birth_utc = birthInstant.birthUtc;
   outcome.input.birth.tz_offset_minutes = birthInstant.offsetMinutes;
   outcome.input.algorithm_version = INTL_ALGORITHM_VERSION;
   outcome.input.raw = parsed.data;
-  const canonical =
-    `v1|birth_utc=${outcome.input.birth.birth_utc}`
-    + `|lat=${outcome.input.birth.latitude.toFixed(6)}`
-    + `|lng=${outcome.input.birth.longitude.toFixed(6)}`
-    + `|cal=${outcome.input.birth.calendar}`
-    + `|gender=${outcome.input.birth.gender}`
-    + `|qt=${outcome.input.query.query_time_utc}`
-    + `|qtype=${outcome.input.query.query_type}`
-    + `|gran=${outcome.input.query.granularity}`;
-  outcome.input.seed_material = await sha256Hex(canonical);
+  outcome.input.calculation_name = parsed.data.calculation_name;
+  outcome.input.seed_material = await sha256Hex(canonicalSeedProjection(outcome.input));
   return outcome;
 }
 
 export async function hpulseInputVersions() {
-  const wasm = await loadWasm();
-  return {
-    schema: wasm.schema_version(),
-    algorithm: INTL_ALGORITHM_VERSION,
-    wasmAlgorithm: wasm.algorithm_version(),
-  };
+  try {
+    const wasm = await loadWasm();
+    return {
+      schema: wasm.schema_version(),
+      algorithm: INTL_ALGORITHM_VERSION,
+      wasmAlgorithm: wasm.algorithm_version(),
+    };
+  } catch {
+    return {
+      schema: INPUT_SCHEMA_VERSION,
+      algorithm: TS_FALLBACK_ALGORITHM_VERSION,
+      wasmAlgorithm: null,
+    };
+  }
 }
 
 export type { NormalizeOutcome, RawUserInput, ValidationIssue };

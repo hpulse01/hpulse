@@ -6,7 +6,7 @@ rawInput (any)
   ├─ HPU-7  toLegacyInput()         ──► legacy StandardizedInput (@/types/prediction)
   ├─ HPU-4  runAll()                ──► EngineRunResult[]  (13 engines, never throws)
   ├─ HPU-5  buildWorldTree()        ──► WorldTree          (5 stages × 10 domains)
-  └─ HPU-6  fuseDestiny()           ──► DeathFusionResult  (verdict + deathWindow)
+  └─ HPU-6  fuseDestiny()           ──► DestinyFusionResult (verdict + evidenceQuality)
                                        ⇒ PipelineReport
 ```
 
@@ -19,7 +19,7 @@ const report = await runPipeline(rawForm, { event: "general", granularity: "year
 if (!report.ok) console.error(report.reason);
 else {
   report.fusion.verdict.overallScore;
-  report.fusion.deathWindow.peakAge;
+  report.fusion.evidenceQuality.ruleCoverage;
   report.worldTree.stages;
 }
 ```
@@ -39,6 +39,6 @@ else {
 | `latitude` / `longitude` | `geoLatitude` / `geoLongitude` |
 | `timezone` | `timezoneIana` |
 | `tz_offset_minutes` | `timezoneOffsetMinutesAtBirth` |
-| `gender` (male/female/other) | `gender` (other→male) |
+| `gender` (male/female) | `gender` (unsupported values rejected) |
 | `location_label` | `normalizedLocationName` |
 | query.`query_type` | `queryType` (natal→natalAnalysis, instant→instantDecision, forecast→annualForecast) |

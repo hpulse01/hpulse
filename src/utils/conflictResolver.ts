@@ -2,8 +2,8 @@
  * H-Pulse Conflict Detection & Resolution v3.0
  *
  * v3.0 升级:
- *   - Bayesian posterior update: 引擎预测作为似然函数更新先验概率
- *   - Uncertainty quantification: 每个维度输出置信区间 [μ-σ, μ+σ]
+ *   - Gaussian precision-weighted score regularization (Bayesian-form analogy)
+ *   - Model spread interval: 每个维度输出模型区间 [μ-σ, μ+σ]
  *   - Adaptive conflict strategy: 根据引擎历史一致性动态选择策略
  *   - Enhanced majority voting with outlier detection
  *   - Cross-dimension correlation awareness (跨维度关联感知)
@@ -283,12 +283,16 @@ function confidenceWeightedAverage(
 }
 
 // ═══════════════════════════════════════════════
-// Bayesian Posterior Fusion (v3.0 新增)
-// 引擎预测 → 似然函数 → 后验概率 → 精确融合
+// Gaussian Precision-Weighted Fusion (historical API name retained)
 // ═══════════════════════════════════════════════
 
 /**
- * Bayesian posterior update for fate dimension fusion.
+ * Gaussian precision-weighted score fusion.
+ *
+ * The math has a conjugate-normal form, but engine `confidence` values are
+ * rule-coverage scores rather than empirically calibrated likelihoods. The
+ * returned interval is therefore a model-spread diagnostic, not a statistical
+ * credible interval for a real-world outcome.
  *
  * Model: For dimension d, the "true" value θ ∈ [0,100].
  *   - Prior: θ ~ N(μ_prior, σ_prior²), where μ_prior=50, σ_prior=25
@@ -328,7 +332,7 @@ export function bayesianPosteriorFusion(
   const posteriorMean = weightedPrecisionSum * posteriorVariance;
   const posteriorStdDev = Math.sqrt(posteriorVariance);
 
-  // 95% credible interval
+  // 1.96σ model-spread interval (not an empirical credible interval)
   const ci95Lower = Math.max(0, Math.round(posteriorMean - 1.96 * posteriorStdDev));
   const ci95Upper = Math.min(100, Math.round(posteriorMean + 1.96 * posteriorStdDev));
 

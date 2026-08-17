@@ -85,7 +85,7 @@ export interface AdminOrchestrationSnapshot {
   totalEventCandidates: number;
   totalWorldNodes: number;
   totalPaths: number;
-  collapse: Pick<BaseCollapseResult, 'deathAge' | 'deathCause' | 'collapseConfidence' | 'selectedReason'> | null;
+  collapse: Pick<BaseCollapseResult, 'planningHorizonAge' | 'terminalAge' | 'terminalReason' | 'selectionStability' | 'selectedReason'> | null;
   userAccessPolicy: {
     public: string[];
     member: string[];

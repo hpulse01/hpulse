@@ -32,6 +32,7 @@ function normalizeBirthContext(input: UnifiedPredictionInput): NormalizedBirthCo
 
 function toQuantumInput(input: UnifiedPredictionInput): QuantumInput {
   return {
+    calculationName: input.calculationName,
     year: input.birthLocalDateTime.year,
     month: input.birthLocalDateTime.month,
     day: input.birthLocalDateTime.day,
@@ -41,6 +42,8 @@ function toQuantumInput(input: UnifiedPredictionInput): QuantumInput {
     geoLatitude: input.geoLatitude,
     geoLongitude: input.geoLongitude,
     timezoneOffsetMinutes: input.timezoneOffsetMinutesAtBirth,
+    timezoneIana: input.timezoneIana,
+    normalizedLocationName: input.normalizedLocationName,
     queryTimeUtc: input.queryTimeUtc,
   };
 }
@@ -54,7 +57,7 @@ function buildTimeline(result: QuantumPredictionResult): DestinyTimelineEvent[] 
       description: node.event.description,
       confidence: node.cumulativeProbability,
       engineSupports: node.engineSupports,
-      isTerminal: node.isDeath,
+      isTerminal: node.isTerminal,
     }));
   }
 
@@ -65,7 +68,7 @@ function buildTimeline(result: QuantumPredictionResult): DestinyTimelineEvent[] 
     description: event.description,
     confidence: event.convergence,
     engineSupports: event.systemVotes,
-    isTerminal: event.age >= result.deathAge,
+    isTerminal: event.age >= result.analysisHorizonAge,
   }));
 }
 
@@ -165,16 +168,17 @@ function buildAdminSnapshot(report: Omit<FullPredictionReport, 'adminSnapshot'>,
     totalWorldNodes: report.worldTree?.totalNodes ?? 0,
     totalPaths: report.worldTree?.totalPaths ?? 0,
     collapse: report.collapseResult ? {
-      deathAge: report.collapseResult.deathAge,
-      deathCause: report.collapseResult.deathCause,
-      collapseConfidence: report.collapseResult.collapseConfidence,
+      planningHorizonAge: report.collapseResult.planningHorizonAge,
+      terminalAge: report.collapseResult.terminalAge,
+      terminalReason: report.collapseResult.terminalReason,
+      selectionStability: report.collapseResult.selectionStability,
       selectedReason: report.collapseResult.selectedReason,
     } : null,
     userAccessPolicy: {
       public: ['统一输入', '结果总览', '命运主时间线'],
       member: ['阶段分析', '多体系解释', '验证反馈'],
       admin: ['条文库状态', '用户等级映射'],
-      superAdmin: ['引擎权重', '候选事件', '世界树节点统计', '坍缩细节', '执行摘要'],
+      superAdmin: ['引擎权重', '候选事件', '情景树节点统计', '排序细节', '执行摘要'],
     },
   };
 }
@@ -199,7 +203,7 @@ function buildFullPredictionReport(
       destinyPhases: buildPhases(timeline),
       confidence: prediction.unifiedResult?.finalConfidence ?? prediction.overallCoherence,
       coherence: prediction.overallCoherence,
-      convergence: prediction.collapseResult?.collapseConfidence ?? prediction.overallCoherence,
+      convergence: prediction.collapseResult?.selectionStability ?? prediction.overallCoherence,
       explanationTrace: [
         prediction.unifiedResult?.causalSummary ?? prediction.lifeSummary,
         ...(prediction.unifiedResult?.executionTrace ?? []).map((entry) => `${entry.engineName}:${entry.success ? 'ok' : entry.errorMessage ?? 'failed'}`),

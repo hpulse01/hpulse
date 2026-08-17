@@ -118,7 +118,7 @@ export function calculateNumerology(input: NumerologyInput): NumerologyResult {
     personality = calculatePersonality(cleanedName);
     trace.push({
       rule: 'numerology.name',
-      detail: `Destiny=${destiny}, SoulUrge=${soulUrge}, Personality=${personality} from "${cleanedName}"`,
+      detail: `Destiny=${destiny}, SoulUrge=${soulUrge}, Personality=${personality} from explicitly supplied spelling (${Array.from(cleanedName).length} characters)`,
     });
   } else {
     warnings.push({

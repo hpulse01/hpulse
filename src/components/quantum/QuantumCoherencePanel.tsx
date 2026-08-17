@@ -43,7 +43,7 @@ export function QuantumCoherencePanel({
     <div className="space-y-4">
       {/* Overall Coherence */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">系统共振度</span>
+        <span className="text-xs text-muted-foreground">体系输出一致度</span>
         <span className={`text-lg font-mono font-bold ${coherenceColor}`}>
           {coherencePercent}%
         </span>
@@ -63,7 +63,7 @@ export function QuantumCoherencePanel({
       <div className="pt-2 border-t border-border/30">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-serif text-primary">
-            {label} · 四系分析
+            {label} · 体系分析
           </span>
           <Badge variant="outline" className="text-[10px]">
             {displayAspect}

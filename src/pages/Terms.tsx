@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { LegalPage, LegalSection } from '@/components/legal/LegalPage';
+import { PublicSupportContact } from '@/components/legal/PublicSupportContact';
 
 export default function Terms() {
   return (
@@ -29,7 +30,7 @@ export default function Terms() {
       </LegalSection>
 
       <LegalSection title="6. 联系方式">
-        <p>条款问题请联系 <a className="text-primary underline" href="mailto:hpulse001@gmail.com">hpulse001@gmail.com</a>。</p>
+        <p>条款问题请联系 <PublicSupportContact className="text-primary underline" subject="H-Pulse Terms" />。</p>
       </LegalSection>
     </LegalPage>
   );
