@@ -52,7 +52,7 @@ export function ResultShell({
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-2.5">
+        <div className={`mt-6 grid grid-cols-2 ${deathAge == null ? 'md:grid-cols-4' : 'md:grid-cols-5'} gap-2.5`}>
           <MetricCard
             label="Coherence"
             value={Math.round(coherence * 100)}
@@ -70,12 +70,14 @@ export function ResultShell({
             value={dominantElement}
             tone="gold"
           />
-          <MetricCard
-            label="Lifespan"
-            value={deathAge ?? '—'}
-            unit={deathAge ? '岁' : undefined}
-            tone={deathAge ? 'danger' : 'default'}
-          />
+          {deathAge != null && (
+            <MetricCard
+              label="Lifespan"
+              value={deathAge}
+              unit="岁"
+              tone="danger"
+            />
+          )}
         </div>
       </HolographicPanel>
 
@@ -91,7 +93,7 @@ export function ResultShell({
             {lifeSummary}
           </p>
           <p className="text-[10px] text-muted-foreground/55 italic font-sans pt-2 border-t border-border/20">
-            本结果为当前算法版本下的生命路径坍缩结果,反映多引擎共振后的最高概率轨迹。
+            本结果是当前算法版本下的文化规则解释，不是事实预测，也不能替代任何专业意见。
           </p>
         </div>
       </HolographicPanel>

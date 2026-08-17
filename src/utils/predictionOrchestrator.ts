@@ -179,14 +179,11 @@ function buildAdminSnapshot(report: Omit<FullPredictionReport, 'adminSnapshot'>,
   };
 }
 
-export const PredictionOrchestrator = {
-  normalizeInput(input: UnifiedPredictionInput): NormalizedBirthContext {
-    return normalizeBirthContext(input);
-  },
-
-  execute(input: UnifiedPredictionInput): FullPredictionReport {
+function buildFullPredictionReport(
+  input: UnifiedPredictionInput,
+  prediction: QuantumPredictionResult,
+): FullPredictionReport {
     const normalizedBirthContext = normalizeBirthContext(input);
-    const prediction = QuantumPredictionEngine.predict(toQuantumInput(input));
     const timeline = buildTimeline(prediction);
     const engineResults = buildEngineResults(prediction);
     const eventCandidates = prediction.collapseResult?.collapsedPath.map((node) => node.event) ?? [];
@@ -215,5 +212,18 @@ export const PredictionOrchestrator = {
       ...reportBase,
       adminSnapshot: buildAdminSnapshot(reportBase, prediction),
     };
+}
+
+export const PredictionOrchestrator = {
+  normalizeInput(input: UnifiedPredictionInput): NormalizedBirthContext {
+    return normalizeBirthContext(input);
+  },
+
+  fromResult(input: UnifiedPredictionInput, prediction: QuantumPredictionResult): FullPredictionReport {
+    return buildFullPredictionReport(input, prediction);
+  },
+
+  execute(input: UnifiedPredictionInput): FullPredictionReport {
+    return buildFullPredictionReport(input, QuantumPredictionEngine.predict(toQuantumInput(input)));
   },
 };

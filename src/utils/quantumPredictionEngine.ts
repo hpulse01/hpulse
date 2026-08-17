@@ -55,6 +55,8 @@ import { ALL_FATE_DIMENSIONS, FATE_DIMENSION_LABELS } from '@/types/prediction';
 import { calculateDynamicWeights, getWeightsForQueryType } from '@/config/engineWeights';
 import { detectConflicts, fuseFateVectors, generateConflictReport } from '@/utils/conflictResolver';
 import { calculateFateVectorCoherence } from '@/utils/quantumMath';
+import { QUANTUM_ASPECT_LABELS, QUANTUM_EVENT_TYPE_LABELS } from '@/utils/quantumLabels';
+import { applySourceRegistryPolicy } from '@/core/shared/algorithmSourceRegistry';
 import {
   getActiveEngines,
   getSkippedEngines,
@@ -207,20 +209,14 @@ const ALL_ASPECTS: LifeAspect[] = [
   'social', 'creativity', 'fortune', 'family', 'spirituality',
 ];
 
-const ASPECT_LABELS: Record<LifeAspect, string> = {
-  career: '事业', wealth: '财富', love: '情感', health: '健康', wisdom: '智慧',
-  social: '人际', creativity: '创造', fortune: '运势', family: '家庭', spirituality: '灵性',
-};
+const ASPECT_LABELS: Record<LifeAspect, string> = QUANTUM_ASPECT_LABELS;
 
 const EVENT_TYPES: DestinyEventType[] = [
   'milestone', 'opportunity', 'challenge', 'transformation',
   'relationship', 'achievement', 'loss', 'growth', 'turning_point',
 ];
 
-const EVENT_TYPE_CN: Record<DestinyEventType, string> = {
-  milestone: '里程碑', opportunity: '机遇', challenge: '考验', transformation: '蜕变',
-  relationship: '缘分', achievement: '成就', loss: '失去', growth: '成长', turning_point: '转折',
-};
+const EVENT_TYPE_CN: Record<DestinyEventType, string> = QUANTUM_EVENT_TYPE_LABELS;
 
 const STEM_ELEMENTS: Record<string, string> = {
   '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土',
@@ -863,7 +859,7 @@ function orchestrate(
       const result = runner();
       // P4.11 — overlay deterministic core metadata onto legacy EngineOutput
       const overlay = runCoreEngine(name, standardizedInput);
-      const finalEo = applyCoreOverlay(result.eo, overlay);
+      const finalEo = applySourceRegistryPolicy(applyCoreOverlay(result.eo, overlay));
       const endMs = Date.now();
       engineOutputs.push(finalEo);
       executedEngines.push(name);

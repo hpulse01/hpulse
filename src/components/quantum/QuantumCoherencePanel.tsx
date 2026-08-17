@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import type { SystemContribution, LifeAspect } from '@/utils/quantumPredictionEngine';
-import { QuantumPredictionEngine } from '@/utils/quantumPredictionEngine';
+import { getQuantumAspectLabel } from '@/utils/quantumLabels';
 
 interface QuantumCoherencePanelProps {
   contributions: Record<LifeAspect, SystemContribution[]>;
@@ -31,7 +31,7 @@ export function QuantumCoherencePanel({
 }: QuantumCoherencePanelProps) {
   const displayAspect = selectedAspect || 'fortune';
   const contribs = contributions[displayAspect] || [];
-  const label = QuantumPredictionEngine.getAspectLabel(displayAspect);
+  const label = getQuantumAspectLabel(displayAspect);
 
   const coherencePercent = Math.round(overallCoherence * 100);
   const coherenceColor =

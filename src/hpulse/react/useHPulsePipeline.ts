@@ -9,8 +9,8 @@
  * come from the underlying pipeline (HPU-2..7) and projection (HPU-8).
  */
 import { useCallback, useMemo, useRef, useState } from "react";
-import { runPipeline, type PipelineOptions, type PipelineReport } from "@/hpulse/orchestrator";
-import { projectReport, type ProjectionView } from "@/hpulse/projection";
+import type { PipelineOptions, PipelineReport } from "@/hpulse/orchestrator";
+import type { ProjectionView } from "@/hpulse/projection";
 
 export type HPulseStatus = "idle" | "running" | "ready" | "error";
 
@@ -37,6 +37,10 @@ export function useHPulsePipeline() {
     const myId = ++runIdRef.current;
     setState((s) => ({ ...s, status: "running", error: null }));
     try {
+      const [{ runPipeline }, { projectReport }] = await Promise.all([
+        import("@/hpulse/orchestrator"),
+        import("@/hpulse/projection"),
+      ]);
       const report = await runPipeline(rawInput, opts);
       if (myId !== runIdRef.current) return null;
       if (!report.ok) {

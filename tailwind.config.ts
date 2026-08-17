@@ -15,9 +15,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Inter"', 'system-ui', 'sans-serif'],
-        serif: ['"Noto Serif SC"', 'serif'],
-        display: ['"Noto Serif SC"', 'serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Noto Sans CJK SC', 'PingFang SC', 'sans-serif'],
+        serif: ['Songti SC', 'STSong', 'Noto Serif CJK SC', 'serif'],
+        display: ['Songti SC', 'STSong', 'Noto Serif CJK SC', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",

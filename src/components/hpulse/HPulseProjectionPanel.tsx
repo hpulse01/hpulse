@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Atom, Skull, TrendingUp, AlertTriangle, CheckCircle, XCircle,
-  Activity, Hourglass, Sparkles, Layers,
+  Activity, Hourglass, Layers,
 } from 'lucide-react';
 import { FATE_DIMENSION_LABELS } from '@/types/prediction';
 import type { ProjectionView } from '@/hpulse/projection';
@@ -32,9 +32,16 @@ export interface HPulseProjectionPanelProps {
   status: 'idle' | 'running' | 'ready' | 'error';
   view: ProjectionView | null;
   error?: string | null;
+  /** Raw terminus/lifespan synthesis is restricted to the algorithm audit UI. */
+  showSensitiveTerminus?: boolean;
 }
 
-export function HPulseProjectionPanel({ status, view, error }: HPulseProjectionPanelProps) {
+export function HPulseProjectionPanel({
+  status,
+  view,
+  error,
+  showSensitiveTerminus = false,
+}: HPulseProjectionPanelProps) {
   if (status === 'idle') return null;
 
   if (status === 'running') {
@@ -78,12 +85,14 @@ export function HPulseProjectionPanel({ status, view, error }: HPulseProjectionP
           </Badge>
         </div>
         <p className="text-[11px] text-foreground/85 leading-relaxed mb-3">{header.summary}</p>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-center">
+        <div className={`grid grid-cols-2 ${showSensitiveTerminus ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-2 text-center`}>
           <Stat label="总分" value={header.overallScore.toFixed(0)} hue={scoreColor(header.overallScore)} />
           <Stat label="置信度" value={`${(header.overallConfidence * 100).toFixed(0)}%`} />
           <Stat label="引擎覆盖" value={`${header.enginesActive}/${header.enginesConsidered}`} />
           <Stat label="主导阶段" value={STAGE_LABELS_CN[header.dominantStage] ?? header.dominantStage} />
-          <Stat label="终局峰值" value={header.deathAge != null ? `${header.deathAge}岁` : '—'} hue="text-rose-300" />
+          {showSensitiveTerminus && (
+            <Stat label="终局峰值" value={header.deathAge != null ? `${header.deathAge}岁` : '—'} hue="text-rose-300" />
+          )}
         </div>
       </div>
 
@@ -147,29 +156,31 @@ export function HPulseProjectionPanel({ status, view, error }: HPulseProjectionP
         ))}
       </div>
 
-      {/* Death */}
-      <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4 space-y-1.5">
-        <div className="flex items-center gap-2">
-          <Skull className="w-4 h-4 text-rose-300" />
-          <span className="font-serif text-sm text-rose-200">终局合成（Death Fusion）</span>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
-          <Stat label="峰值年龄" value={`${death.peakAge}岁`} hue="text-rose-300" />
-          <Stat label="窗口" value={`${death.startAge}–${death.endAge}`} />
-          <Stat label="强度" value={death.strength} />
-          <Stat label="主因" value={death.cause} />
-        </div>
-        {death.causalChain.length > 0 && (
-          <div className="text-[10px] text-muted-foreground pt-1">
-            因果链：{death.causalChain.join(' → ')}
+      {/* Raw terminus synthesis is retained for super-admin algorithm auditing only. */}
+      {showSensitiveTerminus && (
+        <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <Skull className="w-4 h-4 text-rose-300" />
+            <span className="font-serif text-sm text-rose-200">终局合成（Death Fusion）</span>
           </div>
-        )}
-        <div className="flex flex-wrap gap-1 pt-1">
-          {death.contributingEngines.map((e) => (
-            <Badge key={e} variant="outline" className="text-[9px] border-rose-500/20 text-rose-300">{e}</Badge>
-          ))}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
+            <Stat label="峰值年龄" value={`${death.peakAge}岁`} hue="text-rose-300" />
+            <Stat label="窗口" value={`${death.startAge}–${death.endAge}`} />
+            <Stat label="强度" value={death.strength} />
+            <Stat label="主因" value={death.cause} />
+          </div>
+          {death.causalChain.length > 0 && (
+            <div className="text-[10px] text-muted-foreground pt-1">
+              因果链：{death.causalChain.join(' → ')}
+            </div>
+          )}
+          <div className="flex flex-wrap gap-1 pt-1">
+            {death.contributingEngines.map((e) => (
+              <Badge key={e} variant="outline" className="text-[9px] border-rose-500/20 text-rose-300">{e}</Badge>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Engines */}
       <div className="rounded-xl border border-border/30 bg-card/30 p-4">

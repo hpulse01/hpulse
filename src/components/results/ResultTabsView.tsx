@@ -89,14 +89,14 @@ export function ResultTabsView({
     const publicTabs = [
       { id: 'overview', label: t('tab.overview'), icon: Sparkles },
       { id: 'engines', label: t('tab.engines'), icon: Layers },
+    ];
+    // Unvalidated or sensitive projections stay in the super-admin audit surface.
+    const adminAlgoTabs = [
       { id: 'holographic', label: lang === 'zh' ? '全息命盘' : 'Holographic Map', icon: Layers },
       { id: 'tree', label: lang === 'zh' ? '命运树·唯一路径' : 'Destiny Tree & Path', icon: TreePine },
       { id: 'yearly', label: lang === 'zh' ? '逐年详批' : 'Yearly Detail', icon: CalendarDays },
       { id: 'destiny', label: lang === 'zh' ? '铁板命盘' : 'Destiny Chart', icon: Scroll },
       { id: 'quantum', label: t('tab.quantum'), icon: Atom },
-    ];
-    // Super-admin-only algorithm tabs (含铁板原始面板，待算法修订)
-    const adminAlgoTabs = [
       { id: 'tieban', label: lang === 'zh' ? '铁板' : 'Tieban', icon: Scroll },
       { id: 'bazi', label: lang === 'zh' ? '八字' : 'Bazi', icon: BookOpen },
       { id: 'ziwei', label: lang === 'zh' ? '紫微' : 'Ziwei', icon: Atom },
@@ -128,9 +128,14 @@ export function ResultTabsView({
         worldsGenerated={quantumResult.totalWorldsGenerated}
         engineCount={13}
         dominantElement={quantumResult.dominantElement}
-        deathAge={quantumResult.collapseResult?.deathAge}
+        deathAge={isSuperAdmin ? quantumResult.collapseResult?.deathAge : undefined}
         ganZhiDisplay={ganZhiDisplay}
-        lifeSummary={quantumResult.lifeSummary}
+        lifeSummary={
+          isSuperAdmin
+            ? quantumResult.lifeSummary
+            : unifiedReport?.dashboardPayload.causalSummary
+              ?? '结果依据当前输入与算法版本生成，仅用于文化研究、娱乐与自我反思。'
+        }
       >
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="overflow-x-auto -mx-2 px-2 scrollbar-thin">
@@ -152,12 +157,14 @@ export function ResultTabsView({
               status={hpulse.status}
               view={hpulse.view}
               error={hpulse.error}
+              showSensitiveTerminus={isSuperAdmin}
             />
             <EventTimelinePanel
               collapseResult={quantumResult.collapseResult}
               birthYear={birthInput?.year ?? new Date().getFullYear()}
               birthMonth={birthInput?.month ?? 1}
               kaoKeVerified={selectedKaoKe !== null}
+              showSensitiveTerminus={isSuperAdmin}
             />
             {quantumResult.unifiedResult && (
               <PredictionOverview result={unifiedReport?.dashboardPayload ?? quantumResult.unifiedResult} />
@@ -219,7 +226,7 @@ export function ResultTabsView({
           </TabsContent>
           )}
 
-          <TabsContent value="tree" className="mt-5 space-y-5">
+          {isSuperAdmin && <TabsContent value="tree" className="mt-5 space-y-5">
             {quantumResult.destinyTree && quantumResult.collapseResult ? (
               <>
                 <DestinyTreeLayer tree={quantumResult.destinyTree} collapse={quantumResult.collapseResult} />
@@ -230,34 +237,34 @@ export function ResultTabsView({
                 {lang === 'zh' ? '命运树数据加载中...' : 'Loading destiny tree...'}
               </HolographicPanel>
             )}
-          </TabsContent>
+          </TabsContent>}
 
-          <TabsContent value="holographic" className="mt-5">
+          {isSuperAdmin && <TabsContent value="holographic" className="mt-5">
             <HolographicFateMapPanel
               map={quantumResult.holographicFateMap ?? null}
               birthYear={birthInput.year}
             />
-          </TabsContent>
+          </TabsContent>}
 
-          <TabsContent value="yearly" className="mt-5">
+          {isSuperAdmin && <TabsContent value="yearly" className="mt-5">
             <YearByYearPanel
               report={fullReport}
               birth={birthInput}
               collapse={quantumResult.collapseResult}
             />
-          </TabsContent>
+          </TabsContent>}
 
-          <TabsContent value="destiny" className="mt-5">
+          {isSuperAdmin && <TabsContent value="destiny" className="mt-5">
             <DestinyDashboard
               report={fullReport}
               pillarsDisplay={ganZhiDisplay}
               birthYear={birthInput.year}
               onReset={onReset}
             />
-          </TabsContent>
-          <TabsContent value="quantum" className="mt-5">
+          </TabsContent>}
+          {isSuperAdmin && <TabsContent value="quantum" className="mt-5">
             <UnifiedQuantumPanel result={quantumResult} birthYear={birthInput.year} />
-          </TabsContent>
+          </TabsContent>}
 
           {isSuperAdmin && (
           <TabsContent value="quantumCollapse" className="mt-5">

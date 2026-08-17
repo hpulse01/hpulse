@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -20,7 +21,7 @@ import { AlertTriangle, Shield, Scale, BookOpen } from 'lucide-react';
 import { HPulseLogo } from '@/components/brand';
 
 const CONSENT_KEY = 'hpulse_disclaimer_accepted';
-const CONSENT_VERSION = '1.0'; // bump to force re-consent
+const CONSENT_VERSION = '2.0'; // sensitive-output policy + adult-only beta
 
 export function hasConsented(): boolean {
   try {
@@ -89,10 +90,10 @@ export function DisclaimerDialog({ open, onAccept }: DisclaimerDialogProps) {
                 <h3 className="font-serif text-foreground tracking-wider text-sm">一、系统性质</h3>
               </div>
               <p className="text-xs">
-                H-Pulse 输出的是基于当前输入、当前算法版本与多引擎融合结果生成的生命轨迹预测。
+                H-Pulse 输出的是基于当前输入、当前算法版本与多种传统规则生成的文化解释。
                 系统集成铁板神数、八字、紫微斗数、六爻、西方占星、吠陀、数字、玛雅、卡巴拉、
                 梅花易数、奇门、大六壬、太乙等十三大体系,
-                <strong className="text-primary">不构成科学预测、医疗、投资或人生决策建议</strong>。
+                <strong className="text-primary">未经科学验证，不构成医疗、心理、法律、金融或人生决策建议</strong>。
               </p>
             </div>
 
@@ -102,10 +103,9 @@ export function DisclaimerDialog({ open, onAccept }: DisclaimerDialogProps) {
                 <h3 className="font-serif text-foreground tracking-wider text-sm">二、敏感结果</h3>
               </div>
               <p className="text-xs">
-                系统会输出寿数、健康危机、关系破裂、意外等敏感预测。这些为模型坍缩结果,
-                <strong className="text-foreground/95">不代表必然事实</strong>。
-                用户应理解其敏感性,并自行决定如何使用。涉及健康请咨询医生,涉及法律请咨询律师,
-                涉及心理请联系专业人士。
+                公测公开端不会展示寿命、死亡年龄或死因等确定性结论。部分健康、关系与人生事件解释仍可能令人不适，
+                <strong className="text-foreground/95">均不代表事实或必然结果</strong>。
+                涉及健康请咨询医生，涉及法律请咨询律师，涉及心理困扰请联系专业人士。
               </p>
             </div>
 
@@ -118,7 +118,7 @@ export function DisclaimerDialog({ open, onAccept }: DisclaimerDialogProps) {
                 <li>系统对结果的准确性、完整性、适用性<strong>不做任何保证</strong></li>
                 <li>用户基于结果做出的任何决定,<strong>后果自行承担</strong></li>
                 <li>严禁用于封建迷信活动、欺骗他人或鼓励违法及伤害行为</li>
-                <li>未满18周岁应在监护人指导下使用</li>
+                <li>本免费公测仅向年满 18 周岁的用户开放</li>
               </ul>
             </div>
           </div>
@@ -132,8 +132,9 @@ export function DisclaimerDialog({ open, onAccept }: DisclaimerDialogProps) {
             className="mt-0.5 border-primary/50 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
           />
           <label htmlFor="disclaimer-accept" className="text-xs text-foreground/90 cursor-pointer leading-snug select-none font-sans">
-            我已仔细阅读并理解以上声明,知晓所有结果<strong className="text-primary">仅为模型坍缩输出</strong>,
-            自愿承担使用风险。
+            我确认已年满 18 周岁，并已阅读
+            <Link className="mx-1 text-primary underline" to="/terms">使用条款</Link>
+            与<Link className="mx-1 text-primary underline" to="/privacy">隐私政策</Link>；我理解所有结果仅供文化研究、娱乐与自我反思。
           </label>
         </div>
 

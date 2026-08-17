@@ -5,7 +5,7 @@
  * Features: Search, Batch Operations, IP Display
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth, UserLevel } from '@/hooks/useAuth';
@@ -140,7 +140,7 @@ export default function AdminUsers() {
   }, [user?.id, authLoading]);
 
   // Fetch users if admin
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     if (!isAdmin || !user?.id) return;
 
     try {
@@ -154,11 +154,11 @@ export default function AdminUsers() {
       console.error('Error fetching users:', err);
       toast.error('获取用户列表失败');
     }
-  };
+  }, [isAdmin, user?.id]);
 
   useEffect(() => {
     fetchUsers();
-  }, [isAdmin, user?.id]);
+  }, [fetchUsers]);
 
   // Real-time subscription for profiles changes
   useEffect(() => {
@@ -183,7 +183,7 @@ export default function AdminUsers() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAdmin, user?.id]);
+  }, [fetchUsers, isAdmin, user?.id]);
 
   const handleUpdateLevel = async (targetUserId: string, newLevel: UserLevel) => {
     if (!user?.id) return;

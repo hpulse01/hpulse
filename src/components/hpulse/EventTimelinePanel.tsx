@@ -20,6 +20,8 @@ export interface EventTimelinePanelProps {
   birthMonth: number;
   /** If false, render a waiting placeholder instead of any future events. */
   kaoKeVerified?: boolean;
+  /** Include raw terminus events only inside the super-admin audit surface. */
+  showSensitiveTerminus?: boolean;
 }
 
 // ──────────────────────────── meta ────────────────────────────
@@ -181,18 +183,25 @@ function groupByDecade(rows: RenderRow[]): DecadeGroup[] {
 
 // ──────────────────────────── component ────────────────────────────
 
-export function EventTimelinePanel({ collapseResult, birthYear, birthMonth, kaoKeVerified = true }: EventTimelinePanelProps) {
+export function EventTimelinePanel({
+  collapseResult,
+  birthYear,
+  birthMonth,
+  kaoKeVerified = true,
+  showSensitiveTerminus = false,
+}: EventTimelinePanelProps) {
   const [showRejected, setShowRejected] = useState(false);
 
   const { groups, rejRows, mainCount } = useMemo(() => {
     if (!collapseResult) return { groups: [] as DecadeGroup[], rejRows: [] as RenderRow[], mainCount: 0 };
-    const main = buildRows(collapseResult, birthYear, birthMonth);
+    const main = buildRows(collapseResult, birthYear, birthMonth)
+      .filter((row) => showSensitiveTerminus || !row.isDeath);
     return {
       groups: groupByDecade(main),
       rejRows: buildRejectedRows(collapseResult, birthYear, birthMonth),
       mainCount: main.length,
     };
-  }, [collapseResult, birthYear, birthMonth]);
+  }, [collapseResult, birthYear, birthMonth, showSensitiveTerminus]);
 
   if (!kaoKeVerified) {
     return (

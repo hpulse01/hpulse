@@ -9,7 +9,13 @@
  * The audit will cross-check engine output against this registry.
  */
 
-import type { ImplementationStatus } from './implementationStatus';
+import type { EngineOutput, SourceGrade as EngineSourceGrade } from '@/types/prediction';
+import {
+  normalizeStatus,
+  STATUS_MAX_CONFIDENCE,
+  type ImplementationStatus,
+} from './implementationStatus';
+import { normalizeConfidence01 } from './confidence';
 
 export type SourceGrade = 'A' | 'B' | 'C' | 'D';
 
@@ -97,7 +103,7 @@ export const ALGORITHM_SOURCE_REGISTRY: Record<string, EngineSourceRecord> = {
     engineName: 'meihua',
     engineNameCN: '梅花易数',
     sourceGrade: 'B',
-    implementationStatus: 'complete',
+    implementationStatus: 'partial',
     implementedRules: [
       '年月日时起卦', '数字起卦', '上卦', '下卦', '动爻',
       '本卦', '互卦', '变卦', '体用关系', '五行生克', '吉凶趋势',
@@ -231,4 +237,89 @@ export function getEngineSource(name: string): EngineSourceRecord | undefined {
 
 export function listRegisteredEngines(): string[] {
   return Object.keys(ALGORITHM_SOURCE_REGISTRY);
+}
+
+const STATUS_RANK: Record<ImplementationStatus, number> = {
+  placeholder_removed: 0,
+  needs_source_validation: 1,
+  partial: 2,
+  complete: 3,
+};
+
+const GRADE_RANK: Record<EngineSourceGrade, number> = { D: 0, C: 1, B: 2, A: 3 };
+const GRADE_CONFIDENCE_CAP: Record<EngineSourceGrade, number> = { A: 1, B: 0.85, C: 0.65, D: 0.45 };
+
+function conservativeStatus(a: ImplementationStatus, b: ImplementationStatus): ImplementationStatus {
+  return STATUS_RANK[a] <= STATUS_RANK[b] ? a : b;
+}
+
+function conservativeGrade(a: EngineSourceGrade, b: SourceGrade): EngineSourceGrade {
+  return GRADE_RANK[a] <= GRADE_RANK[b] ? a : b;
+}
+
+/**
+ * Enforce the audited registry as a hard ceiling before output reaches fusion.
+ * A calculator may be complete for its local feature subset, but it may not
+ * advertise a stronger status or confidence than the known engine-wide gaps.
+ */
+export function applySourceRegistryPolicy(output: EngineOutput): EngineOutput {
+  const record = getEngineSource(output.engineName);
+  if (!record) {
+    return {
+      ...output,
+      confidence: Math.min(normalizeConfidence01(output.confidence), 0.4),
+      warnings: Array.from(new Set([...output.warnings, 'source_registry_missing'])),
+      normalizedOutput: {
+        ...output.normalizedOutput,
+        implementationStatus: 'needs_source_validation',
+      },
+    };
+  }
+
+  const declared = normalizeStatus(
+    output.normalizedOutput.implementationStatus
+      ?? output.normalizedOutput.p4ImplementationStatus,
+  );
+  const status = conservativeStatus(declared, record.implementationStatus);
+  const sourceGrade = conservativeGrade(output.sourceGrade, record.sourceGrade);
+  const completenessCap = Number.isFinite(output.completenessScore)
+    ? Math.max(0, Math.min(1, output.completenessScore / 100))
+    : 0;
+  const confidenceCap = Math.min(
+    STATUS_MAX_CONFIDENCE[status],
+    GRADE_CONFIDENCE_CAP[sourceGrade],
+    completenessCap,
+  );
+  const gapWarning = record.missingRules.length > 0
+    ? `registry_missing_rules: ${record.missingRules.join('；')}`
+    : null;
+
+  return {
+    ...output,
+    sourceGrade,
+    sourceUrls: Array.from(new Set([...output.sourceUrls, ...record.sourceUrls])),
+    confidence: Math.min(normalizeConfidence01(output.confidence), confidenceCap),
+    warnings: Array.from(new Set([
+      ...output.warnings,
+      ...(gapWarning ? [gapWarning] : []),
+    ])),
+    uncertaintyNotes: Array.from(new Set([
+      ...output.uncertaintyNotes,
+      ...record.validationNotes,
+    ])),
+    normalizedOutput: {
+      ...output.normalizedOutput,
+      declaredImplementationStatus: declared,
+      implementationStatus: status,
+      p4ImplementationStatus: status,
+      registryPolicyApplied: true,
+    },
+    validationFlags: {
+      ...output.validationFlags,
+      warnings: Array.from(new Set([
+        ...output.validationFlags.warnings,
+        ...(gapWarning ? [gapWarning] : []),
+      ])),
+    },
+  };
 }

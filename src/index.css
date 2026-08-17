@@ -1,6 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
-/* font-display: swap is set via the &display=swap query above on all @font-face rules */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -92,11 +89,25 @@
 
   html {
     @apply dark;
+    min-height: 100%;
+    background: hsl(var(--background));
   }
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', 'Noto Serif SC', sans-serif;
+    min-height: 100dvh;
+    margin: 0;
+    overscroll-behavior-y: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans CJK SC', 'PingFang SC', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #root {
+    min-height: 100dvh;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
   }
 
   /* Custom scrollbar */

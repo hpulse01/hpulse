@@ -11,7 +11,7 @@ Auth, profiles, RLS, super-admin role gating, AI gateway wiring, prediction hist
 ### P3 — UI Refactor
 Quantum prediction console layout, holographic panel system, multi-engine result tabs, disclaimer flow, responsive header.
 
-### P4 — Algorithm Core (12 sub-phases)
+### P4 — Algorithm Core Scaffold (12 sub-phases)
 - P4.1 astro-time + calendar primitives
 - P4.2 Bazi
 - P4.3 Tieban
@@ -25,7 +25,7 @@ Quantum prediction console layout, holographic panel system, multi-engine result
 - P4.11 Orchestrator overlay
 - P4.12 Determinism guard + audit + P5 readiness gate
 
-13 deterministic engines. 0 `Math.random`. 0 non-timing `Date.now()`. Every output capped per implementation status.
+13 deterministic engine implementations. Determinism and structural tests pass, but source and golden-case validation remains open; this phase must not be described as algorithm completion.
 
 ### P5 — Frontend Sync
 - 10 new shared audit components in `src/components/hpulse/`
@@ -33,10 +33,6 @@ Quantum prediction console layout, holographic panel system, multi-engine result
 - New **Bazi** result tab driven by `engineOutputs.find(e => e.engineName === 'bazi')`
 - 8 markdown docs (this set)
 - Desktop / tablet / mobile responsive overhaul; tabs scroll on every viewport
-
-### P7 — Rule Knowledge Base Expansion
-- Missing rules filled across all 13 engines: 调候用神, 化气格, 博士十二神, 反吟伏吟评分, Antardasha, Haab, Calendar Round, Placidus houses, Rahu-Ketu/D9, 伏神飞神/进退神, etc.
-- Per-rule citation in `algorithmSourceRegistry.ts`.
 
 ### P6 — Prediction Verification Ledger (this release)
 - Every unified prediction run is archived to `prediction_runs` (RLS owner-private): per-engine `cappedConfidence`, `implementationStatus`, `sourceGrade`, `warnings`, full trace, fused fate vector.
@@ -48,21 +44,24 @@ Quantum prediction console layout, holographic panel system, multi-engine result
 
 ## Upcoming
 
+### P7 — Rule Knowledge Base and Golden-Case Validation
+- Version every rule by school, edition, page/reference, and rule ID.
+- Fill the declared gaps for all 13 engines and add independent golden corpora.
+- Keep every engine partial until its `missingRules` list is empty and reviewed.
+
 ### P8 — User Long-term Feedback Calibration
 - Bayesian update of per-engine, per-domain weights based on ledger outcomes.
 - User-private vs. global calibration channels.
 - Drift detection.
 
-### P9 — Multi-platform Delivery
-- Mobile PWA polish; tablet split-pane.
-- Native shell (Capacitor or Tauri) wrapping.
-- Offline-first ledger draft.
+### P9 — Multi-platform Delivery (in progress)
+- Capacitor iOS and Android projects are present; CI and physical-device QA remain.
+- Native signing, store metadata, accessibility, and beta distribution remain release gates.
 
-### P10 — Commercialization & Permissions
-- Membership tiers + AI credit accounting (already partly scaffolded).
-- Per-feature gating via roles.
-- Audit export for premium tiers.
-- Affiliate / API access for B2B integrations.
+### P10 — Free Commercial Beta Readiness (in progress)
+- Privacy/terms/account deletion foundation implemented; staging deployment and end-to-end proof remain.
+- No paid membership, affiliate, or B2B billing will be enabled during the free beta.
+- Security, operations, legal review, and store declarations remain release gates.
 
 ## Non-Goals
 - We will **not** add gambling, lottery prediction, illegal-content advice, self-harm encouragement, or directed harm to others.

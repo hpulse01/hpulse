@@ -20,7 +20,8 @@ const QUERY_TYPE_MAP: Record<string, QueryType> = {
 };
 
 function toLegacyGender(g: string): LegacyGender {
-  return g === "female" ? "female" : "male"; // "other" → male (no legacy enum)
+  if (g === "male" || g === "female") return g;
+  throw new Error("unsupported_gender_for_legacy_engines");
 }
 
 /** Split an ISO local datetime into Y/M/D/H/Min components (local). */

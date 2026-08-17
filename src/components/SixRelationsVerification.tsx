@@ -198,7 +198,7 @@ export const SixRelationsVerification = ({
       setSelectedIndex(null);
       setNoMatchMessage(null);
     }
-  }, [fatherZodiac, motherZodiac, parentsStatus, siblingsCount]);
+  }, [fatherZodiac, motherZodiac, parentsStatus, siblingsCount, hasCalibrated]);
 
   /**
    * Run the Six Relations calibration algorithm

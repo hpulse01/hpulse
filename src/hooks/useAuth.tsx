@@ -31,6 +31,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, displayName?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
   consumeAIUse: () => Promise<boolean>;
 }
@@ -193,6 +194,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    try {
+      const { error } = await supabase.functions.invoke('delete-account', {
+        body: { confirm: true },
+      });
+      if (error) return { error: new Error(error.message) };
+
+      // The server has invalidated the account; clear the device session locally.
+      await supabase.auth.signOut({ scope: 'local' });
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      return { error: null };
+    } catch (err) {
+      return { error: err instanceof Error ? err : new Error(String(err)) };
+    }
+  }, []);
+
   const consumeAIUse = useCallback(async (): Promise<boolean> => {
     if (!user) return false;
 
@@ -229,6 +248,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         signIn,
         signOut,
+        deleteAccount,
         refreshProfile,
         consumeAIUse,
       }}

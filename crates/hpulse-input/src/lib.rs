@@ -14,7 +14,7 @@ use sha2::{Digest, Sha256};
 use wasm_bindgen::prelude::*;
 
 pub const SCHEMA_VERSION: &str = "hpulse.input.v1";
-pub const ALGORITHM_VERSION: &str = "hpu2.normalizer.v1";
+pub const ALGORITHM_VERSION: &str = "hpu2.normalizer.v2-offset-injection";
 
 // ============================================================================
 // Raw input (untrusted, from UI / API)
@@ -26,7 +26,7 @@ pub struct RawUserInput {
     pub birth_date: String,
     /// Local clock at the birth location: "HH:MM" (24h)
     pub birth_time: String,
-    /// "gregorian" | "lunar"
+    /// "gregorian" (lunar input is rejected until an explicit converter ships)
     #[serde(default = "default_calendar")]
     pub calendar: String,
     /// Free-form location name as typed by the user (for audit only)
@@ -35,7 +35,11 @@ pub struct RawUserInput {
     pub longitude: f64,
     /// IANA timezone, e.g. "Asia/Shanghai"
     pub timezone: String,
-    /// "male" | "female" | "other"
+    /// Historical offset resolved by the host IANA tzdata. Required for DST
+    /// overlaps and preferred over the small WASM fallback table.
+    #[serde(default)]
+    pub timezone_offset_minutes: Option<i32>,
+    /// "male" | "female" (required by the current school-direction rules)
     pub gender: String,
     /// ISO-8601 UTC instant for the query. Required — never read system clock.
     pub query_time_utc: String,
@@ -63,7 +67,7 @@ fn default_granularity() -> String { "day".into() }
 pub struct BirthData {
     pub date_iso: String,        // "1990-04-15"
     pub time_iso: String,        // "08:30"
-    pub calendar: String,        // "gregorian" | "lunar"
+    pub calendar: String,        // "gregorian"
     pub timezone: String,        // "Asia/Shanghai"
     pub latitude: f64,
     pub longitude: f64,
@@ -247,14 +251,20 @@ pub fn normalize(raw: RawUserInput) -> NormalizeOutcome {
         issues.push(err("timezone", "timezone_required", "必须提供 IANA 时区"));
     }
     match raw.calendar.as_str() {
-        "gregorian" | "lunar" => {},
+        "gregorian" => {},
         _ => issues.push(err("calendar", "calendar_unknown",
-            "calendar 必须是 gregorian 或 lunar")),
+            "当前版本仅支持 gregorian；不得将农历日期按公历解释")),
+    }
+    if let Some(offset) = raw.timezone_offset_minutes {
+        if !(-840..=840).contains(&offset) {
+            issues.push(err("timezone_offset_minutes", "timezone_offset_range",
+                "timezone_offset_minutes 必须在 -840..840 之间"));
+        }
     }
     match raw.gender.as_str() {
-        "male" | "female" | "other" => {},
+        "male" | "female" => {},
         _ => issues.push(err("gender", "gender_unknown",
-            "gender 必须是 male / female / other")),
+            "gender 必须是 male 或 female；当前规则不支持静默映射其他值")),
     }
     match raw.query_type.as_str() {
         "natal" | "instant" | "forecast" => {},
@@ -276,13 +286,16 @@ pub fn normalize(raw: RawUserInput) -> NormalizeOutcome {
     let time = time.unwrap();
     let qtime = qtime.unwrap();
 
-    let (offset_minutes, offset_known) = match tz_offset_minutes(&raw.timezone) {
-        Some(m) => (m, true),
-        None => {
-            issues.push(warn("timezone", "tz_offset_unknown",
-                "未识别的 IANA 时区，使用 UTC 偏移 0 作为审计占位，引擎层应在调用前注入真实偏移"));
-            (0, false)
-        }
+    let offset_minutes = match raw.timezone_offset_minutes {
+        Some(m) => m,
+        None => match tz_offset_minutes(&raw.timezone) {
+            Some(m) => m,
+            None => {
+                issues.push(warn("timezone", "tz_offset_unknown",
+                    "未识别的 IANA 时区，使用 UTC 偏移 0 作为审计占位，引擎层应在调用前注入真实偏移"));
+                0
+            }
+        },
     };
 
     // birth_utc = local naive - offset
@@ -379,6 +392,7 @@ mod tests {
             latitude: 31.2304,
             longitude: 121.4737,
             timezone: "Asia/Shanghai".into(),
+            timezone_offset_minutes: None,
             gender: "male".into(),
             query_time_utc: "2026-05-18T12:00:00Z".into(),
             query_type: "natal".into(),
@@ -429,5 +443,25 @@ mod tests {
         let out = normalize(r);
         assert!(out.ok);
         assert!(out.issues.iter().any(|i| i.code == "tz_offset_unknown" && i.severity == Severity::Warning));
+    }
+
+    #[test]
+    fn injected_historical_offset_is_authoritative() {
+        let mut r = sample();
+        r.birth_date = "1990-06-15".into();
+        r.birth_time = "14:30".into();
+        r.timezone_offset_minutes = Some(540);
+        let out = normalize(r).input.unwrap();
+        assert_eq!(out.birth.birth_utc, "1990-06-15T05:30:00Z");
+        assert_eq!(out.birth.tz_offset_minutes, 540);
+    }
+
+    #[test]
+    fn lunar_input_is_rejected_instead_of_misinterpreted() {
+        let mut r = sample();
+        r.calendar = "lunar".into();
+        let out = normalize(r);
+        assert!(!out.ok);
+        assert!(out.issues.iter().any(|i| i.code == "calendar_unknown"));
     }
 }

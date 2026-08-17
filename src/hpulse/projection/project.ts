@@ -54,12 +54,11 @@ function buildHeader(
   const enginesActive = enginesConsidered - enginesDegraded;
   const coverage =
     enginesConsidered > 0 ? enginesActive / enginesConsidered : 0;
-  const death = fusion.deathWindow;
   const summary =
-    `生命主轨：${fusion.verdict.dominantStage} 主导，` +
+    `阶段模型：${fusion.verdict.dominantStage} 主导，` +
     `综合评分 ${Math.round(fusion.verdict.overallScore)}，` +
     `置信度 ${Math.round(fusion.verdict.overallConfidence * 100)}%，` +
-    `寿限窗口 ${death.startAge}–${death.endAge}（峰值 ${death.peakAge}）。`;
+    `引擎覆盖 ${enginesActive}/${enginesConsidered}。`;
   return {
     quantumSignature: shortSignature(fusion.seedMaterial),
     overallScore: fusion.verdict.overallScore,
@@ -68,7 +67,7 @@ function buildHeader(
     enginesActive,
     enginesConsidered,
     enginesDegraded,
-    deathAge: death.peakAge ?? null,
+    deathAge: fusion.deathWindow.peakAge ?? null,
     dominantStage: fusion.verdict.dominantStage,
     summary,
   };
