@@ -10,7 +10,7 @@ The mobile pipeline no longer depends on a checked-in placeholder WASM: local de
 
 - Capacitor iOS and Android projects with bundle/application ID `com.hpulse.app`.
 - Local packaged web assets; the native app no longer loads a remote clear-text shell.
-- CI jobs for TypeScript, lint, 72 test files, web build, Rust/WASM, Android debug build, and iOS simulator build.
+- CI jobs for TypeScript, lint, 76 test files / 500 tests, web build, Rust/WASM, Android debug build, and iOS simulator build.
 - Historical IANA timezone handling and DST ambiguity validation.
 - In-app privacy policy, terms, account-deletion page, and authenticated deletion edge function.
 - User-owned prediction tables linked for deletion; new foreign keys enforce cascade for new writes without breaking on legacy orphan rows.
@@ -26,6 +26,7 @@ The mobile pipeline no longer depends on a checked-in placeholder WASM: local de
 
 ## Required before TestFlight / Play internal testing
 
+- Resolve the GitHub Actions zero-job `startup_failure`. A minimal one-step workflow failed identically, so repository Actions availability, permissions, and private-repository billing/budget settings require owner review before CI evidence can exist.
 - CI must pass on the GitHub branch, including generated Rust/WASM and both native builds.
 - Replace development app icons/splash assets and add localized permission/purpose copy.
 - Deploy and verify Supabase migrations/functions in a staging project; run account deletion end-to-end.
