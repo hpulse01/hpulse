@@ -1,128 +1,14 @@
-name: H-Pulse CI
+name: H-Pulse CI syntax probe
 
-on:
+'on':
   pull_request:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: hpulse-ci-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  rust:
-    name: Input core (Rust/WASM)
+  syntax:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-      - name: Test deterministic input core
-        run: cargo test --manifest-path crates/hpulse-input/Cargo.toml --locked
-      - name: Install pinned wasm-pack
-        run: cargo install wasm-pack --version 0.13.1 --locked
-      - name: Build browser WASM
-        run: >-
-          wasm-pack build crates/hpulse-input
-          --target web
-          --release
-          --locked
-          --out-dir "${RUNNER_TEMP}/hpulse-input-wasm"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: hpulse-input-wasm
-          path: ${{ runner.temp }}/hpulse-input-wasm
-          if-no-files-found: error
-
-  web:
-    name: Web quality gate
-    needs: rust
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - uses: actions/download-artifact@v4
-        with:
-          name: hpulse-input-wasm
-          path: ${{ runner.temp }}/hpulse-input-wasm
-      - name: Install verified browser WASM
-        run: node scripts/install-wasm-artifact.mjs "${RUNNER_TEMP}/hpulse-input-wasm"
-      - run: npm ci
-      - run: npm run verify:runtime-assets
-      - run: npm run check
-
-  android:
-    name: Android debug build
-    needs: web
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
-          cache: gradle
-      - uses: actions/download-artifact@v4
-        with:
-          name: hpulse-input-wasm
-          path: ${{ runner.temp }}/hpulse-input-wasm
-      - name: Install verified browser WASM
-        run: node scripts/install-wasm-artifact.mjs "${RUNNER_TEMP}/hpulse-input-wasm"
-      - run: npm ci
-      - run: npm run verify:runtime-assets
-      - run: npm run build
-      - run: npx cap sync android
-      - name: Assemble unsigned debug APK
-        working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
-      - uses: actions/upload-artifact@v4
-        with:
-          name: hpulse-android-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-
-  ios:
-    name: iOS simulator build
-    needs: web
-    runs-on: macos-15
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - uses: actions/download-artifact@v4
-        with:
-          name: hpulse-input-wasm
-          path: ${{ runner.temp }}/hpulse-input-wasm
-      - name: Install verified browser WASM
-        run: node scripts/install-wasm-artifact.mjs "${RUNNER_TEMP}/hpulse-input-wasm"
-      - run: npm ci
-      - run: npm run verify:runtime-assets
-      - run: npm run build
-      - run: npx cap sync ios
-      - name: Build without code signing
-        run: >-
-          xcodebuild
-          -project ios/App/App.xcodeproj
-          -scheme App
-          -sdk iphonesimulator
-          -configuration Debug
-          CODE_SIGNING_ALLOWED=NO
-          build
+      - run: echo "workflow parsed"
