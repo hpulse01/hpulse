@@ -1,5 +1,10 @@
 interface SephiraNode { id: number; name: string; meaning?: string; active?: boolean }
-interface Props { sephirot?: SephiraNode[]; activePath?: string }
+interface Props {
+  sephirot?: SephiraNode[];
+  activeSephirahNumber?: number;
+  activeSephirahName?: string;
+  activePath?: string;
+}
 
 const DEFAULT: SephiraNode[] = [
   { id: 1, name: 'Keter · 王冠' },
@@ -14,8 +19,15 @@ const DEFAULT: SephiraNode[] = [
   { id: 10, name: 'Malkuth · 王国' },
 ];
 
-export function TreeOfLifePanel({ sephirot, activePath }: Props) {
-  const list = sephirot && sephirot.length > 0 ? sephirot : DEFAULT;
+export function TreeOfLifePanel({ sephirot, activeSephirahNumber, activeSephirahName, activePath }: Props) {
+  const source = sephirot && sephirot.length > 0 ? sephirot : DEFAULT;
+  const list = source.map((sephirah) => ({
+    ...sephirah,
+    name: sephirah.id === activeSephirahNumber && activeSephirahName
+      ? activeSephirahName
+      : sephirah.name,
+    active: sephirah.active || sephirah.id === activeSephirahNumber,
+  }));
   return (
     <div className="rounded-md border border-primary/15 bg-card/30 p-3">
       <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground/70 mb-2">Tree of Life · 生命之树</div>
