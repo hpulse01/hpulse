@@ -196,6 +196,8 @@ export const ALGORITHM_SOURCE_REGISTRY: Record<string, EngineSourceRecord> = {
       'Life Path', 'Destiny', 'Soul Urge', 'Personality', 'Personal Year',
       'Chaldean 体系', 'Karmic Debt (13/14/16/19)', 'Maturity Number',
       'Life Path 月/日/年分单元约简（保留中间主数/业债数）',
+      '姓名各段先约简再合并（避免伪主数/丢失主数）',
+      'Y 依首尾与相邻元音位置分类',
       'Pinnacles 四周期与 36-Life Path/9/9 年龄窗口',
       'Challenges 四数绝对差（不伪造精确年龄边界）',
     ],
@@ -204,10 +206,13 @@ export const ALGORITHM_SOURCE_REGISTRY: Record<string, EngineSourceRecord> = {
       'https://www.worldnumerology.com/do-your-own-reading/',
       'https://www.worldnumerology.com/numerology-pinnacles/',
       'https://www.worldnumerology.com/numerology-challenges/',
+      'https://www.worldnumerology.com/numerology-expression/',
+      'https://www.worldnumerology.com/numerology-articles/numerology-Y-vowel-consonant.html',
     ],
     validationNotes: [
       '缺姓名时 Destiny/Soul/Personality 返回 null + warning，不伪造',
       'Challenge 时期来源明确为流动且重叠，仅报四数而不绑定精确年龄窗口',
+      '非 A–Z 字母 fail-closed：要求用户显式提供无变音符转写，不静默丢字符',
     ],
   },
   mayan: {
