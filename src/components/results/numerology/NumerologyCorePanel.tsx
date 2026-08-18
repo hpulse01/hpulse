@@ -7,10 +7,61 @@ import { NumerologyMissingInputPanel } from './NumerologyMissingInputPanel';
 
 interface Props { engineOutput?: EngineOutput | null; currentYear?: number }
 
+interface PinnacleCycleView {
+  index: number;
+  number: number;
+  startAge: number;
+  endAgeInclusive: number | null;
+}
+
+function parseJSON<T>(value: string | undefined, fallback: T): T {
+  if (!value) return fallback;
+  try { return JSON.parse(value) as T; } catch { return fallback; }
+}
+
+function PinnacleChallengePanel({ cycles, challenges }: {
+  cycles: PinnacleCycleView[];
+  challenges: number[];
+}) {
+  return (
+    <div className="rounded-md border border-primary/15 bg-card/30 p-3 space-y-3">
+      <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground/70">
+        Pinnacles & Challenges · 高峰与挑战
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {cycles.map((cycle) => (
+          <div key={cycle.index} className="rounded border border-primary/15 bg-card/30 p-2 text-center">
+            <div className="text-[9px] font-mono text-muted-foreground/70">P{cycle.index}</div>
+            <div className="text-xl font-serif text-gradient-gold">{cycle.number}</div>
+            <div className="text-[9px] text-muted-foreground/65">
+              age {cycle.startAge}–{cycle.endAgeInclusive ?? '+'}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {challenges.map((challenge, index) => (
+          <div key={index} className="rounded border border-amber-400/20 bg-amber-400/[0.03] p-2 text-center">
+            <div className="text-[9px] font-mono text-muted-foreground/70">
+              {index === 2 ? 'Main C' : `C${index + 1}`}
+            </div>
+            <div className="text-lg font-serif text-amber-200/90">{challenge}</div>
+          </div>
+        ))}
+      </div>
+      <p className="text-[9px] text-muted-foreground/65">
+        Challenge periods are fluid and overlapping; exact ages are intentionally not fabricated.
+      </p>
+    </div>
+  );
+}
+
 export function NumerologyCorePanel({ engineOutput, currentYear }: Props) {
   if (!engineOutput) return <EngineMissingNotice message="数字命理暂无结构化输出 / Numerology output unavailable." />;
   const norm = (engineOutput.normalizedOutput ?? {}) as Record<string, string>;
   const hasName = norm.hasName === 'true' || engineOutput.rawInputSnapshot?.hasName === true;
+  const pinnacleCycles = parseJSON<PinnacleCycleView[]>(norm.pinnacleCycles, []);
+  const challenges = parseJSON<number[]>(norm.challenges, []);
 
   const num = (k: string): number | undefined => {
     if (!norm[k] || norm[k] === '-') return undefined;
@@ -43,6 +94,7 @@ export function NumerologyCorePanel({ engineOutput, currentYear }: Props) {
     </div>
   );
   const missing = <NumerologyMissingInputPanel hasName={hasName} />;
+  const cycles = <PinnacleChallengePanel cycles={pinnacleCycles} challenges={challenges} />;
 
   return (
     <div className="space-y-5">
@@ -53,10 +105,12 @@ export function NumerologyCorePanel({ engineOutput, currentYear }: Props) {
         <div className="space-y-3">{py}</div>
         <div className="space-y-4">{birthGrid}{nameGrid}</div>
       </div>
+      <div className="hidden lg:block">{cycles}</div>
       <div className="lg:hidden space-y-2">
         <MobileSectionAccordion title="Personal Year" defaultOpen>{py}</MobileSectionAccordion>
         <MobileSectionAccordion title="Birthday-Derived" defaultOpen>{birthGrid}</MobileSectionAccordion>
         <MobileSectionAccordion title="Name-Derived">{nameGrid}</MobileSectionAccordion>
+        <MobileSectionAccordion title="Pinnacles & Challenges" defaultOpen>{cycles}</MobileSectionAccordion>
         <MobileSectionAccordion title="算法审计"><EngineAuditTrace engineOutput={engineOutput} /></MobileSectionAccordion>
       </div>
       <div className="hidden lg:block"><EngineAuditTrace engineOutput={engineOutput} /></div>
