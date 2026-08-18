@@ -25,19 +25,64 @@ export function calculatePersonalYear(birthMonth: number, birthDay: number, refe
   return reduceToDigit(sumDigits(birthMonth) + sumDigits(birthDay) + sumDigits(referenceYear));
 }
 
-function letterValues(name: string, predicate: (ch: string) => boolean): number[] {
+type LetterPredicate = (ch: string, index: number, part: string) => boolean;
+
+function splitNameParts(name: string): string[] {
+  return name.toUpperCase().split(/[^A-Z]+/).filter(Boolean);
+}
+
+/**
+ * Deterministic Decoz-style Y classification. Syllabic exceptions still
+ * exist, so the result is surfaced as a documented product variant.
+ */
+export function isNumerologyVowel(ch: string, index: number, part: string): boolean {
+  if (VOWELS.has(ch)) return true;
+  if (ch !== 'Y') return false;
+
+  const previous = part[index - 1];
+  const next = part[index + 1];
+  const isBasicVowel = (letter: string | undefined) => letter != null && VOWELS.has(letter);
+
+  if (index === 0) return next != null && !isBasicVowel(next);
+  if (index === part.length - 1) return previous != null && !isBasicVowel(previous);
+  return !isBasicVowel(previous) && !isBasicVowel(next);
+}
+
+function letterValues(part: string, predicate: LetterPredicate): number[] {
   const out: number[] = [];
-  for (const raw of name.toUpperCase()) {
-    if (PYTHAGOREAN_MAP[raw] != null && predicate(raw)) {
+  for (let index = 0; index < part.length; index += 1) {
+    const raw = part[index];
+    if (PYTHAGOREAN_MAP[raw] != null && predicate(raw, index, part)) {
       out.push(PYTHAGOREAN_MAP[raw]);
     }
   }
   return out;
 }
 
-/** Unreduced total used for Karmic Debt detection. */
-function nameTotal(name: string, predicate: (ch: string) => boolean): number {
-  return letterValues(name, predicate).reduce((a, b) => a + b, 0);
+interface NameNumberComputation {
+  value: number;
+  partTotals: number[];
+  reducedPartTotals: number[];
+  combinedTotal: number;
+}
+
+function calculateNameNumber(name: string, predicate: LetterPredicate): NameNumberComputation {
+  const partTotals = splitNameParts(name).map((part) =>
+    letterValues(part, predicate).reduce((sum, value) => sum + value, 0));
+  const reducedPartTotals = partTotals.map((total) => reduceToDigit(total));
+  const combinedTotal = reducedPartTotals.reduce((sum, value) => sum + value, 0);
+  return {
+    value: combinedTotal === 0 ? 0 : reduceToDigit(combinedTotal),
+    partTotals,
+    reducedPartTotals,
+    combinedTotal,
+  };
+}
+
+function karmicDebtsFromName(name: string, predicate: LetterPredicate): number[] {
+  const calculation = calculateNameNumber(name, predicate);
+  return Array.from(new Set([...calculation.partTotals, calculation.combinedTotal]))
+    .filter((total) => KARMIC_DEBT_NUMBERS.has(total));
 }
 
 /** Life Path intermediate total after separately reducing month/day/year. */
@@ -124,21 +169,15 @@ export function calculateChaldeanDestiny(name: string): number {
 }
 
 export function calculateDestiny(name: string): number {
-  const vals = letterValues(name, () => true);
-  if (vals.length === 0) return 0;
-  return reduceToDigit(vals.reduce((a, b) => a + b, 0));
+  return calculateNameNumber(name, () => true).value;
 }
 
 export function calculateSoulUrge(name: string): number {
-  const vals = letterValues(name, (ch) => VOWELS.has(ch));
-  if (vals.length === 0) return 0;
-  return reduceToDigit(vals.reduce((a, b) => a + b, 0));
+  return calculateNameNumber(name, isNumerologyVowel).value;
 }
 
 export function calculatePersonality(name: string): number {
-  const vals = letterValues(name, (ch) => !VOWELS.has(ch));
-  if (vals.length === 0) return 0;
-  return reduceToDigit(vals.reduce((a, b) => a + b, 0));
+  return calculateNameNumber(name, (ch, index, part) => !isNumerologyVowel(ch, index, part)).value;
 }
 
 export function calculateNumerology(input: NumerologyInput): NumerologyResult {
@@ -197,24 +236,46 @@ export function calculateNumerology(input: NumerologyInput): NumerologyResult {
   let soulUrge: number | null = null;
   let personality: number | null = null;
 
-  const cleanedName = (input.fullName ?? '').trim();
-  const hasName = cleanedName.length > 0 && /[A-Za-z]/.test(cleanedName);
+  const cleanedName = (input.fullName ?? '').trim().normalize('NFC');
+  const unsupportedLetterCount = Array.from(cleanedName)
+    .filter((character) => /\p{L}/u.test(character) && !/[A-Za-z]/.test(character))
+    .length;
+  const hasAsciiLetters = /[A-Za-z]/.test(cleanedName);
+  const hasName = cleanedName.length > 0 && hasAsciiLetters && unsupportedLetterCount === 0;
 
   if (hasName) {
-    destiny = calculateDestiny(cleanedName);
-    soulUrge = calculateSoulUrge(cleanedName);
-    personality = calculatePersonality(cleanedName);
+    const destinyCalculation = calculateNameNumber(cleanedName, () => true);
+    const soulCalculation = calculateNameNumber(cleanedName, isNumerologyVowel);
+    const personalityCalculation = calculateNameNumber(
+      cleanedName,
+      (ch, index, part) => !isNumerologyVowel(ch, index, part),
+    );
+    destiny = destinyCalculation.value;
+    soulUrge = soulCalculation.value;
+    personality = personalityCalculation.value;
     trace.push({
       rule: 'numerology.name',
-      detail: `Destiny=${destiny}, SoulUrge=${soulUrge}, Personality=${personality} from explicitly supplied spelling (${Array.from(cleanedName).length} characters)`,
+      detail: `Destiny=${destiny}, SoulUrge=${soulUrge}, Personality=${personality}; name parts reduced separately (${splitNameParts(cleanedName).length} parts, ${Array.from(cleanedName).length} characters); contextual Y rule applied`,
     });
   } else {
-    warnings.push({
-      code: 'no_name',
-      message: 'fullName not provided (or no Latin letters) — Destiny / SoulUrge / Personality skipped, NOT fabricated.',
-      level: 'warn',
-    });
-    trace.push({ rule: 'numerology.name', detail: 'skipped (no fullName)' });
+    if (unsupportedLetterCount > 0) {
+      warnings.push({
+        code: 'unsupported_name_letters',
+        message: `Name contains ${unsupportedLetterCount} letter(s) outside the declared A–Z numerology table. Name-derived numbers were skipped rather than silently dropping characters; provide an explicit unaccented A–Z transliteration.`,
+        level: 'warn',
+      });
+      trace.push({
+        rule: 'numerology.name',
+        detail: `skipped (${unsupportedLetterCount} unsupported non-A–Z letters; no silent transliteration)`,
+      });
+    } else {
+      warnings.push({
+        code: 'no_name',
+        message: 'fullName not provided (or no A–Z letters) — Destiny / SoulUrge / Personality skipped, NOT fabricated.',
+        level: 'warn',
+      });
+      trace.push({ rule: 'numerology.name', detail: 'skipped (no fullName)' });
+    }
   }
 
   const birthday = reduceToDigit(input.birthDay);
@@ -225,12 +286,18 @@ export function calculateNumerology(input: NumerologyInput): NumerologyResult {
   if (KARMIC_DEBT_NUMBERS.has(lpTotal)) karmicDebts.push({ source: 'lifePath', number: lpTotal });
   if (KARMIC_DEBT_NUMBERS.has(input.birthDay)) karmicDebts.push({ source: 'birthday', number: input.birthDay });
   if (hasName) {
-    const destTotal = nameTotal(cleanedName, () => true);
-    const soulTotal = nameTotal(cleanedName, (ch) => VOWELS.has(ch));
-    const persTotal = nameTotal(cleanedName, (ch) => !VOWELS.has(ch));
-    if (KARMIC_DEBT_NUMBERS.has(destTotal)) karmicDebts.push({ source: 'destiny', number: destTotal });
-    if (KARMIC_DEBT_NUMBERS.has(soulTotal)) karmicDebts.push({ source: 'soulUrge', number: soulTotal });
-    if (KARMIC_DEBT_NUMBERS.has(persTotal)) karmicDebts.push({ source: 'personality', number: persTotal });
+    for (const number of karmicDebtsFromName(cleanedName, () => true)) {
+      karmicDebts.push({ source: 'destiny', number });
+    }
+    for (const number of karmicDebtsFromName(cleanedName, isNumerologyVowel)) {
+      karmicDebts.push({ source: 'soulUrge', number });
+    }
+    for (const number of karmicDebtsFromName(
+      cleanedName,
+      (ch, index, part) => !isNumerologyVowel(ch, index, part),
+    )) {
+      karmicDebts.push({ source: 'personality', number });
+    }
   }
   trace.push({
     rule: 'numerology.karmicDebt',
