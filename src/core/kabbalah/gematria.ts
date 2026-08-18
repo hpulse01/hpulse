@@ -1,7 +1,12 @@
 /**
  * P4.10 — Gematria computation (Hebrew + Latin transliteration fallback).
  */
-import { HEBREW_GEMATRIA, LATIN_TO_HEBREW, HEBREW_ALPHABET } from './constants';
+import {
+  HEBREW_ALPHABET,
+  HEBREW_GEMATRIA,
+  HEBREW_GEMATRIA_GADOL,
+  LATIN_TO_HEBREW,
+} from './constants';
 import type { GematriaResult } from './types';
 
 const HEBREW_RANGE_RE = /[\u0590-\u05FF]/;
@@ -18,21 +23,31 @@ export function gematria(name: string): GematriaResult {
   if (source === 'hebrew') {
     for (const ch of trimmed) {
       const v = HEBREW_GEMATRIA[ch];
-      if (v != null) letters.push({ letter: ch, value: v });
+      if (v != null) {
+        letters.push({
+          letter: ch,
+          value: v,
+          gadolValue: HEBREW_GEMATRIA_GADOL[ch],
+        });
+      }
     }
   } else {
     for (const raw of trimmed.toUpperCase()) {
       const heb = LATIN_TO_HEBREW[raw];
       if (heb != null) {
-        letters.push({ letter: heb, value: HEBREW_GEMATRIA[heb] });
+        const value = HEBREW_GEMATRIA[heb];
+        // The coarse Latin map cannot infer Hebrew word-final spelling, so it
+        // deliberately emits base forms and does not fabricate 500..900 values.
+        letters.push({ letter: heb, value, gadolValue: value });
       }
     }
   }
 
   const total = letters.reduce((s, l) => s + l.value, 0);
+  const gadol = letters.reduce((s, l) => s + l.gadolValue, 0);
   const katan = letters.reduce((s, l) => s + reduceValue(l.value), 0);
   const siduri = letters.reduce((s, l) => s + ordinalValue(l.letter), 0);
-  return { total, katan, siduri, letters, source };
+  return { total, gadol, katan, siduri, letters, source };
 }
 
 const FINAL_TO_STANDARD: Record<string, string> = { 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' };
