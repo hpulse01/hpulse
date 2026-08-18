@@ -75,5 +75,11 @@ describe('numerology/calculate', () => {
     expect(out.engineName).toBe('numerology');
     expect(Object.keys(out.fateVector)).toHaveLength(10);
     expect(out.eventCandidates.length).toBeGreaterThan(0);
+    expect(out.rawInputSnapshot).not.toHaveProperty('fullName');
+    expect(out.rawInputSnapshot).toMatchObject({
+      hasName: true,
+      nameCharacterCount: 10,
+    });
+    expect(out.normalizedOutput.hasName).toBe('true');
   });
 });
