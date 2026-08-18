@@ -196,11 +196,10 @@ export function ResultTabsView({
               ['numerology', (
                 <NumerologyCorePanel
                   engineOutput={engineOutput('numerology')}
-                  userName={profile?.display_name ?? null}
                   currentYear={quantumResult.timestamp.getFullYear()}
                 />
               )],
-              ['kabbalah', <KabbalahCorePanel engineOutput={engineOutput('kabbalah')} userName={profile?.display_name ?? null} />],
+              ['kabbalah', <KabbalahCorePanel engineOutput={engineOutput('kabbalah')} />],
             ];
             return adminEnginePanels.map(([id, panel]) => (
               <TabsContent key={id} value={id} className="mt-5">
