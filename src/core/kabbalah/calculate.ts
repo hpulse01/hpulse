@@ -26,13 +26,18 @@ export function calculateKabbalah(input: KabbalahInput): KabbalahResult {
     primaryNumber = gem.total;
     trace.push({
       rule: 'kabbalah.gematria',
-      detail: `Gematria(${gem.source}) = ${gem.total} from ${gem.letters.length} letters`,
+      detail: `Gematria(${gem.source}): Hechrachi=${gem.total}; Gadol(final-letter 500..900)=${gem.gadol}; Katan=${gem.katan}; Siduri=${gem.siduri}; letters=${gem.letters.length}`,
     });
     if (gem.source === 'transliterated') {
       warnings.push({
         code: 'latin_transliteration',
         message: 'Name was provided in Latin script; transliterated to Hebrew via coarse phonetic map. For exact gematria, supply Hebrew letters.',
         level: 'warn',
+      });
+      warnings.push({
+        code: 'gadol_final_forms_not_inferred',
+        message: 'Mispar Gadol final-letter values are only applied to explicit Hebrew final-form characters; Latin transliteration does not infer Hebrew word-final spelling.',
+        level: 'info',
       });
     }
     if (gem.letters.length === 0) {
@@ -103,7 +108,9 @@ export function calculateKabbalah(input: KabbalahInput): KabbalahResult {
     confidence,
     completenessScore,
     sourceGrade,
-    implementationStatus: isHebrewSource ? 'complete' : 'partial',
+    // The implemented Gematria subset is deterministic, but Tikkun and a
+    // release-grade transliteration/orthography corpus remain out of scope.
+    implementationStatus: 'partial',
     warnings,
     explanationTrace: trace,
   };
