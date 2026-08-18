@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateNumerology, numerologyToEngineOutput,
   calculateLifePath, calculatePersonalYear, reduceToDigit,
-  calculateChaldeanDestiny, lifePathTotal,
+  calculateChaldeanDestiny, calculatePinnacles, calculateChallenges,
+  buildPinnacleCycles, lifePathTotal,
 } from '../index';
 
 const INPUT = {
@@ -25,8 +26,15 @@ describe('numerology/reduce', () => {
 
 describe('numerology/calculate', () => {
   it('Life Path stable', () => {
-    // 1990-05-14: 1+9+9+0 + 5 + 1+4 = 19 + 5 + 5 = 29 → 11 (master)
+    // 1990-05-14: reduce units separately: year=1, month=5, day=5; 1+5+5=11.
     expect(calculateLifePath(1990, 5, 14)).toBe(11);
+  });
+  it('preserves the correct Life Path intermediate total for Karmic Debt', () => {
+    // 1998-10-15: month=1, day=6, year=9; total=16 → 7 (not raw digit sum 34).
+    expect(lifePathTotal(1998, 10, 15)).toBe(16);
+    const r = calculateNumerology({ birthYear: 1998, birthMonth: 10, birthDay: 15, referenceYear: 2026 });
+    expect(r.lifePath).toBe(7);
+    expect(r.karmicDebts).toContainEqual({ source: 'lifePath', number: 16 });
   });
   it('Personal Year stable', () => {
     // digits: 5 + (1+4) + (2+0+2+6) = 20 → 2
@@ -65,10 +73,34 @@ describe('numerology/calculate', () => {
     // 1975-01-31: 1+9+7+5 + 1 + 3+1 = 27 → no LP debt; birthDay 31 → none
     const clean = calculateNumerology({ birthYear: 1975, birthMonth: 1, birthDay: 31, referenceYear: 2026 });
     expect(clean.karmicDebts).toHaveLength(0);
-    // lifePathTotal 19 case: 1962-01-? → e.g. 1900-09-? : pick 1903-02-04 → 1+9+0+3+2+4 = 19
-    const debt = calculateNumerology({ birthYear: 1903, birthMonth: 2, birthDay: 4, referenceYear: 2026 });
-    expect(lifePathTotal(1903, 2, 4)).toBe(19);
+    // 1900-09-09: month=9, day=9, year=1 → intermediate Life Path total 19.
+    const debt = calculateNumerology({ birthYear: 1900, birthMonth: 9, birthDay: 9, referenceYear: 2026 });
+    expect(lifePathTotal(1900, 9, 9)).toBe(19);
     expect(debt.karmicDebts.some((k) => k.source === 'lifePath' && k.number === 19)).toBe(true);
+  });
+  it('computes the cited Pinnacle and Challenge example', () => {
+    expect(calculatePinnacles(1949, 5, 15)).toEqual([11, 11, 22, 1]);
+    expect(calculateChallenges(1949, 5, 15)).toEqual([1, 1, 0, 0]);
+    expect(buildPinnacleCycles([11, 11, 22, 1], 7)).toEqual([
+      { index: 1, number: 11, startAge: 0, endAgeInclusive: 29 },
+      { index: 2, number: 11, startAge: 30, endAgeInclusive: 38 },
+      { index: 3, number: 22, startAge: 39, endAgeInclusive: 47 },
+      { index: 4, number: 1, startAge: 48, endAgeInclusive: null },
+    ]);
+  });
+  it('rejects impossible Gregorian dates', () => {
+    expect(() => calculateNumerology({
+      birthYear: 2025,
+      birthMonth: 2,
+      birthDay: 29,
+      referenceYear: 2026,
+    })).toThrow(/not valid/);
+    expect(() => calculateNumerology({
+      birthYear: 2024,
+      birthMonth: 2,
+      birthDay: 29,
+      referenceYear: 2026,
+    })).not.toThrow();
   });
   it('produces a valid EngineOutput', () => {
     const out = numerologyToEngineOutput(calculateNumerology(INPUT));
@@ -81,5 +113,8 @@ describe('numerology/calculate', () => {
       nameCharacterCount: 10,
     });
     expect(out.normalizedOutput.hasName).toBe('true');
+    expect(JSON.parse(String(out.normalizedOutput.pinnacleCycles))).toHaveLength(4);
+    expect(JSON.parse(String(out.normalizedOutput.challenges))).toHaveLength(4);
+    expect(out.normalizedOutput.implementationStatus).toBe('partial');
   });
 });
