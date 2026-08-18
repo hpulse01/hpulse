@@ -3,7 +3,8 @@ import {
   calculateNumerology, numerologyToEngineOutput,
   calculateLifePath, calculatePersonalYear, reduceToDigit,
   calculateChaldeanDestiny, calculatePinnacles, calculateChallenges,
-  buildPinnacleCycles, lifePathTotal,
+  buildPinnacleCycles, calculateDestiny, calculateSoulUrge,
+  calculatePersonality, isNumerologyVowel, lifePathTotal,
 } from '../index';
 
 const INPUT = {
@@ -47,6 +48,32 @@ describe('numerology/calculate', () => {
     expect(b.destiny).toBe(a.destiny);
     expect(b.soulUrge).toBe(a.soulUrge);
     expect(b.personality).toBe(a.personality);
+  });
+  it('reduces first/middle/last name parts before the final total', () => {
+    // AB=3; HI=17→8; 3+8=11. A flat all-letter sum would incorrectly give 20→2.
+    expect(calculateDestiny('AB HI')).toBe(11);
+  });
+  it('classifies Y by the cited positional rule', () => {
+    expect(isNumerologyVowel('Y', 0, 'YVONNE')).toBe(true);
+    expect(isNumerologyVowel('Y', 0, 'YOLANDA')).toBe(false);
+    expect(isNumerologyVowel('Y', 3, 'MARY')).toBe(true);
+    expect(isNumerologyVowel('Y', 6, 'MALONEY')).toBe(false);
+    expect(isNumerologyVowel('Y', 1, 'KYLE')).toBe(true);
+    expect(calculateSoulUrge('Mary')).toBe(8); // A(1) + vowel Y(7)
+    expect(calculatePersonality('Mary')).toBe(4); // M(4) + R(9) = 13 → 4
+  });
+  it('fails closed for unsupported name letters instead of dropping them', () => {
+    const r = calculateNumerology({
+      birthYear: 1990,
+      birthMonth: 5,
+      birthDay: 14,
+      fullName: 'José',
+      referenceYear: 2026,
+    });
+    expect(r.destiny).toBeNull();
+    expect(r.soulUrge).toBeNull();
+    expect(r.personality).toBeNull();
+    expect(r.warnings.some((warning) => warning.code === 'unsupported_name_letters')).toBe(true);
   });
   it('warns and skips name numbers when fullName missing', () => {
     const r = calculateNumerology({ birthYear: 1990, birthMonth: 5, birthDay: 14, referenceYear: 2026 });
@@ -116,5 +143,6 @@ describe('numerology/calculate', () => {
     expect(JSON.parse(String(out.normalizedOutput.pinnacleCycles))).toHaveLength(4);
     expect(JSON.parse(String(out.normalizedOutput.challenges))).toHaveLength(4);
     expect(out.normalizedOutput.implementationStatus).toBe('partial');
+    expect(JSON.stringify(out)).not.toContain(INPUT.fullName);
   });
 });
