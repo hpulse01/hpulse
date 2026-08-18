@@ -77,11 +77,15 @@ export function numerologyToEngineOutput(result: NumerologyResult): EngineOutput
       birthYear: result.input.birthYear,
       birthMonth: result.input.birthMonth,
       birthDay: result.input.birthDay,
-      fullName: result.input.fullName ?? null,
+      hasName: result.destiny != null,
+      nameCharacterCount: result.input.fullName
+        ? Array.from(result.input.fullName.trim()).length
+        : 0,
       referenceYear: result.referenceYear,
     },
     fateVector,
     normalizedOutput: {
+      hasName: String(result.destiny != null),
       lifePath: String(result.lifePath),
       destiny: result.destiny != null ? String(result.destiny) : '-',
       soulUrge: result.soulUrge != null ? String(result.soulUrge) : '-',
