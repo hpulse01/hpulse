@@ -33,7 +33,7 @@ This is the release source of truth for the thirteen engines. “Implemented” 
 | Vedic | `partial` / C | Lahiri 恒星黄道、Rashi、Nakshatra、Vimshottari、D9 | ayanamsa 精度、节点口径、D10/Shadbala/Yoga 缺失 | 指定 Lahiri 版本 + Swiss Ephemeris/JHora 交叉 corpus |
 | Numerology | `partial` / B | Pythagorean/Chaldean、主数、核心姓名数、业债、成熟数；显式姓名输入已贯通 | Pinnacles/Challenges 缺失；仅拉丁 A–Z 的产品口径与变音符转写仍待来源定版 | 规则表全组合测试 + Unicode/变音符输入 corpus |
 | Mayan | `partial` / B | GMT 584283、Tzolkin、Haab、Long Count、Calendar Round、夜神 | 819 日与金星周期缺失；相关系选择必须显式 | 历元与已知铭文日期 corpus；替代相关系差异测试 |
-| Kabbalah | `partial` / C | Mispar Hechrachi/Katan/Siduri、生命树映射；显式姓名输入已贯通 | Mispar Gadol 未实现；拉丁转写为项目 fallback；Tikkun/希伯来姓名规范不完整 | 希伯来原文字符 corpus + 各 Gematria 制式表 |
+| Kabbalah | `partial` / C | Mispar Hechrachi/Katan/Siduri、Mispar Gadol 显式尾字母 500–900 变体、生命树映射；显式姓名输入已贯通 | 拉丁转写为项目 fallback 且不推测尾字母；Tikkun/希伯来姓名规范不完整 | 希伯来原文字符 corpus + 各 Gematria 制式表 |
 
 ## Promotion rule
 
@@ -63,5 +63,5 @@ An engine can move to `complete` only when all conditions are true:
 - Added an explicit optional calculation-name input and propagated it through both legacy and HPU contracts; name-derived rules now compute only from user-supplied spelling and no persisted trace stores the literal spelling.
 - Made query time and IANA timezone mandatory in the legacy bridge, removed wall-clock timestamps from algorithm outputs, and added a byte-stability integration test for the entire result.
 - Removed placeholder zodiac assets and the placeholder WASM binary. Development can use a reported deterministic TypeScript normalizer fallback; commercial CI must generate and verify a real Rust/WASM artifact.
-- Corrected the Kabbalah registry: Mispar Gadol was previously claimed but not implemented, so it is now an explicit release blocker.
+- Implemented and regression-tested the explicitly scoped Mispar Gadol final-letter 500–900 variant; Latin fallback deliberately does not invent Hebrew final forms.
 - Reclassified the historical “quantum” layer as a classical deterministic scenario-scoring analogy. Public copy now states that no quantum computing or scientific event-probability model is used.
