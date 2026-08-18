@@ -223,11 +223,18 @@ export const ALGORITHM_SOURCE_REGISTRY: Record<string, EngineSourceRecord> = {
     implementedRules: [
       'Mispar Hechrachi gematria（希伯来）', '拉丁转写 fallback',
       'Tree of Life Sephirot 映射',
+      'Mispar Gadol（显式尾字母 500..900 变体）',
       'Mispar Katan/Siduri 扩展 gematria', '22 路径（希伯来字母/塔罗对应）完整解读',
     ],
-    missingRules: ['Mispar Gadol（尾字母 500..900 变体）', 'Tikkun 细化', '希伯来原文姓名转写表扩充'],
-    sourceUrls: ['Sefer Yetzirah 引用'],
-    validationNotes: ['缺姓名时降级为 birth-only + warning，confidence 显著降低'],
+    missingRules: ['Tikkun 细化', '希伯来原文姓名转写表扩充'],
+    sourceUrls: [
+      'https://www.chabad.org/library/article_cdo/aid/6037869/jewish/Why-the-Five-Hebrew-Final-Letters.htm',
+      'https://www.encyclopedia.com/philosophy-and-religion/bible/bible-general/gematria',
+    ],
+    validationNotes: [
+      '缺姓名时降级为 birth-only + warning，confidence 显著降低',
+      'Gadol 仅对用户显式输入的 ך/ם/ן/ף/ץ 应用 500/600/700/800/900；拉丁 fallback 不推测尾字母',
+    ],
   },
 };
 
