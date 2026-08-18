@@ -8,6 +8,7 @@ export {
   calculateDestiny,
   calculateSoulUrge,
   calculatePersonality,
+  isNumerologyVowel,
   calculateChaldeanDestiny,
   calculatePinnacles,
   calculateChallenges,
