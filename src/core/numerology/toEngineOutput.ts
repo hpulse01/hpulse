@@ -46,6 +46,8 @@ export function numerologyToEngineOutput(result: NumerologyResult): EngineOutput
       'deterministic_no_random',
       `lifePath=${result.lifePath}`,
       `personalYear=${result.personalYear}`,
+      `pinnacles=${result.pinnacleCycles.map((cycle) => cycle.number).join('/')}`,
+      `challenges=${result.challenges.join('/')}`,
       result.destiny != null ? 'name_numbers_computed' : 'name_numbers_skipped',
     ],
     failed: result.destiny == null ? ['name_numbers_unavailable'] : [],
@@ -63,14 +65,24 @@ export function numerologyToEngineOutput(result: NumerologyResult): EngineOutput
   if (result.maturity != null) eventCandidates.push(`Maturity = ${result.maturity}`);
   if (result.chaldeanDestiny != null) eventCandidates.push(`Chaldean Destiny = ${result.chaldeanDestiny}`);
   for (const k of result.karmicDebts) eventCandidates.push(`Karmic Debt ${k.number} (${k.source})`);
+  for (const cycle of result.pinnacleCycles) {
+    eventCandidates.push(
+      `Pinnacle ${cycle.index} = ${cycle.number} (age ${cycle.startAge}-${cycle.endAgeInclusive ?? 'open'})`,
+    );
+  }
+  eventCandidates.push(`Challenges = ${result.challenges.join('/')} (timing is fluid/overlapping)`);
 
   return {
     engineName: 'numerology',
     engineNameCN: '数字命理',
     engineVersion: 'P4.10-core',
-    sourceUrls: ['Pythagorean numerology (classical letter→digit table)'],
+    sourceUrls: [
+      'https://www.worldnumerology.com/do-your-own-reading/',
+      'https://www.worldnumerology.com/numerology-pinnacles/',
+      'https://www.worldnumerology.com/numerology-challenges/',
+    ],
     sourceGrade: result.sourceGrade,
-    ruleSchool: 'Pythagorean (A=1..I=9), Y-as-consonant variant, master numbers 11/22/33 preserved',
+    ruleSchool: 'Decoz-style Pythagorean unit reduction; Pinnacles preserve 11/22/33; Challenges reduce masters and use absolute differences; Y-as-consonant product variant',
     confidence: normalizeConfidence01(result.confidence),
     computationTimeMs: 0,
     rawInputSnapshot: {
@@ -98,12 +110,16 @@ export function numerologyToEngineOutput(result: NumerologyResult): EngineOutput
       karmicDebts: result.karmicDebts.length > 0
         ? result.karmicDebts.map((k) => `${k.number}(${k.source})`).join(', ')
         : 'none',
+      pinnacleCycles: JSON.stringify(result.pinnacleCycles),
+      challenges: JSON.stringify(result.challenges),
       implementationStatus: result.implementationStatus,
     },
     warnings: result.warnings.map((w) => `${w.code}: ${w.message}`),
     uncertaintyNotes: [
       'Y is treated as a consonant for determinism. Some traditions count it as a vowel when adjacent to consonants — that variant is not modelled here.',
       'Primary numbers use the Pythagorean table; the Chaldean Destiny number is provided as a secondary cross-check (Chaldean 1..8, no 9).',
+      'Pinnacle windows use the conventional 36-minus-single-digit-Life-Path boundary followed by two nine-year cycles.',
+      'Challenge periods are intentionally reported without exact age windows because the cited school describes them as fluid and overlapping.',
       result.destiny == null
         ? 'Name-based numbers (Destiny / Soul Urge / Personality) require fullName.'
         : 'Name-based numbers reflect the EXACT spelling provided; alternative spellings yield different values.',
@@ -125,6 +141,11 @@ export function numerologyToEngineOutput(result: NumerologyResult): EngineOutput
       birthday: result.birthday,
       maturity: result.maturity ?? 0,
       karmicDebtCount: result.karmicDebts.length,
+      pinnacle1: result.pinnacleCycles[0]?.number ?? 0,
+      pinnacle2: result.pinnacleCycles[1]?.number ?? 0,
+      pinnacle3: result.pinnacleCycles[2]?.number ?? 0,
+      pinnacle4: result.pinnacleCycles[3]?.number ?? 0,
+      challengeMain: result.challenges[2],
     },
     eventCandidates,
   };
