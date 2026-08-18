@@ -28,12 +28,14 @@ export interface TreePath {
 export interface GematriaResult {
   /** Total numeric value (Mispar Hechrachi — standard gematria). */
   total: number;
+  /** Mispar Gadol total using explicit final forms ך/ם/ן/ף/ץ = 500/600/700/800/900. */
+  gadol: number;
   /** Mispar Katan (small value): letter values reduced to 1..9 before summing. */
   katan: number;
   /** Mispar Siduri (ordinal value): letters counted by alphabet position 1..22. */
   siduri: number;
   /** Per-letter breakdown. */
-  letters: { letter: string; value: number }[];
+  letters: { letter: string; value: number; gadolValue: number }[];
   /** Source language: 'hebrew' for native Hebrew input, 'transliterated' for Latin letters mapped to nearest Hebrew letter. */
   source: 'hebrew' | 'transliterated';
 }
