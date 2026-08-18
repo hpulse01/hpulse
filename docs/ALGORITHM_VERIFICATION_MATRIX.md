@@ -31,7 +31,7 @@ This is the release source of truth for the thirteen engines. “Implemented” 
 | 太乙 Taiyi | `partial` / C | 积年、局、太乙/计神/十六神、主客算 | 阳九百六、三纪五元、游法、月日时计缺失 | 《太乙金镜式经》规则表 + 局数/宫位周期 corpus |
 | Western | `partial` / B | 行星黄经、上升/天顶、Whole Sign/Placidus、主要相位 | 宫制算法与高纬回退需外部数值验证；解释层未验证 | JPL Horizons 行星 corpus + 公开房宫黄金盘 |
 | Vedic | `partial` / C | Lahiri 恒星黄道、Rashi、Nakshatra、Vimshottari、D9 | ayanamsa 精度、节点口径、D10/Shadbala/Yoga 缺失 | 指定 Lahiri 版本 + Swiss Ephemeris/JHora 交叉 corpus |
-| Numerology | `partial` / B | Pythagorean/Chaldean、主数、Life Path 分单元约简、核心姓名数、业债、成熟数、Pinnacles、Challenges；显式姓名输入已贯通 | 仅拉丁 A–Z 的产品口径与变音符转写仍待来源定版；Challenge 周期来源声明为流动重叠，不输出伪精确边界 | Decoz 已知案例 + 规则表全组合 + Unicode/变音符输入 corpus |
+| Numerology | `partial` / B | Pythagorean/Chaldean、主数、Life Path 分单元约简、姓名分段约简、Y 位置分类、核心姓名数、业债、成熟数、Pinnacles、Challenges；显式姓名输入已贯通 | 仅拉丁 A–Z；非 A–Z 姓名 fail-closed 而不静默丢字符；Challenge 周期来源声明为流动重叠，不输出伪精确边界 | Decoz 已知案例 + 规则表全组合 + Unicode/变音符显式转写 corpus |
 | Mayan | `partial` / B | GMT 584283、Tzolkin、Haab、Long Count、Calendar Round、夜神 | 819 日与金星周期缺失；相关系选择必须显式 | 历元与已知铭文日期 corpus；替代相关系差异测试 |
 | Kabbalah | `partial` / C | Mispar Hechrachi/Katan/Siduri、Mispar Gadol 显式尾字母 500–900 变体、生命树映射；显式姓名输入已贯通 | 拉丁转写为项目 fallback 且不推测尾字母；Tikkun/希伯来姓名规范不完整 | 希伯来原文字符 corpus + 各 Gematria 制式表 |
 
@@ -65,4 +65,5 @@ An engine can move to `complete` only when all conditions are true:
 - Removed placeholder zodiac assets and the placeholder WASM binary. Development can use a reported deterministic TypeScript normalizer fallback; commercial CI must generate and verify a real Rust/WASM artifact.
 - Implemented and regression-tested the explicitly scoped Mispar Gadol final-letter 500–900 variant; Latin fallback deliberately does not invent Hebrew final forms.
 - Corrected Life Path to reduce month/day/year as separate units before combining, preserving Karmic Debt intermediates; added cited Pinnacle and Challenge calculations without fabricating exact Challenge timing.
+- Corrected core name numbers to reduce name parts separately, implemented the cited contextual-Y rule, and made unsupported non-A–Z letters fail closed instead of disappearing silently.
 - Reclassified the historical “quantum” layer as a classical deterministic scenario-scoring analogy. Public copy now states that no quantum computing or scientific event-probability model is used.
