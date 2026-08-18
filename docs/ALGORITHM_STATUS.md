@@ -83,7 +83,7 @@ This document records implemented code, not predictive validity. `algorithmSourc
 
 ### 卡巴拉 Kabbalah
 - **Status**: `partial` · **Grade**: C · cap **≤ 0.65**
-- **Implemented**: Mispar Hechrachi gematria · 拉丁转写 fallback · Sephirot 映射 · Mispar Gadol/Katan/Siduri 扩展 gematria · 22 路径完整解读
+- **Implemented**: Mispar Hechrachi gematria · 拉丁转写 fallback · Sephirot 映射 · Mispar Gadol 显式尾字母 500–900 变体 · Mispar Katan/Siduri · 22 路径完整解读
 - **Missing**: Tikkun 细化 · 希伯来原文转写表扩充
 
 ---
