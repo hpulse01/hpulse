@@ -73,7 +73,7 @@ This document records implemented code, not predictive validity. `algorithmSourc
 
 ### 数字命理 Numerology
 - **Status**: `partial` · **Grade**: B · cap **≤ 0.65**
-- **Implemented**: Pythagorean 字母→数字 · 主数 11/22/33 保留 · Life Path 分单元约简 · Destiny / Soul Urge / Personality / Personal Year · Chaldean 体系 · Karmic Debt (13/14/16/19) · Maturity Number · Pinnacles · Challenges
+- **Implemented**: Pythagorean 字母→数字 · 主数 11/22/33 保留 · Life Path 分单元约简 · 姓名分段约简 · Y 位置分类 · Destiny / Soul Urge / Personality / Personal Year · Chaldean 体系 · Karmic Debt (13/14/16/19) · Maturity Number · Pinnacles · Challenges
 - **Missing**: 变音符/非拉丁姓名转写规则与独立黄金样本回归
 
 ### 玛雅历 Mayan
