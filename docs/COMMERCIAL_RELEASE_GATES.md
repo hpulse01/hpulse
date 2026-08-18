@@ -31,7 +31,7 @@ The canonical details live in `ALGORITHM_VERIFICATION_MATRIX.md`. At present:
 - Tieban remains `needs_source_validation` and lacks a single-call authoritative core adapter.
 - Several Chinese systems have declared school/rule gaps and insufficient independent golden corpora.
 - Western/Vedic astronomy still needs independent numerical comparison corpora; the Vedic Lahiri ayanamsa is not release-grade.
-- Numerology, Mayan and Kabbalah have declared scope gaps. Name input is explicit and deterministic, and the scoped Mispar Gadol final-letter variant is implemented; Pinnacles/Challenges, Mayan 819-day/Venus cycles, Kabbalah Tikkun/transliteration, and source-validation work remain open.
+- Numerology, Mayan and Kabbalah have declared scope gaps. Scoped Mispar Gadol and Numerology Pinnacles/Challenges are implemented; Numerology name transliteration, Mayan 819-day/Venus cycles, Kabbalah Tikkun/transliteration, independent golden corpora, and source-validation work remain open.
 - The repository no longer carries a fake WASM. GitHub CI must generate the real binary, install it into the web/native bundle and pass the magic-byte gate before any distributable artifact is acceptable.
 - GitHub Actions currently returns `startup_failure` before creating any job. A temporary minimal one-step workflow failed the same way and was removed, so the repository owner must restore Actions availability/permissions or private-repository runner budget before CI can supply release evidence.
 
