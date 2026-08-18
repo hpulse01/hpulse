@@ -5,14 +5,18 @@ import { NumerologyNumberGrid } from './NumerologyNumberGrid';
 import { PersonalYearPanel } from './PersonalYearPanel';
 import { NumerologyMissingInputPanel } from './NumerologyMissingInputPanel';
 
-interface Props { engineOutput?: EngineOutput | null; userName?: string | null; currentYear?: number }
+interface Props { engineOutput?: EngineOutput | null; currentYear?: number }
 
-export function NumerologyCorePanel({ engineOutput, userName, currentYear }: Props) {
+export function NumerologyCorePanel({ engineOutput, currentYear }: Props) {
   if (!engineOutput) return <EngineMissingNotice message="数字命理暂无结构化输出 / Numerology output unavailable." />;
   const norm = (engineOutput.normalizedOutput ?? {}) as Record<string, string>;
-  const hasName = !!(userName && userName.trim().length > 0);
+  const hasName = norm.hasName === 'true' || engineOutput.rawInputSnapshot?.hasName === true;
 
-  const num = (k: string): number | undefined => norm[k] ? Number(norm[k]) : undefined;
+  const num = (k: string): number | undefined => {
+    if (!norm[k] || norm[k] === '-') return undefined;
+    const value = Number(norm[k]);
+    return Number.isFinite(value) ? value : undefined;
+  };
 
   const birthdayNumbers = [
     { label: 'Life Path', value: num('lifePath') },
