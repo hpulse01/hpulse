@@ -1,9 +1,9 @@
 /**
  * P4.10 — Kabbalah constants.
  *
- * Hebrew letter values (Mispar Hechrachi). Final forms (sofit) take the
- * standard non-final value (a defensible mainstream variant; the alt
- * "Mispar Gadol" using 500..900 is documented in uncertaintyNotes).
+ * Hebrew letter values. Mispar Hechrachi keeps final forms (sofit) at the
+ * corresponding base-letter value. The explicitly named Mispar Gadol
+ * variant below continues the five final forms through 500..900.
  */
 import type { SephirahMapping, SephirahName } from './types';
 
@@ -14,6 +14,21 @@ export const HEBREW_GEMATRIA: Record<string, number> = {
   'כ': 20, 'ך': 20, 'ל': 30, 'מ': 40, 'ם': 40,
   'נ': 50, 'ן': 50, 'ס': 60, 'ע': 70, 'פ': 80, 'ף': 80,
   'צ': 90, 'ץ': 90, 'ק': 100, 'ר': 200, 'ש': 300, 'ת': 400,
+};
+
+/** Mispar Gadol final-letter values (the 500..900 sofit variant). */
+export const HEBREW_FINAL_GADOL: Record<string, number> = {
+  'ך': 500,
+  'ם': 600,
+  'ן': 700,
+  'ף': 800,
+  'ץ': 900,
+};
+
+/** Full value table for the 500..900 final-letter Mispar Gadol variant. */
+export const HEBREW_GEMATRIA_GADOL: Record<string, number> = {
+  ...HEBREW_GEMATRIA,
+  ...HEBREW_FINAL_GADOL,
 };
 
 /** The 22 Hebrew letters in alphabetical order (no final forms). */
