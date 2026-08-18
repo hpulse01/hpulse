@@ -195,10 +195,20 @@ export const ALGORITHM_SOURCE_REGISTRY: Record<string, EngineSourceRecord> = {
       'Pythagorean 字母→数字', '主数 11/22/33 保留',
       'Life Path', 'Destiny', 'Soul Urge', 'Personality', 'Personal Year',
       'Chaldean 体系', 'Karmic Debt (13/14/16/19)', 'Maturity Number',
+      'Life Path 月/日/年分单元约简（保留中间主数/业债数）',
+      'Pinnacles 四周期与 36-Life Path/9/9 年龄窗口',
+      'Challenges 四数绝对差（不伪造精确年龄边界）',
     ],
-    missingRules: ['Pinnacles/Challenges 周期'],
-    sourceUrls: ['Pythagorean numerology classical mapping'],
-    validationNotes: ['缺姓名时 Destiny/Soul/Personality 返回 null + warning，不伪造'],
+    missingRules: ['变音符/非拉丁姓名转写规则'],
+    sourceUrls: [
+      'https://www.worldnumerology.com/do-your-own-reading/',
+      'https://www.worldnumerology.com/numerology-pinnacles/',
+      'https://www.worldnumerology.com/numerology-challenges/',
+    ],
+    validationNotes: [
+      '缺姓名时 Destiny/Soul/Personality 返回 null + warning，不伪造',
+      'Challenge 时期来源明确为流动且重叠，仅报四数而不绑定精确年龄窗口',
+    ],
   },
   mayan: {
     engineName: 'mayan',
