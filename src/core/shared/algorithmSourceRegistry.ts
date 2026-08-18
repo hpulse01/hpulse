@@ -9,7 +9,13 @@
  * The audit will cross-check engine output against this registry.
  */
 
-import type { ImplementationStatus } from './implementationStatus';
+import type { EngineOutput, SourceGrade as EngineSourceGrade } from '@/types/prediction';
+import {
+  normalizeStatus,
+  STATUS_MAX_CONFIDENCE,
+  type ImplementationStatus,
+} from './implementationStatus';
+import { normalizeConfidence01 } from './confidence';
 
 export type SourceGrade = 'A' | 'B' | 'C' | 'D';
 
@@ -87,7 +93,7 @@ export const ALGORITHM_SOURCE_REGISTRY: Record<string, EngineSourceRecord> = {
       'baseNumber', 'theoreticalBase', 'quarterKe', 'systemOffset',
       '六亲校时（用户事实优先）',
       '条文 exact/fallback 透明记录（matchedClauseNumber/exactMatch/fallbackDistance/source）',
-      '命运总论/婚姻/财富/事业/健康寿元/子嗣/父母分区',
+      '命运总论/婚姻/财富/事业/健康趋势/子嗣/父母分区',
     ],
     missingRules: ['古籍完整公式校验', '十三部条文齐备', '增删神数交叉验证'],
     sourceUrls: ['《铁板神数》(待校验)'],
@@ -97,14 +103,14 @@ export const ALGORITHM_SOURCE_REGISTRY: Record<string, EngineSourceRecord> = {
     engineName: 'meihua',
     engineNameCN: '梅花易数',
     sourceGrade: 'B',
-    implementationStatus: 'complete',
+    implementationStatus: 'partial',
     implementedRules: [
       '年月日时起卦', '数字起卦', '上卦', '下卦', '动爻',
       '本卦', '互卦', '变卦', '体用关系', '五行生克', '吉凶趋势',
     ],
     missingRules: ['外应', '声音字数等高级起卦法'],
-    sourceUrls: ['《梅花易数》(邵雍)'],
-    validationNotes: ['零 hash 冒充；无姓名/数字时降级为 partial'],
+    sourceUrls: ['https://zh.wikisource.org/zh-hans/梅花易數/卷一'],
+    validationNotes: ['时间起卦已使用农历年月日与本地时支；日界固定为当地民用 00:00，闰月按同月序数'],
   },
   qimen: {
     engineName: 'qimen',
@@ -217,9 +223,9 @@ export const ALGORITHM_SOURCE_REGISTRY: Record<string, EngineSourceRecord> = {
     implementedRules: [
       'Mispar Hechrachi gematria（希伯来）', '拉丁转写 fallback',
       'Tree of Life Sephirot 映射',
-      'Mispar Gadol/Katan/Siduri 扩展 gematria', '22 路径（希伯来字母/塔罗对应）完整解读',
+      'Mispar Katan/Siduri 扩展 gematria', '22 路径（希伯来字母/塔罗对应）完整解读',
     ],
-    missingRules: ['Tikkun 细化', '希伯来原文姓名转写表扩充'],
+    missingRules: ['Mispar Gadol（尾字母 500..900 变体）', 'Tikkun 细化', '希伯来原文姓名转写表扩充'],
     sourceUrls: ['Sefer Yetzirah 引用'],
     validationNotes: ['缺姓名时降级为 birth-only + warning，confidence 显著降低'],
   },
@@ -231,4 +237,89 @@ export function getEngineSource(name: string): EngineSourceRecord | undefined {
 
 export function listRegisteredEngines(): string[] {
   return Object.keys(ALGORITHM_SOURCE_REGISTRY);
+}
+
+const STATUS_RANK: Record<ImplementationStatus, number> = {
+  placeholder_removed: 0,
+  needs_source_validation: 1,
+  partial: 2,
+  complete: 3,
+};
+
+const GRADE_RANK: Record<EngineSourceGrade, number> = { D: 0, C: 1, B: 2, A: 3 };
+const GRADE_CONFIDENCE_CAP: Record<EngineSourceGrade, number> = { A: 1, B: 0.85, C: 0.65, D: 0.45 };
+
+function conservativeStatus(a: ImplementationStatus, b: ImplementationStatus): ImplementationStatus {
+  return STATUS_RANK[a] <= STATUS_RANK[b] ? a : b;
+}
+
+function conservativeGrade(a: EngineSourceGrade, b: SourceGrade): EngineSourceGrade {
+  return GRADE_RANK[a] <= GRADE_RANK[b] ? a : b;
+}
+
+/**
+ * Enforce the audited registry as a hard ceiling before output reaches fusion.
+ * A calculator may be complete for its local feature subset, but it may not
+ * advertise a stronger status or confidence than the known engine-wide gaps.
+ */
+export function applySourceRegistryPolicy(output: EngineOutput): EngineOutput {
+  const record = getEngineSource(output.engineName);
+  if (!record) {
+    return {
+      ...output,
+      confidence: Math.min(normalizeConfidence01(output.confidence), 0.4),
+      warnings: Array.from(new Set([...output.warnings, 'source_registry_missing'])),
+      normalizedOutput: {
+        ...output.normalizedOutput,
+        implementationStatus: 'needs_source_validation',
+      },
+    };
+  }
+
+  const declared = normalizeStatus(
+    output.normalizedOutput.implementationStatus
+      ?? output.normalizedOutput.p4ImplementationStatus,
+  );
+  const status = conservativeStatus(declared, record.implementationStatus);
+  const sourceGrade = conservativeGrade(output.sourceGrade, record.sourceGrade);
+  const completenessCap = Number.isFinite(output.completenessScore)
+    ? Math.max(0, Math.min(1, output.completenessScore / 100))
+    : 0;
+  const confidenceCap = Math.min(
+    STATUS_MAX_CONFIDENCE[status],
+    GRADE_CONFIDENCE_CAP[sourceGrade],
+    completenessCap,
+  );
+  const gapWarning = record.missingRules.length > 0
+    ? `registry_missing_rules: ${record.missingRules.join('；')}`
+    : null;
+
+  return {
+    ...output,
+    sourceGrade,
+    sourceUrls: Array.from(new Set([...output.sourceUrls, ...record.sourceUrls])),
+    confidence: Math.min(normalizeConfidence01(output.confidence), confidenceCap),
+    warnings: Array.from(new Set([
+      ...output.warnings,
+      ...(gapWarning ? [gapWarning] : []),
+    ])),
+    uncertaintyNotes: Array.from(new Set([
+      ...output.uncertaintyNotes,
+      ...record.validationNotes,
+    ])),
+    normalizedOutput: {
+      ...output.normalizedOutput,
+      declaredImplementationStatus: declared,
+      implementationStatus: status,
+      p4ImplementationStatus: status,
+      registryPolicyApplied: true,
+    },
+    validationFlags: {
+      ...output.validationFlags,
+      warnings: Array.from(new Set([
+        ...output.validationFlags.warnings,
+        ...(gapWarning ? [gapWarning] : []),
+      ])),
+    },
+  };
 }

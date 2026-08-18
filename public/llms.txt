@@ -1,15 +1,11 @@
 # H-Pulse
 
-> H-Pulse is a multi-engine quantum prediction system that unifies traditional metaphysical engines (BaZi, Ziwei Doushu, Liu Yao, Qi Men Dun Jia, Tieban Shenshu, Da Liu Ren, Taiyi, Meihua Yishu) with global systems (Vedic, Western astrology, Kabbalah, Mayan calendar, Numerology) into a deterministic destiny projection ending in a death-fusion lifespan.
+> H-Pulse is a multi-engine cultural-rule analysis application covering BaZi, Ziwei Doushu, Liu Yao, Qi Men Dun Jia, Tieban Shenshu, Da Liu Ren, Taiyi, Meihua Yishu, Vedic and Western astrology, Kabbalah, the Mayan calendar, and Numerology.
 
-The system follows a strict workflow: Birth Input → Kao Ke (time calibration) → Multi-engine orchestration → Quantum collapse projection. All outputs are deterministic — no random generation, no mock data. Every result carries explanation traces, warnings, and source-grade metadata.
+The system follows a strict workflow: Birth Input → Kao Ke (time calibration) → Independent engine execution → deterministic scenario ranking. It uses classical software, not quantum computing. Cultural interpretations are not scientifically validated predictions. Each result carries explanation traces, warnings, source grades, and a fail-closed commercial-readiness report. Individualized mortality or lifespan conclusions are excluded from public output.
 
 ## Pages
 
 - [Home](/): Birth input, Kao Ke verification, and unified prediction results.
-- [Quantum Prediction](/quantum-prediction): Quantum world-tree and path-collapse projection view.
+- [Scenario Fusion](/quantum-prediction): Deterministically ranked finite-horizon scenario view.
 - [Prediction History](/prediction-history): Archive of past prediction reports for signed-in users.
-
-## Optional
-
-- [Contact](mailto:hpulse001@gmail.com): Reach the H-Pulse team.

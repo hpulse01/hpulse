@@ -1,15 +1,26 @@
 import { z } from "zod";
+import { normalizeCalculationName } from "@/core/shared/calculationName";
 
 /** HPU-2 RawUserInput Zod schema — client-side fast-fail before WASM call. */
 export const RawUserInputSchema = z.object({
   birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "出生日期需 YYYY-MM-DD"),
   birth_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "出生时间需 HH:MM"),
-  calendar: z.enum(["gregorian", "lunar"]).default("gregorian"),
+  // Lunar-date conversion is not yet implemented in HPU-2. Reject it instead
+  // of interpreting lunar components as Gregorian and producing a wrong chart.
+  calendar: z.literal("gregorian").default("gregorian"),
+  calculation_name: z.preprocess(
+    (value) => typeof value === "string" ? normalizeCalculationName(value) : value,
+    z.string().min(1).max(120).optional(),
+  ),
   location_name: z.string().trim().min(1).max(120),
   latitude: z.number().gte(-90).lte(90),
   longitude: z.number().gte(-180).lte(180),
   timezone: z.string().trim().min(1, "需要 IANA 时区"),
-  gender: z.enum(["male", "female", "other"]),
+  /** Required only when a DST fall-back local time is ambiguous. */
+  timezone_offset_minutes: z.number().int().gte(-840).lte(840).optional(),
+  // Current traditional-school adapters require the binary direction rule.
+  // Do not silently coerce unsupported values into either branch.
+  gender: z.enum(["male", "female"]),
   query_time_utc: z.string().datetime({ offset: true }),
   query_type: z.enum(["natal", "instant", "forecast"]).default("natal"),
   granularity: z.enum(["minute", "hour", "day", "month", "year"]).default("day"),
@@ -46,6 +57,7 @@ export interface StandardizedInput {
   birth: BirthData;
   query: QueryContext;
   identity: UserIdentity;
+  calculation_name?: string;
   seed_material: string;
   raw: RawUserInput;
 }

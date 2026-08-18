@@ -52,9 +52,40 @@ const ASPECT_CONFIG = [
   { key: 'marriage' as const, label: '婚姻姻缘', icon: Heart, color: 'text-rose-400' },
   { key: 'wealth' as const, label: '财运财富', icon: Coins, color: 'text-emerald-400' },
   { key: 'career' as const, label: '事业前程', icon: Briefcase, color: 'text-sky-400' },
-  { key: 'health' as const, label: '健康寿元', icon: Activity, color: 'text-purple-400' },
+  { key: 'health' as const, label: '健康趋势', icon: Activity, color: 'text-purple-400' },
   { key: 'children' as const, label: '子嗣后代', icon: Baby, color: 'text-pink-400' },
 ];
+
+const TEN_GODS_TABLE: Record<string, Record<string, string>> = {
+  '木': { '木': '比肩', '火': '食神', '土': '偏财', '金': '七杀', '水': '正印' },
+  '火': { '木': '正印', '火': '比肩', '土': '食神', '金': '偏财', '水': '七杀' },
+  '土': { '木': '七杀', '火': '正印', '土': '比肩', '金': '食神', '水': '偏财' },
+  '金': { '木': '偏财', '火': '七杀', '土': '正印', '金': '比肩', '水': '食神' },
+  '水': { '木': '食神', '火': '偏财', '土': '七杀', '金': '正印', '水': '比肩' },
+};
+
+function getFullTenGod(dayMasterStem: string, flowStem: string): string {
+  const stemElements: Record<string, string> = {
+    '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土',
+    '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水',
+  };
+  const yangStems = ['甲', '丙', '戊', '庚', '壬'];
+  const dmElement = stemElements[dayMasterStem];
+  const flowElement = stemElements[flowStem];
+  if (!dmElement || !flowElement) return '';
+
+  const baseTenGod = TEN_GODS_TABLE[dmElement]?.[flowElement] || '';
+  const isSamePolarity = (yangStems.includes(dayMasterStem) && yangStems.includes(flowStem))
+    || (!yangStems.includes(dayMasterStem) && !yangStems.includes(flowStem));
+  const tenGodMapping: Record<string, { same: string; diff: string }> = {
+    '比肩': { same: '比肩', diff: '劫财' },
+    '食神': { same: '食神', diff: '伤官' },
+    '偏财': { same: '偏财', diff: '正财' },
+    '七杀': { same: '七杀', diff: '正官' },
+    '正印': { same: '偏印', diff: '正印' },
+  };
+  return tenGodMapping[baseTenGod]?.[isSamePolarity ? 'same' : 'diff'] || baseTenGod;
+}
 
 // ==========================================
 // INTERFACES
@@ -149,43 +180,6 @@ function DaYunExpandedPanel({
   birthYear: number;
 }) {
   const colorClass = ELEMENT_COLORS[daYun.element] || 'text-gray-400 bg-gray-500/20 border-gray-500/30';
-
-  // 十神计算表
-  const TEN_GODS_TABLE: Record<string, Record<string, string>> = {
-    '木': { '木': '比肩', '火': '食神', '土': '偏财', '金': '七杀', '水': '正印' },
-    '火': { '木': '正印', '火': '比肩', '土': '食神', '金': '偏财', '水': '七杀' },
-    '土': { '木': '七杀', '火': '正印', '土': '比肩', '金': '食神', '水': '偏财' },
-    '金': { '木': '偏财', '火': '七杀', '土': '正印', '金': '比肩', '水': '食神' },
-    '水': { '木': '食神', '火': '偏财', '土': '七杀', '金': '正印', '水': '比肩' },
-  };
-  
-  // 阴阳区分后的完整十神
-  const getFullTenGod = (dayMasterStem: string, flowStem: string): string => {
-    const stemElements: Record<string, string> = {
-      '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土',
-      '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水'
-    };
-    const yangStems = ['甲', '丙', '戊', '庚', '壬'];
-    
-    const dmElement = stemElements[dayMasterStem];
-    const flowElement = stemElements[flowStem];
-    if (!dmElement || !flowElement) return '';
-    
-    const baseTenGod = TEN_GODS_TABLE[dmElement]?.[flowElement] || '';
-    const isSamePolarity = (yangStems.includes(dayMasterStem) && yangStems.includes(flowStem)) ||
-                          (!yangStems.includes(dayMasterStem) && !yangStems.includes(flowStem));
-    
-    // 根据阴阳同异确定正偏
-    const tenGodMapping: Record<string, { same: string; diff: string }> = {
-      '比肩': { same: '比肩', diff: '劫财' },
-      '食神': { same: '食神', diff: '伤官' },
-      '偏财': { same: '偏财', diff: '正财' },
-      '七杀': { same: '七杀', diff: '正官' },
-      '正印': { same: '偏印', diff: '正印' },
-    };
-    
-    return tenGodMapping[baseTenGod]?.[isSamePolarity ? 'same' : 'diff'] || baseTenGod;
-  };
 
   // Generate BaZi flow years for this Da Yun with detailed analysis
   const baziFlowYears = useMemo(() => {

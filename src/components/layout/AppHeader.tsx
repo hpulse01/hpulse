@@ -43,7 +43,7 @@ export function AppHeader({ variant = 'console', clauseCount = null }: AppHeader
           <Link to="/" className="flex items-center gap-3 min-w-0 group" aria-label="H-Pulse">
             <HPulseLogo variant="full" size="md" tone="light" className="shrink-0" />
             <span className="hidden md:inline text-[9px] uppercase tracking-[0.32em] text-muted-foreground/55 font-mono border-l border-border/40 pl-3 ml-1 truncate">
-              Quantum Prediction System
+              Cultural Rule Analysis
             </span>
           </Link>
 

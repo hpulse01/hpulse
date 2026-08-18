@@ -16,12 +16,23 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { ChevronDown, MapPin, Clock, Compass } from 'lucide-react';
-import { TiebanEngine, type TiebanInput } from '@/utils/tiebanAlgorithm';
+import type { TiebanInput } from '@/utils/tiebanAlgorithm';
+import { hourBranchOf } from '@/core/calendar/chineseHour';
+import { offsetMinutesAt, resolveLocalTime } from '@/core/astro-time/timezone';
 import { LocationSearch, type GeocodedLocation } from '@/components/LocationSearch';
 import { useI18n } from '@/hooks/useI18n';
+import { normalizeCalculationName } from '@/core/shared/calculationName';
+
+const CHINESE_HOUR_RANGES: Record<string, string> = {
+  子: '23-01', 丑: '01-03', 寅: '03-05', 卯: '05-07',
+  辰: '07-09', 巳: '09-11', 午: '11-13', 未: '13-15',
+  申: '15-17', 酉: '17-19', 戌: '19-21', 亥: '21-23',
+};
 
 /** Extended birth data that includes P0.5 location metadata */
 export interface BirthDataWithGeo extends TiebanInput {
+  /** Explicit optional spelling for Numerology/Kabbalah; never profile-derived. */
+  calculationName?: string;
   normalizedLocationName: string;
   timezoneIana: string;
   sourceProvider: string;
@@ -55,11 +66,14 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
     timezoneOffsetMinutes: 480,
   });
   const [locationName, setLocationName] = useState('北京');
+  const [calculationName, setCalculationName] = useState('');
   const [timezoneIana, setTimezoneIana] = useState('Asia/Shanghai');
   const [sourceProvider, setSourceProvider] = useState('default');
   const [sourceConfidence, setSourceConfidence] = useState(0.9);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [errorText, setErrorText] = useState('');
+  const [timezoneAlternatives, setTimezoneAlternatives] = useState<Array<{ utc: string; offset: number }>>([]);
+  const [selectedTimezoneOffset, setSelectedTimezoneOffset] = useState<number | null>(null);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
@@ -89,8 +103,42 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
       return;
     }
 
+    const resolution = resolveLocalTime({
+      year: formData.year,
+      month: formData.month,
+      day: formData.day,
+      hour: formData.hour,
+      minute: formData.minute,
+    }, timezoneIana);
+    if (resolution.ok === false) {
+      const messages = {
+        invalid_local_time: '出生日期或时间无效，请重新选择。',
+        invalid_timezone: '出生地点的时区无效，请重新选择地点。',
+        nonexistent_local_time: '该当地时间因夏令时切换而不存在，请核对出生时间。',
+      } as const;
+      setErrorText(messages[resolution.reason]);
+      return;
+    }
+
+    const alternatives = resolution.alternatives.map((utc) => ({
+      utc: utc.toISOString(),
+      offset: offsetMinutesAt(utc, timezoneIana),
+    }));
+    if (resolution.ambiguous && !alternatives.some((item) => item.offset === selectedTimezoneOffset)) {
+      setTimezoneAlternatives(alternatives);
+      setErrorText('该当地时间在夏令时结束时出现两次，请选择出生证明对应的 UTC 偏移后再次提交。');
+      return;
+    }
+
+    const timezoneOffsetMinutes = resolution.ambiguous
+      ? selectedTimezoneOffset!
+      : resolution.offsetMinutes;
+    setTimezoneAlternatives([]);
+
     onSubmit({
       ...formData,
+      calculationName: normalizeCalculationName(calculationName),
+      timezoneOffsetMinutes,
       normalizedLocationName: locationName,
       timezoneIana,
       sourceProvider,
@@ -109,9 +157,12 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
     setTimezoneIana(loc.timezoneIana);
     setSourceProvider(loc.sourceProvider);
     setSourceConfidence(1.0);
+    setTimezoneAlternatives([]);
+    setSelectedTimezoneOffset(null);
   };
 
-  const chineseHour = TiebanEngine.getChineseHour(formData.hour);
+  const hourBranch = hourBranchOf(formData.hour);
+  const chineseHour = `${hourBranch}时 (${CHINESE_HOUR_RANGES[hourBranch]})`;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-7">
@@ -199,6 +250,28 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
         </div>
       </div>
 
+      {/* Optional name-based systems input */}
+      <div className="space-y-2.5">
+        <Label htmlFor="calculation-name" className="text-xs text-muted-foreground font-sans">
+          {t('form.calculation_name')}
+        </Label>
+        <Input
+          id="calculation-name"
+          type="text"
+          value={calculationName}
+          onChange={(event) => setCalculationName(event.target.value)}
+          maxLength={120}
+          autoComplete="off"
+          spellCheck={false}
+          placeholder={t('form.calculation_name_placeholder')}
+          aria-describedby="calculation-name-help"
+          className="bg-input border-border/50 h-11 rounded-lg text-sm"
+        />
+        <p id="calculation-name-help" className="text-[10px] leading-relaxed text-muted-foreground/70 font-sans">
+          {t('form.calculation_name_help')}
+        </p>
+      </div>
+
       {/* Location */}
       <LocationSearch
         birthYear={formData.year}
@@ -257,7 +330,7 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
             <div className="space-y-1">
               <Label className="text-[10px] text-muted-foreground/60 font-sans">{t('form.tz_offset')}</Label>
               <Input type="number" step="1" value={formData.timezoneOffsetMinutes}
-                onChange={(e) => setFormData({ ...formData, timezoneOffsetMinutes: Number(e.target.value) })}
+                readOnly
                 className="bg-input border-border/50 h-9 rounded-lg text-sm" />
             </div>
           </div>
@@ -272,11 +345,11 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
           onValueChange={(v) => setFormData({ ...formData, gender: v as 'male' | 'female' })}
           className="flex gap-4"
         >
-          <label htmlFor="male" className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border border-border/30 bg-card/30 hover:border-primary/30 cursor-pointer transition-all has-[data-state=checked]:border-primary/50 has-[data-state=checked]:bg-primary/5">
+          <label htmlFor="male" className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border border-border/30 bg-card/30 hover:border-primary/30 cursor-pointer transition-all has-[[data-state=checked]]:border-primary/50 has-[[data-state=checked]]:bg-primary/5">
             <RadioGroupItem value="male" id="male" className="border-primary/40 text-primary" />
             <span className="text-sm font-sans">{t('form.male')}</span>
           </label>
-          <label htmlFor="female" className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border border-border/30 bg-card/30 hover:border-primary/30 cursor-pointer transition-all has-[data-state=checked]:border-primary/50 has-[data-state=checked]:bg-primary/5">
+          <label htmlFor="female" className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border border-border/30 bg-card/30 hover:border-primary/30 cursor-pointer transition-all has-[[data-state=checked]]:border-primary/50 has-[[data-state=checked]]:bg-primary/5">
             <RadioGroupItem value="female" id="female" className="border-primary/40 text-primary" />
             <span className="text-sm font-sans">{t('form.female')}</span>
           </label>
@@ -286,6 +359,27 @@ export function BirthDataForm({ onSubmit, isLoading }: BirthDataFormProps) {
       {errorText && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive font-sans">
           {errorText}
+        </div>
+      )}
+
+      {timezoneAlternatives.length > 1 && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 space-y-2">
+          <p className="text-xs text-amber-200">夏令时重复时刻（请按出生证明或当地记录选择）：</p>
+          <RadioGroup
+            value={selectedTimezoneOffset?.toString() ?? ''}
+            onValueChange={(value) => {
+              setSelectedTimezoneOffset(Number(value));
+              setErrorText('');
+            }}
+            className="grid gap-2"
+          >
+            {timezoneAlternatives.map((item) => (
+              <label key={item.utc} className="flex items-center gap-2 text-xs text-foreground/85 cursor-pointer">
+                <RadioGroupItem value={item.offset.toString()} />
+                {formatTimezone(item.offset)} · {item.utc}
+              </label>
+            ))}
+          </RadioGroup>
         </div>
       )}
 

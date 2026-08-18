@@ -68,6 +68,8 @@ describe('NumerologyEngine', () => {
       hour: 14, minute: 30, gender: 'male',
       geoLatitude: 39.9042, geoLongitude: 116.4074,
       timezoneOffsetMinutes: 480,
+      timezoneIana: 'Asia/Shanghai',
+      queryTimeUtc: '2026-01-01T00:00:00.000Z',
     });
     const unified = QuantumPredictionEngine.orchestrate(si);
     const numEo = unified.engineOutputs.find(eo => eo.engineName === 'numerology');

@@ -16,6 +16,7 @@ import {
 } from "./runner";
 import { dispatchTieban, dispatchViaOverlay } from "./dispatch";
 import type { FamilyFacts } from "@/core/tieban/types";
+import { applySourceRegistryPolicy } from "@/core/shared/algorithmSourceRegistry";
 
 /** EngineId (HPU-3 namespace) → legacy CoreEngineName used by `p4CoreOverlay`. */
 const OVERLAY_NAME: Partial<Record<EngineId, string>> = {
@@ -65,6 +66,7 @@ function makeRunner(id: EngineId): EngineRunner {
           if (!legacyName) throw new Error(`no_dispatcher_for_${id}`);
           output = dispatchViaOverlay(legacyName as never, si);
         }
+        output = applySourceRegistryPolicy(output);
         return { ok: true, id, output, durationMs: Math.round(performance.now() - t0) };
       } catch (err) {
         return {

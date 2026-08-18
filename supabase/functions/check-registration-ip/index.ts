@@ -11,6 +11,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-forwarded-for, x-real-ip',
 };
 
+async function hashIp(ip: string, secret: string): Promise<string> {
+  const bytes = new TextEncoder().encode(`${secret}:${ip}`);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -36,7 +42,8 @@ serve(async (req) => {
     // Create Supabase client with service role for bypassing RLS
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
+    const storedIp = clientIp === 'unknown' ? clientIp : await hashIp(clientIp, serviceRoleKey);
+
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     if (action === 'check') {
@@ -46,7 +53,7 @@ serve(async (req) => {
       const { data: existingRegistrations, error: checkError } = await supabase
         .from('registration_ips')
         .select('id, registered_at')
-        .eq('ip_address', clientIp)
+        .eq('ip_address', storedIp)
         .gte('registered_at', twentyFourHoursAgo)
         .limit(1);
 
@@ -85,8 +92,9 @@ serve(async (req) => {
       const { error: insertError } = await supabase
         .from('registration_ips')
         .insert({
-          ip_address: clientIp,
+          ip_address: storedIp,
           user_agent: userAgent || null,
+          user_id: userId || null,
           registered_at: new Date().toISOString(),
         });
 
@@ -96,26 +104,23 @@ serve(async (req) => {
       }
 
       // Save registration IP to user profile if userId is provided
-      if (userId && clientIp !== 'unknown') {
+      if (userId && storedIp !== 'unknown') {
         try {
           await supabase.rpc('save_registration_ip', {
             p_user_id: userId,
-            p_ip: clientIp,
+            p_ip: storedIp,
           });
         } catch (err) {
           console.error('Error saving registration IP to profile:', err);
         }
       }
 
-      // Also cleanup old records periodically (1% chance to avoid overhead)
-      if (Math.random() < 0.01) {
-        await supabase.rpc('cleanup_old_registration_ips');
-      }
+      // Enforce the documented 24-hour retention on every registration write.
+      await supabase.rpc('cleanup_old_registration_ips');
 
       return new Response(JSON.stringify({
         success: true,
         message: 'IP recorded',
-        ip: clientIp,
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

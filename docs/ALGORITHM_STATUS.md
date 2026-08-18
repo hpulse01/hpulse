@@ -1,6 +1,8 @@
-# Algorithm Status — P4 Final
+# Algorithm Status — Audited Runtime Ceiling
 
-Last updated: P4.13 engine completion pass (13 引擎缺失规则补全).
+Last updated: 2026-08-17.
+
+This document records implemented code, not predictive validity. `algorithmSourceRegistry.ts` is the executable ceiling: local calculators that say `complete` for a limited sub-chart are downgraded before fusion whenever the engine-wide registry still lists missing rules. There are currently **no commercially complete engines**.
 
 ## Source Grade Legend
 - **A** — classical rules complete, table-backed, fully tested
@@ -40,7 +42,7 @@ Last updated: P4.13 engine completion pass (13 引擎缺失规则补全).
 - **Missing**: 卦身、星煞等派别扩展
 
 ### 梅花易数 Meihua
-- **Status**: `complete` · **Grade**: B · cap **≤ 0.85**
+- **Status**: `partial` · **Grade**: B · cap **≤ 0.65**
 - **Implemented**: 年月日时起卦 · 数字起卦 · 上下卦 · 动爻 · 本/互/变卦 · 体用关系 · 五行生克 · 吉凶趋势
 - **Missing**: 外应 · 声音字数等高级起卦法
 
@@ -70,7 +72,7 @@ Last updated: P4.13 engine completion pass (13 引擎缺失规则补全).
 - **Missing**: D10 等其余分宫盘 · Shadbala · Yogas
 
 ### 数字命理 Numerology
-- **Status**: `complete` (含姓名) / `partial` (缺姓名) · **Grade**: B
+- **Status**: `partial` · **Grade**: B · cap **≤ 0.65**
 - **Implemented**: Pythagorean 字母→数字 · 主数 11/22/33 保留 · Life Path / Destiny / Soul Urge / Personality / Personal Year · Chaldean 体系 · Karmic Debt (13/14/16/19) · Maturity Number
 - **Missing**: Pinnacles/Challenges 周期
 
@@ -105,6 +107,8 @@ Last updated: P4.13 engine completion pass (13 引擎缺失规则补全).
 | D | 0.45 |
 
 Plus: −0.05 per warning (cap −0.30) and a soft cap of `completenessScore / 100`.
+
+The source registry policy is applied before both legacy and HPU fusion, so an overclaimed calculator status can no longer inflate the fused confidence.
 
 ## Determinism Guarantees
 - 0 occurrences of `Math.random` in `src/core/`

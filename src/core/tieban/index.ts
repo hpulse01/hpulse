@@ -4,6 +4,7 @@ export * from './calculateTiebanBase';
 export * from './calculateQuarterKe';
 export * from './familyVerification';
 export * from './clauseMapping';
+export * from './sensitiveContent';
 export * from './systemOffset';
 export * from './generateTiebanReport';
 export * from './toEngineOutput';

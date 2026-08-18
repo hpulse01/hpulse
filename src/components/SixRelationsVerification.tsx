@@ -33,24 +33,9 @@ import { KeywordParser, type ParsedKeywords } from '@/utils/KeywordParser';
 import { Input } from '@/components/ui/input';
 import { Sparkles, Users, Minus, Plus, Crown, Star, Calendar, CheckCircle2, AlertCircle, Search, Lightbulb } from 'lucide-react';
 
-import zodiacRat from '@/assets/zodiac/rat.png';
-import zodiacOx from '@/assets/zodiac/ox.png';
-import zodiacTiger from '@/assets/zodiac/tiger.png';
-import zodiacRabbit from '@/assets/zodiac/rabbit.png';
-import zodiacDragon from '@/assets/zodiac/dragon.png';
-import zodiacSnake from '@/assets/zodiac/snake.png';
-import zodiacHorse from '@/assets/zodiac/horse.png';
-import zodiacGoat from '@/assets/zodiac/goat.png';
-import zodiacMonkey from '@/assets/zodiac/monkey.png';
-import zodiacRooster from '@/assets/zodiac/rooster.png';
-import zodiacDog from '@/assets/zodiac/dog.png';
-import zodiacPig from '@/assets/zodiac/pig.png';
-
 // ==========================================
 // CONSTANTS
 // ==========================================
-
-const ZODIAC_ICONS = [zodiacRat, zodiacOx, zodiacTiger, zodiacRabbit, zodiacDragon, zodiacSnake, zodiacHorse, zodiacGoat, zodiacMonkey, zodiacRooster, zodiacDog, zodiacPig];
 
 const ZODIAC_OPTIONS = [
   { value: 0, branch: '子', name: '鼠', english: 'Rat' },
@@ -198,7 +183,7 @@ export const SixRelationsVerification = ({
       setSelectedIndex(null);
       setNoMatchMessage(null);
     }
-  }, [fatherZodiac, motherZodiac, parentsStatus, siblingsCount]);
+  }, [fatherZodiac, motherZodiac, parentsStatus, siblingsCount, hasCalibrated]);
 
   /**
    * Run the Six Relations calibration algorithm
@@ -374,7 +359,7 @@ export const SixRelationsVerification = ({
                 {ZODIAC_OPTIONS.map((z) => (
                   <SelectItem key={z.value} value={String(z.value)} className="text-foreground">
                     <span className="flex items-center gap-2">
-                      <img src={ZODIAC_ICONS[z.value]} alt={z.name} className="w-5 h-5 object-contain" />
+                      <span aria-hidden="true" className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-primary/25 text-xs text-primary">{z.name}</span>
                       <span>{z.branch}{z.name}</span>
                       <span className="text-muted-foreground text-xs">({z.english})</span>
                     </span>
@@ -400,7 +385,7 @@ export const SixRelationsVerification = ({
                 {ZODIAC_OPTIONS.map((z) => (
                   <SelectItem key={z.value} value={String(z.value)} className="text-foreground">
                     <span className="flex items-center gap-2">
-                      <img src={ZODIAC_ICONS[z.value]} alt={z.name} className="w-5 h-5 object-contain" />
+                      <span aria-hidden="true" className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-primary/25 text-xs text-primary">{z.name}</span>
                       <span>{z.branch}{z.name}</span>
                       <span className="text-muted-foreground text-xs">({z.english})</span>
                     </span>
@@ -572,11 +557,11 @@ export const SixRelationsVerification = ({
                     {/* Zodiacs Row */}
                     <div className="flex gap-4 mt-3 text-sm">
                       <span className="text-muted-foreground flex items-center gap-1">
-                        {zodiacFather && <img src={ZODIAC_ICONS[zodiacFather.value]} alt={zodiacFather.name} className="w-5 h-5 object-contain" />}
+                        {zodiacFather && <span aria-hidden="true" className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-primary/25 text-xs text-primary">{zodiacFather.name}</span>}
                         父属{zodiacFather?.name}
                       </span>
                       <span className="text-muted-foreground flex items-center gap-1">
-                        {zodiacMother && <img src={ZODIAC_ICONS[zodiacMother.value]} alt={zodiacMother.name} className="w-5 h-5 object-contain" />}
+                        {zodiacMother && <span aria-hidden="true" className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-primary/25 text-xs text-primary">{zodiacMother.name}</span>}
                         母属{zodiacMother?.name}
                       </span>
                     </div>

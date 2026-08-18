@@ -29,6 +29,11 @@ export interface SourceMetadata {
 }
 
 export interface StandardizedInput {
+  /**
+   * Optional, explicitly supplied spelling for name-based systems only.
+   * Never infer this from an account profile or fabricate a fallback.
+   */
+  calculationName?: string;
   /** Local birth date-time components */
   birthLocalDateTime: {
     year: number;
@@ -277,6 +282,49 @@ export interface WeightEntry {
   reason: string;
 }
 
+export type CommercialReadinessBlockerCode =
+  | 'required_engine_missing'
+  | 'duplicate_engine_output'
+  | 'unregistered_engine'
+  | 'registry_status_incomplete'
+  | 'registry_missing_rules'
+  | 'registry_source_grade_low'
+  | 'registry_source_reference_unstable'
+  | 'output_status_incomplete'
+  | 'output_source_grade_low'
+  | 'output_completeness_below_threshold'
+  | 'output_invalid'
+  | 'output_validation_failed'
+  | 'explanation_invalid'
+  | 'source_reference_unstable'
+  | 'registry_policy_missing'
+  | 'authoritative_core_missing'
+  | 'authoritative_core_failed'
+  | 'sensitive_mortality_content'
+  | 'engine_execution_failed';
+
+export interface CommercialReadinessBlocker {
+  code: CommercialReadinessBlockerCode;
+  engineName?: string;
+  detail: string;
+  /** Dot/bracket path to unsafe output content, when applicable. */
+  path?: string;
+}
+
+/**
+ * A fail-closed release assessment. This reports implementation and evidence
+ * readiness only; it never claims that a cultural divination system has
+ * scientific predictive validity.
+ */
+export interface CommercialReadinessReport {
+  schemaVersion: 'commercial-readiness/v1';
+  ready: boolean;
+  requiredEngines: EngineName[];
+  auditedEngines: string[];
+  minimumCompletenessScore: number;
+  blockers: CommercialReadinessBlocker[];
+}
+
 export interface UnifiedPredictionResult {
   predictionId: string;
   input: StandardizedInput;
@@ -308,6 +356,8 @@ export interface UnifiedPredictionResult {
   engineEventCandidateCounts: Record<string, number>;
   /** Per-engine contribution weights to final fused result */
   engineContributionWeights: Record<string, number>;
+  /** Fail-closed implementation/evidence gate for public commercial release. */
+  commercialReadiness: CommercialReadinessReport;
 }
 
 // ═══════════════════════════════════════════════

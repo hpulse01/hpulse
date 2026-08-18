@@ -1,5 +1,5 @@
 import type { QuantumEntanglement, LifeAspect } from '@/utils/quantumPredictionEngine';
-import { QuantumPredictionEngine } from '@/utils/quantumPredictionEngine';
+import { getQuantumAspectLabel } from '@/utils/quantumLabels';
 
 interface QuantumEntanglementMapProps {
   entanglements: QuantumEntanglement[];
@@ -65,7 +65,7 @@ export function QuantumEntanglementMap({ entanglements, className = '' }: Quantu
 
       {/* Aspect nodes */}
       {(Object.entries(ASPECT_POSITIONS) as [string, { x: number; y: number }][]).map(([aspect, pos]) => {
-        const label = QuantumPredictionEngine.getAspectLabel(aspect as LifeAspect);
+        const label = getQuantumAspectLabel(aspect as LifeAspect);
         const isFortune = aspect === 'spirituality';
 
         return (

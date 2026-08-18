@@ -1,15 +1,14 @@
-# H-Pulse Quantum Prediction System
+# H-Pulse Mobile — Free Beta
 
-> A deterministic, audit-ready, multi-system destiny projection engine.
-> Sometimes called the **Destiny Operating System**.
+> A deterministic, auditable implementation of thirteen traditional-rule systems for cultural research, entertainment, and self-reflection.
 
-H-Pulse is **not** an entertainment astrology site. It is a serious life-trajectory engine that fuses 13+ classical and modern divination systems into a single, traceable, falsifiable prediction. Every output ships with its own audit trail.
+H-Pulse rules are not scientifically validated and must not be presented as factual forecasts or professional advice. The repository is undergoing a source-by-source algorithm audit before commercial release; a working screen or passing unit test does not mean an engine is historically or independently validated.
 
 ---
 
 ## Positioning
 
-- **Mission**: project a single human life trajectory as honestly as the math allows.
+- **Mission**: implement declared traditional rules transparently and make every limitation visible.
 - **Method**: 13 independent algorithm cores → standardized `EngineOutput` → confidence-weighted fusion → `FateVector` → recursive destiny tree → unique-path collapse.
 - **Promise**: no `Math.random` in any prediction. No `Date.now()` baked into output. Every step has an `explanationTrace`.
 
@@ -19,17 +18,17 @@ H-Pulse never claims absolute foreknowledge. The system is calibrated **continuo
 
 - **Frontend**: React 18 · Vite · TypeScript · TailwindCSS · shadcn/ui · Recharts · Framer Motion
 - **Algorithm Core**: pure deterministic TypeScript modules in `src/core/`
-- **Astronomy**: `astronomy-engine` (DE405/DE421-grade ephemeris)
-- **Backend**: Lovable Cloud (Supabase: Postgres + Edge Functions + Realtime)
-- **AI Layer**: Lovable AI Gateway (Sonar / Gemini / GPT models — interpretation only, never algorithm)
+- **Astronomy**: `astronomy-engine`, with independent golden-case verification still required
+- **Backend**: Supabase (Auth, Postgres, Edge Functions)
+- **Native delivery**: Capacitor projects for iOS and Android
 
 ## Local Development
 
 ```bash
-bun install        # or npm install
-bun run dev        # Vite dev server
-bun run build      # production bundle
-bunx vitest run    # core algorithm tests
+npm ci
+npm run dev
+npm run check
+npm run native:sync
 ```
 
 ## Current Functional Surface
@@ -37,31 +36,31 @@ bunx vitest run    # core algorithm tests
 - ✅ Disclaimer-gated entry
 - ✅ Birth-data + geo + IANA timezone capture
 - ✅ Kao Ke (六亲校时) temporal-lock verification
-- ✅ Quantum prediction orchestration across 13 engines
-- ✅ Destiny tree + unique path collapse
+- ✅ Deterministic orchestration across 13 declared engines
+- ⚠️ Destiny tree and terminal-path models are restricted to super-admin audit while their source validation is incomplete
 - ✅ P5 audit UI (algorithm integrity, engine matrix, explanation trace, warnings, fate vector)
 - ✅ Super-admin orchestration console
 
-## Algorithm Status (Phase P4 final)
+## Audited Algorithm Status
 
 | Tier | Engines |
 |---|---|
-| **complete** | meihua, numerology (with name) |
-| **partial** | bazi, ziwei, liuyao, qimen, liuren, taiyi, western, vedic, mayan, kabbalah |
+| **complete** | none yet |
+| **partial** | bazi, ziwei, liuyao, meihua, qimen, liuren, taiyi, western, vedic, numerology, mayan, kabbalah |
 | **needs_source_validation** | tieban |
 
-See [`docs/ALGORITHM_STATUS.md`](docs/ALGORITHM_STATUS.md) for the full per-engine grade, implemented rules, and missing rules.
+The runtime registry now enforces these statuses and caps confidence before fusion. See [`docs/ALGORITHM_VERIFICATION_MATRIX.md`](docs/ALGORITHM_VERIFICATION_MATRIX.md) for the per-engine evidence and release gates.
 
 ## Phase Roadmap
 
 - **P3** — UI shell, design language, Lovable Cloud integration ✅
-- **P4** — `src/core/` deterministic algorithm reconstruction (P4.1 → P4.12) ✅
-- **P5** — Frontend sync with P4 algorithm metadata + responsive overhaul ✅ *(this phase)*
+- **P4** — deterministic core scaffold and tests ✅; source validation remains open
+- **P5** — frontend sync and responsive overhaul ✅
 - **P6** — Prediction Verification Ledger
 - **P7** — Rule knowledge base expansion
 - **P8** — User long-term feedback calibration
-- **P9** — Multi-platform delivery
-- **P10** — Commercialization & permission layer
+- **P9** — iOS/Android native foundation and CI 🚧
+- **P10** — privacy, account deletion, store readiness, and controlled free beta 🚧
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for details.
 
@@ -69,6 +68,8 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md) for details.
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system architecture
 - [`docs/ALGORITHM_STATUS.md`](docs/ALGORITHM_STATUS.md) — per-engine implementation status
+- [`docs/ALGORITHM_VERIFICATION_MATRIX.md`](docs/ALGORITHM_VERIFICATION_MATRIX.md) — source/golden-case audit matrix
+- [`docs/COMMERCIAL_BETA_READINESS.md`](docs/COMMERCIAL_BETA_READINESS.md) — release gates and current blockers
 - [`docs/UI_SYSTEM.md`](docs/UI_SYSTEM.md) — Digital Temple design system
 - [`docs/P4_ALGORITHM_CORE.md`](docs/P4_ALGORITHM_CORE.md) — P4 algorithm core spec
 - [`docs/P5_FRONTEND_SYNC.md`](docs/P5_FRONTEND_SYNC.md) — P5 frontend sync changelog

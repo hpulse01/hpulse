@@ -10,7 +10,7 @@ const FLOW_STEPS = [
   { n: 2, label: '多引擎独立执行', en: 'Independent Engine Execution' },
   { n: 3, label: '冲突检测与权重融合', en: 'Conflict Detection & Fusion' },
   { n: 4, label: '世界树生成', en: 'Destiny Tree Generation' },
-  { n: 5, label: '唯一路径坍缩', en: 'Unique Path Collapse' },
+  { n: 5, label: '候选情景排序', en: 'Scenario Ranking' },
   { n: 6, label: '生命轨迹报告', en: 'Life Trajectory Report' },
 ];
 

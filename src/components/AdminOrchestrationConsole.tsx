@@ -73,17 +73,18 @@ export function AdminOrchestrationConsole({ profile, snapshot }: Props) {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="bg-card/60 border-border/40">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm"><Database className="h-4 w-4 text-primary" />坍缩与执行摘要</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-sm"><Database className="h-4 w-4 text-primary" />情景排序与执行摘要</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-xs text-muted-foreground">
             {snapshot.collapse ? (
               <>
-                <div>死亡边界：{snapshot.collapse.deathAge} 岁 · {snapshot.collapse.deathCause}</div>
-                <div>坍缩置信度：{Math.round(snapshot.collapse.collapseConfidence * 100)}%</div>
+                <div>分析窗口：0–{snapshot.collapse.planningHorizonAge} 岁 · 路径停止于 {snapshot.collapse.terminalAge} 岁</div>
+                <div>停止原因：{snapshot.collapse.terminalReason}</div>
+                <div>选择稳定度：{Math.round(snapshot.collapse.selectionStability * 100)}%</div>
                 <div>{snapshot.collapse.selectedReason}</div>
               </>
             ) : (
-              <div>当前无坍缩结果。</div>
+              <div>当前无情景排序结果。</div>
             )}
             <div className="border-t border-border/20 pt-2">
               {snapshot.executionSummary.map((entry) => (

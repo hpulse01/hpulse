@@ -18,8 +18,8 @@
 
 import type {
   UnifiedEventCandidate, WorldNode, RecursiveWorldTree,
-  DeathCause, CollapsedPathNode, CollapseResult,
-  RejectedBranchSummary, EventFusionResult, DeathFusionResult,
+  CollapsedPathNode, CollapseResult, TerminalReason,
+  RejectedBranchSummary, EventFusionResult,
 } from '@/types/destinyTree';
 import type { FateVector, FateDimension } from '@/types/prediction';
 import { ALL_FATE_DIMENSIONS } from '@/types/prediction';
@@ -217,7 +217,7 @@ function applyKarmaAdjustment(event: UnifiedEventCandidate, karma: KarmaAccumula
 //   命运节点: 8-16, 生死关头: 16+
 // ═══════════════════════════════════════════════
 
-type EventSignificance = 'trivial' | 'ordinary' | 'major' | 'critical' | 'fatal';
+type EventSignificance = 'trivial' | 'ordinary' | 'major' | 'critical';
 
 function classifySignificance(event: UnifiedEventCandidate): EventSignificance {
   switch (event.intensity) {
@@ -225,7 +225,7 @@ function classifySignificance(event: UnifiedEventCandidate): EventSignificance {
     case 'moderate': return 'ordinary';
     case 'major': return 'major';
     case 'critical': return 'critical';
-    case 'life_defining': return event.deathRelated ? 'fatal' : 'critical';
+    case 'life_defining': return 'critical';
     default: return 'trivial';
   }
 }
@@ -240,7 +240,6 @@ function getBranchRange(significance: EventSignificance): [number, number] {
     case 'ordinary': return [2, 3];
     case 'major':    return [3, 5];
     case 'critical': return [4, 8];
-    case 'fatal':    return [2, 4]; // Death events: limited but meaningful branches
     default:         return [1, 2];
   }
 }
@@ -330,7 +329,7 @@ function pruneEvents(
 
 const MAX_DEPTH = 25;
 const MAX_NODES = 500;
-const MAX_AGE = 100;
+export const ANALYSIS_HORIZON_AGE = 100;
 
 interface TreeGenContext {
   fusionResult: EventFusionResult;
@@ -339,7 +338,6 @@ interface TreeGenContext {
   baseFateVector: FateVector;
   nodeCount: number;
   nodeIdCounter: number;
-  deathFusion: DeathFusionResult;
 }
 
 function createRootNode(ctx: TreeGenContext): WorldNode {
@@ -356,7 +354,7 @@ function createRootNode(ctx: TreeGenContext): WorldNode {
 
   return {
     id: `WN-0`, parentId: null, depth: 0, age: 0, year: ctx.birthYear,
-    alive: true, isDeath: false,
+    isTerminal: false,
     dominantEvent: birthEvent, contributingEvents: [],
     engineSupports: [], transitionProbability: 1.0, cumulativeProbability: 1.0,
     causalChain: ['出生'], localFateVector: { ...ctx.baseFateVector },
@@ -365,46 +363,6 @@ function createRootNode(ctx: TreeGenContext): WorldNode {
     eventRelationships: { dependenciesMet: [], exclusionsApplied: [], enhancementsReceived: [], transformationsTriggered: [] },
     children: [],
   };
-}
-
-/**
- * Death check at a given age.
- */
-function checkDeathAtAge(
-  fateVector: FateVector,
-  age: number,
-  deathFusion: DeathFusionResult,
-): { die: boolean; cause: DeathCause; description: string; reason: string } {
-  if (fateVector.health <= 10 && age >= 50) {
-    return { die: true, cause: 'illness', description: '健康值极低，重病不治',
-      reason: `健康值${fateVector.health}<=10且年龄${age}>=50` };
-  }
-
-  for (const dc of deathFusion.candidates) {
-    if (age >= dc.ageWindow[0] && age <= dc.ageWindow[1]) {
-      if (dc.strength === 'strong' && age >= dc.estimatedAge - 2) {
-        return { die: true, cause: dc.cause, description: dc.description,
-          reason: `强死亡候选(${dc.engines.join('+')}共识)在${dc.estimatedAge}岁` };
-      }
-      if (dc.strength === 'weak' && age >= dc.estimatedAge && fateVector.health <= 40) {
-        return { die: true, cause: dc.cause, description: dc.description,
-          reason: `弱死亡候选在${dc.estimatedAge}岁，健康值${fateVector.health}偏低` };
-      }
-    }
-  }
-
-  const primary = deathFusion.primaryDeath;
-  if (age >= primary.estimatedAge + 3) {
-    return { die: true, cause: 'natural_aging', description: `${age}岁超过主要寿限候选(${primary.estimatedAge}岁)`,
-      reason: `超过主要寿限${primary.estimatedAge}+3岁` };
-  }
-
-  if (age >= MAX_AGE) {
-    return { die: true, cause: 'lifespan_limit', description: '寿限已至',
-      reason: `达到绝对上限${MAX_AGE}岁` };
-  }
-
-  return { die: false, cause: 'natural_aging', description: '', reason: '' };
 }
 
 function calculateEnhancement(event: UnifiedEventCandidate, usedEventIds: Set<string>): number {
@@ -425,13 +383,13 @@ function expandNode(
   completedCategories: Set<string>,
   depth: number,
 ): void {
-  if (depth >= MAX_DEPTH || ctx.nodeCount >= MAX_NODES || !parent.alive) return;
+  if (depth >= MAX_DEPTH || ctx.nodeCount >= MAX_NODES || parent.isTerminal) return;
 
   const currentAge = parent.age;
   const candidatesByAge = new Map<number, UnifiedEventCandidate[]>();
 
   // Look ahead for next events with pruning
-  for (let lookAhead = 1; lookAhead <= 15 && currentAge + lookAhead <= MAX_AGE; lookAhead++) {
+  for (let lookAhead = 1; lookAhead <= 15 && currentAge + lookAhead <= ANALYSIS_HORIZON_AGE; lookAhead++) {
     const nextAge = currentAge + lookAhead;
     const events = pruneEvents(
       ctx.fusionResult.candidates, nextAge, usedEventIds,
@@ -446,9 +404,9 @@ function expandNode(
   // If no events found, skip to next decade
   if (candidatesByAge.size === 0) {
     const nextDecade = Math.ceil((currentAge + 1) / 10) * 10;
-    if (nextDecade <= MAX_AGE && nextDecade > currentAge) {
+    if (nextDecade <= ANALYSIS_HORIZON_AGE && nextDecade > currentAge) {
       ctx.nodeIdCounter++;
-      const deathCheck = checkDeathAtAge(parent.localFateVector, nextDecade, ctx.deathFusion);
+      const isTerminal = nextDecade >= ANALYSIS_HORIZON_AGE;
 
       const quietEvent: UnifiedEventCandidate = {
         id: `UEC-QUIET-${nextDecade}`, mergeKey: `quiet-${nextDecade}`,
@@ -465,15 +423,17 @@ function expandNode(
       const child: WorldNode = {
         id: `WN-${ctx.nodeIdCounter}`, parentId: parent.id,
         depth, age: nextDecade, year: ctx.birthYear + nextDecade,
-        alive: !deathCheck.die, isDeath: deathCheck.die,
-        deathCause: deathCheck.die ? deathCheck.cause : undefined,
+        isTerminal,
+        terminalReason: isTerminal ? 'analysis_horizon' : undefined,
         dominantEvent: quietEvent, contributingEvents: [],
         engineSupports: [], transitionProbability: 0.9,
         cumulativeProbability: parent.cumulativeProbability * 0.9,
         causalChain: [...parent.causalChain, quietEvent.description],
-        localFateVector: { ...parent.localFateVector },
+        localFateVector: applyNaturalDrift(parent.localFateVector, parent.age, nextDecade),
         collapseWeight: parent.collapseWeight * 0.9,
-        branchReason: deathCheck.die ? deathCheck.description : '运势平稳推进',
+        branchReason: isTerminal
+          ? `到达${ANALYSIS_HORIZON_AGE}岁有限分析边界（非寿命预测）`
+          : '运势平稳推进',
         parentCausalChain: [...parent.causalChain],
         eventRelationships: { dependenciesMet: [], exclusionsApplied: [], enhancementsReceived: [], transformationsTriggered: [] },
         children: [],
@@ -482,7 +442,7 @@ function expandNode(
       parent.children.push(child);
       ctx.nodeCount++;
 
-      if (!deathCheck.die) {
+      if (!isTerminal) {
         expandNode(child, ctx, new Set(usedEventIds), new Set(completedCategories), depth + 1);
       }
     }
@@ -518,7 +478,7 @@ function expandNode(
       // v6.0: Apply natural drift before event impact
       const driftedFate = applyNaturalDrift(parent.localFateVector, parent.age, nextAge);
       const branchFate = applyImpact(driftedFate, event.fateImpact as Partial<Record<FateDimension, number>>);
-      const deathCheck = checkDeathAtAge(branchFate, nextAge, ctx.deathFusion);
+      const isTerminal = nextAge >= ANALYSIS_HORIZON_AGE;
 
       // v6.0: Karma-adjusted transition probability
       const karma = calculateKarma(parent.causalChain, parent.localFateVector);
@@ -542,8 +502,8 @@ function expandNode(
       const child: WorldNode = {
         id: `WN-${ctx.nodeIdCounter}`, parentId: parent.id,
         depth, age: nextAge, year: ctx.birthYear + nextAge,
-        alive: !deathCheck.die, isDeath: deathCheck.die,
-        deathCause: deathCheck.die ? deathCheck.cause : undefined,
+        isTerminal,
+        terminalReason: isTerminal ? 'analysis_horizon' : undefined,
         dominantEvent: event,
         contributingEvents: isMain ? events.filter(e => e.id !== event.id) : [],
         engineSupports: event.engineSupports.map(s => s.engineName),
@@ -552,7 +512,9 @@ function expandNode(
         causalChain: [...parent.causalChain, event.description],
         localFateVector: branchFate,
         collapseWeight: parent.collapseWeight * event.fusedProbability * (event.consensusCount * 0.2 + 0.6) * (isMain ? 1.0 : 0.6),
-        branchReason: deathCheck.die ? deathCheck.description : (isMain ? event.description : `分支：${event.description}`),
+        branchReason: isTerminal
+          ? `到达${ANALYSIS_HORIZON_AGE}岁有限分析边界（非寿命预测）`
+          : (isMain ? event.description : `分支：${event.description}`),
         parentCausalChain: [...parent.causalChain],
         eventRelationships: { dependenciesMet: depsMet, exclusionsApplied, enhancementsReceived, transformationsTriggered },
         children: [],
@@ -561,7 +523,7 @@ function expandNode(
       parent.children.push(child);
       ctx.nodeCount++;
 
-      if (!deathCheck.die) {
+      if (!isTerminal) {
         expandNode(child, ctx, branchUsed, branchCats, depth + 1);
       }
     }
@@ -591,11 +553,11 @@ export function generateWorldTree(
   baseFateVector: FateVector,
   birthYear: number,
   gender: string,
+  generatedAt: string = `${birthYear}-01-01T00:00:00.000Z`,
 ): RecursiveWorldTree {
   const ctx: TreeGenContext = {
     fusionResult, birthYear, gender, baseFateVector,
     nodeCount: 0, nodeIdCounter: 0,
-    deathFusion: fusionResult.deathFusion,
   };
 
   const root = createRootNode(ctx);
@@ -603,14 +565,22 @@ export function generateWorldTree(
 
   expandNode(root, ctx, new Set(), new Set(), 1);
 
-  // Ensure all terminal nodes are death nodes
+  // Mark every leaf with an explicit finite-model boundary reason.
   const terminals = collectTerminals(root);
   for (const term of terminals) {
-    if (term.alive && !term.isDeath) {
-      term.isDeath = true;
-      term.alive = false;
-      term.deathCause = term.age >= 80 ? 'natural_aging' : 'lifespan_limit';
-      term.branchReason = `${term.age}岁寿终`;
+    if (!term.isTerminal) {
+      term.isTerminal = true;
+      const reason: TerminalReason = term.age >= ANALYSIS_HORIZON_AGE
+        ? 'analysis_horizon'
+        : term.depth >= MAX_DEPTH
+          ? 'depth_limit'
+          : ctx.nodeCount >= MAX_NODES
+            ? 'node_limit'
+            : 'no_further_events';
+      term.terminalReason = reason;
+      term.branchReason = reason === 'analysis_horizon'
+        ? `到达${ANALYSIS_HORIZON_AGE}岁有限分析边界（非寿命预测）`
+        : `情景生成在${term.age}岁停止：${reason}`;
     }
   }
 
@@ -620,9 +590,9 @@ export function generateWorldTree(
     totalPaths: terminals.length,
     maxDepth: maxTreeDepth(root),
     terminalNodes: terminals,
-    generatedAt: new Date().toISOString(),
+    generatedAt,
     birthYear, gender,
-    deathFusion: fusionResult.deathFusion,
+    planningHorizonAge: ANALYSIS_HORIZON_AGE,
   };
 }
 
@@ -645,15 +615,17 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
   if (terminals.length === 0) {
     return {
       collapsedPath: [],
-      deathAge: 75, deathCause: 'natural_aging',
-      deathDescription: '默认寿终',
-      rejectedBranches: [], collapseReasoning: '命运树为空',
-      collapseConfidence: 0.1, finalLifeSummary: '无法生成命运路径',
+      planningHorizonAge: tree.planningHorizonAge,
+      terminalAge: 0,
+      terminalReason: 'no_further_events',
+      terminalDescription: '没有可供排序的情景路径',
+      rejectedBranches: [], collapseReasoning: '情景树为空',
+      selectionStability: 0, finalLifeSummary: '无法生成情景路径',
       totalPathsConsidered: 0,
       selectedReason: '无路径可选',
       dominantEngines: [],
       conflictResolutionNotes: [],
-      deathBoundaryReason: '无死亡数据',
+      horizonReason: `有限分析窗口上限为${tree.planningHorizonAge}岁；它不是寿命预测。`,
     };
   }
 
@@ -736,8 +708,8 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
     fateVector: node.localFateVector,
     cumulativeProbability: node.cumulativeProbability,
     engineSupports: node.engineSupports,
-    isDeath: node.isDeath,
-    deathCause: node.deathCause,
+    isTerminal: node.isTerminal,
+    terminalReason: node.terminalReason,
   }));
 
   const winnerAmplitude = collapseDistribution.worldLines[winnerIdx >= 0 ? winnerIdx : 0];
@@ -749,11 +721,11 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
     return {
       branchAge: r.terminal.age,
       branchEvent: r.terminal.dominantEvent.description.slice(0, 60),
-      reason: `量子振幅P=${(rAmplitude?.probability ?? 0).toFixed(4)} < 主线P=${winnerProb.toFixed(4)}`,
+      reason: `确定性情景权重=${(rAmplitude?.probability ?? 0).toFixed(4)} < 选中路径=${winnerProb.toFixed(4)}`,
       probability: r.terminal.cumulativeProbability,
-      rejectedReason: `波函数|Ψ|²较低，${
-        r.terminal.age < winner.terminal.age ? '寿命偏短' :
-        Object.keys(r.engineCounts).length < Object.keys(winner.engineCounts).length ? '引擎共振不足' : '命理势能偏高'
+      rejectedReason: `情景排序权重较低，${
+        r.terminal.age < winner.terminal.age ? '较早触及模型剪枝边界' :
+        Object.keys(r.engineCounts).length < Object.keys(winner.engineCounts).length ? '引擎证据覆盖较少' : '综合代价较高'
       }`,
     };
   });
@@ -766,53 +738,52 @@ export function collapseWorldTree(tree: RecursiveWorldTree): CollapseResult {
   }
 
   const selectedReason =
-    `量子坍缩选择此路径：波函数振幅P=${winnerProb.toFixed(4)}，` +
-    `命理势能E=${winnerAmplitude?.fatePotential?.toFixed(3) ?? 'N/A'}，` +
-    `引擎共识(${dominantEngines.join('+')}主导)，` +
-    `配分函数Z=${collapseDistribution.partitionFunction.toFixed(3)}，` +
-    `信息熵H=${collapseDistribution.entropy.toFixed(3)}bit`;
+    `确定性情景排序选择此路径：归一化权重=${winnerProb.toFixed(4)}，` +
+    `情景代价=${winnerAmplitude?.fatePotential?.toFixed(3) ?? 'N/A'}，` +
+    `引擎支持(${dominantEngines.join('+') || '无'}主导)，` +
+    `归一化常数=${collapseDistribution.partitionFunction.toFixed(3)}，` +
+    `分布熵=${collapseDistribution.entropy.toFixed(3)}bit`;
 
-  const deathNode = winner.terminal;
-  const deathBoundaryReason =
-    `死亡终点${deathNode.age}岁：${deathNode.branchReason}。` +
-    `基于死亡候选融合(${tree.deathFusion.primaryDeath.engines.join('+')}共识，` +
-    `主要候选${tree.deathFusion.primaryDeath.estimatedAge}岁，` +
-    `强度${tree.deathFusion.primaryDeath.strength})`;
+  const terminalNode = winner.terminal;
+  const horizonReason =
+    `路径在${terminalNode.age}岁停止：${terminalNode.branchReason}。` +
+    `系统的固定分析窗口上限为${tree.planningHorizonAge}岁；该边界不表示寿命或死亡时间。`;
 
   const collapseReasoning =
-    `量子坍缩v6.0：从${pathDataList.length}条世界线中，` +
-    `通过模拟退火(稳定性${Math.round(annealResult.stability * 100)}%)×蒙特卡洛验证(MC置信度${Math.round(mcResult.mcConfidence * 100)}%)` +
-    `双重验证后波函数振幅计算(Ψ=Ae^{-E/kT})坍缩。` +
-    `动态分支因子B(t)生成分支，年龄漂移模型+因果积分调节，三级剪枝+退相干感知优化。` +
-    `配分函数Z=${collapseDistribution.partitionFunction.toFixed(3)}，` +
+    `确定性情景融合v7.0：从${pathDataList.length}条候选路径中，` +
+    `通过退火式排序稳定性检查(${Math.round(annealResult.stability * 100)}%)×蒙特卡洛敏感度测试(${Math.round(mcResult.mcConfidence * 100)}%)` +
+    `评估输入扰动下的路径稳定程度。` +
+    `动态分支因子生成分支，年龄阶段漂移+事件影响调节，三级剪枝控制复杂度。` +
+    `归一化常数=${collapseDistribution.partitionFunction.toFixed(3)}，` +
     `确定性种子PRNG(seed=${collapseSeed.toString(16).slice(0,8)}...)。` +
-    `有效温度T=${collapseDistribution.effectiveTemperature.toFixed(2)}，` +
-    `坍缩置信度${Math.round(collapseDistribution.collapseConfidence * 100)}%` +
-    `(MC${mcResult.isStable ? '稳定' : '不稳定'}，` +
+    `排序温度参数=${collapseDistribution.effectiveTemperature.toFixed(2)}，` +
+    `选择稳定度${Math.round(collapseDistribution.collapseConfidence * 100)}%` +
+    `(敏感度测试${mcResult.isStable ? '稳定' : '不稳定'}，` +
     `退火${annealResult.stability > 0.7 ? '高度稳定' : annealResult.stability > 0.5 ? '较稳定' : '敏感'})。` +
-    `终止于${deathNode.age}岁(${deathNode.deathCause || '自然'})。`;
+    `路径在${terminalNode.age}岁到达模型边界。以上仅为算法情景排序，不是科学预测概率。`;
 
   const majorEvents = winner.path.filter(n => n.dominantEvent.intensity === 'critical' || n.dominantEvent.intensity === 'life_defining');
   const finalLifeSummary =
     `命主${tree.birthYear}年生，` +
-    `一生经历${winner.path.length - 1}个关键命运节点，` +
+    `当前规则集生成${winner.path.length - 1}个分析节点，` +
     `其中${majorEvents.length}个重大事件。` +
-    (majorEvents.length > 0 ? `关键转折：${majorEvents.slice(0, 3).map(n => `${n.age}岁(${n.dominantEvent.subcategory})`).join('、')}。` : '') +
-    `寿终${deathNode.age}岁，${deathNode.deathCause === 'natural_aging' ? '善终归位' : '因' + (deathNode.branchReason || '命数') + '而终'}。`;
+    (majorEvents.length > 0 ? `规则标记的关键转折：${majorEvents.slice(0, 3).map(n => `${n.age}岁(${n.dominantEvent.subcategory})`).join('、')}。` : '') +
+    `分析路径在${terminalNode.age}岁到达有限模型边界；不应解释为必然事件或寿命结论。`;
 
   return {
     collapsedPath,
-    deathAge: deathNode.age,
-    deathCause: deathNode.deathCause || 'natural_aging',
-    deathDescription: deathNode.branchReason,
+    planningHorizonAge: tree.planningHorizonAge,
+    terminalAge: terminalNode.age,
+    terminalReason: terminalNode.terminalReason ?? 'no_further_events',
+    terminalDescription: terminalNode.branchReason,
     rejectedBranches,
     collapseReasoning,
-    collapseConfidence: Math.min(0.95, collapseDistribution.collapseConfidence * 0.4 + annealResult.confidence * 0.3 + mcResult.mcConfidence * 0.3),
+    selectionStability: Math.min(0.95, collapseDistribution.collapseConfidence * 0.4 + annealResult.confidence * 0.3 + mcResult.mcConfidence * 0.3),
     finalLifeSummary,
     totalPathsConsidered: pathDataList.length,
     selectedReason,
     dominantEngines,
     conflictResolutionNotes,
-    deathBoundaryReason,
+    horizonReason,
   };
 }

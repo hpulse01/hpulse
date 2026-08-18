@@ -26,9 +26,11 @@ describe('Qimen Integration with Orchestrator', () => {
     const qimenOutput = result.engineOutputs.find(e => e.engineName === 'qimen');
     expect(qimenOutput).toBeDefined();
     expect(qimenOutput!.engineNameCN).toBe('奇门遁甲');
-    expect(qimenOutput!.normalizedOutput['遁局']).toBeTruthy();
-    expect(qimenOutput!.normalizedOutput['值符']).toBeTruthy();
-    expect(qimenOutput!.normalizedOutput['值使']).toBeTruthy();
+    expect(qimenOutput!.normalizedOutput.dun).toBeTruthy();
+    expect(qimenOutput!.normalizedOutput.ju).toBeTruthy();
+    expect(qimenOutput!.normalizedOutput.zhiFuStar).toBeTruthy();
+    expect(qimenOutput!.normalizedOutput.zhiShiGate).toBeTruthy();
+    expect(qimenOutput!.engineVersion).toBe('P4.7-core');
   });
 
   it('natalAnalysis also activates qimen (low weight)', () => {

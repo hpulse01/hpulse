@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  Calendar, GitBranch, Skull, Heart, Briefcase, Coins, GraduationCap,
+  Calendar, GitBranch, Flag, Heart, Briefcase, Coins, GraduationCap,
   Stethoscope, Plane, Sparkles as SparkIcon, Users, Flame, AlertTriangle,
   ChevronDown, ChevronRight,
 } from 'lucide-react';
@@ -35,7 +35,6 @@ const CATEGORY_META: Record<string, { label: string; accent: string; ring: strin
   spiritual:    { label: '心灵', accent: 'text-violet-300', ring: 'bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.6)]', chip: 'border-violet-500/30 text-violet-200 bg-violet-500/5', Icon: SparkIcon },
   turning_point:{ label: '转折', accent: 'text-orange-300', ring: 'bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.6)]',  chip: 'border-orange-500/30 text-orange-200 bg-orange-500/5', Icon: GitBranch },
   accident:     { label: '意外', accent: 'text-red-300',    ring: 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.7)]',    chip: 'border-red-500/30 text-red-200 bg-red-500/5',        Icon: AlertTriangle },
-  death:        { label: '终局', accent: 'text-rose-200',   ring: 'bg-rose-300 shadow-[0_0_14px_rgba(253,164,175,0.85)]', chip: 'border-rose-500/40 text-rose-200 bg-rose-500/10',    Icon: Skull },
 };
 const DEFAULT_META = { label: '事件', accent: 'text-foreground', ring: 'bg-primary', chip: 'border-border/40 text-foreground bg-card/40', Icon: Flame };
 
@@ -79,7 +78,7 @@ interface RenderRow {
   probability: number;
   causalChain: string[];
   engines: string[];
-  isDeath: boolean;
+  isTerminal: boolean;
   isRejected: boolean;
   reason?: string;
 }
@@ -121,7 +120,7 @@ function buildRows(collapse: CollapseResult, birthYear: number, birthMonth: numb
       probability: ev.fusedProbability,
       causalChain: Array.from(causalSet).slice(0, 6),
       engines,
-      isDeath: node.isDeath,
+      isTerminal: node.isTerminal,
       isRejected: false,
     });
   }
@@ -144,7 +143,7 @@ function buildRejectedRows(collapse: CollapseResult, birthYear: number, birthMon
       probability: r.probability,
       causalChain: [r.rejectedReason || r.reason],
       engines: [],
-      isDeath: false,
+      isTerminal: false,
       isRejected: true,
       reason: r.rejectedReason || r.reason,
     };
@@ -181,7 +180,12 @@ function groupByDecade(rows: RenderRow[]): DecadeGroup[] {
 
 // ──────────────────────────── component ────────────────────────────
 
-export function EventTimelinePanel({ collapseResult, birthYear, birthMonth, kaoKeVerified = true }: EventTimelinePanelProps) {
+export function EventTimelinePanel({
+  collapseResult,
+  birthYear,
+  birthMonth,
+  kaoKeVerified = true,
+}: EventTimelinePanelProps) {
   const [showRejected, setShowRejected] = useState(false);
 
   const { groups, rejRows, mainCount } = useMemo(() => {
@@ -222,27 +226,27 @@ export function EventTimelinePanel({ collapseResult, birthYear, birthMonth, kaoK
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-primary" />
-          <span className="font-serif text-sm text-primary tracking-wider">明确事件时间线</span>
+          <span className="font-serif text-sm text-primary tracking-wider">规则情景时间线</span>
           <Badge variant="outline" className="text-[9px] border-primary/30 text-primary/80 font-mono">
             {mainCount} 主线 · {rejRows.length} 幽灵分支
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">坍缩置信</span>
+          <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">选择稳定度</span>
           <div className="h-1.5 w-20 rounded-full bg-border/20 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-primary/60 to-primary"
-              style={{ width: `${Math.round(collapseResult.collapseConfidence * 100)}%` }}
+              style={{ width: `${Math.round(collapseResult.selectionStability * 100)}%` }}
             />
           </div>
           <span className="font-mono text-[10px] text-primary tabular-nums">
-            {(collapseResult.collapseConfidence * 100).toFixed(0)}%
+            {(collapseResult.selectionStability * 100).toFixed(0)}%
           </span>
         </div>
       </div>
 
       <p className="text-[10px] text-muted-foreground/80 leading-relaxed border-l-2 border-primary/30 pl-2">
-        来源:多引擎事件融合 → 世界树坍缩。每条事件含年份、月份(原文或确定性派生)、诱因链、贡献引擎。
+        来源：多引擎规则融合 → 确定性情景排序。年份与月份是规则输出或派生索引，不代表事件必然发生。
       </p>
 
       {/* ── Timeline ── */}
@@ -287,7 +291,7 @@ export function EventTimelinePanel({ collapseResult, birthYear, birthMonth, kaoK
       {collapseResult.collapseReasoning && (
         <details className="rounded-lg border border-border/20 bg-background/40 p-2">
           <summary className="cursor-pointer text-[10px] font-serif text-primary/80">
-            坍缩推理
+            情景排序说明
           </summary>
           <p className="text-[10px] text-muted-foreground leading-relaxed mt-1 whitespace-pre-line">
             {collapseResult.collapseReasoning}
@@ -335,9 +339,9 @@ function DecadeBlock({ group }: { group: DecadeGroup }) {
 
 function TimelineRow({ row }: { row: RenderRow }) {
   const meta = CATEGORY_META[row.category] ?? DEFAULT_META;
-  const Icon = row.isDeath ? Skull : meta.Icon;
+  const Icon = row.isTerminal ? Flag : meta.Icon;
   const rank = INTENSITY_RANK[row.intensity] ?? 2;
-  const isHero = rank >= 4 || row.isDeath;
+  const isHero = rank >= 4 || row.isTerminal;
 
   return (
     <li className="relative pl-6">
@@ -345,7 +349,7 @@ function TimelineRow({ row }: { row: RenderRow }) {
       <span
         aria-hidden
         className={`absolute left-[3px] top-3 w-[9px] h-[9px] rounded-full ring-2 ring-background ${meta.ring} ${
-          row.isDeath ? 'animate-pulse' : ''
+          row.isTerminal ? 'animate-pulse' : ''
         }`}
       />
 
@@ -417,13 +421,13 @@ function TimelineRow({ row }: { row: RenderRow }) {
           </div>
         )}
 
-        {/* Footer: probability bar + engines */}
+        {/* Footer: internal ranking weight + engines */}
         <div className="px-3 py-2 mt-1.5 border-t border-border/15 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/60 shrink-0">P</span>
+            <span className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/60 shrink-0">Rank</span>
             <div className="h-1 w-16 rounded-full bg-border/20 overflow-hidden">
               <div
-                className={`h-full ${row.isDeath ? 'bg-rose-400' : 'bg-primary/70'}`}
+                className={`h-full ${row.isTerminal ? 'bg-sky-400' : 'bg-primary/70'}`}
                 style={{ width: `${Math.max(4, Math.round(row.probability * 100))}%` }}
               />
             </div>

@@ -38,7 +38,7 @@ describe('PredictionOrchestrator', () => {
     expect(report.destinyTimeline.length).toBeGreaterThan(0);
   });
 
-  it('keeps death boundary terminal in the unified timeline', () => {
+  it('keeps the finite model boundary terminal in the unified timeline', () => {
     const report = PredictionOrchestrator.execute(makeInput());
     expect(report.collapseResult).not.toBeNull();
     expect(report.destinyTimeline[report.destinyTimeline.length - 1]?.isTerminal).toBe(true);

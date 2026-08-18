@@ -19,6 +19,7 @@ import { trigramFromNumber, movingLineFromSum } from './numberToTrigram';
 import { trigramByName, buildHexagram, deriveHuGua, deriveBianGua } from './trigrams';
 import { analyzeBodyUse } from './bodyUse';
 import { EARTHLY_BRANCHES } from './constants';
+import { Solar } from 'lunar-typescript';
 
 interface TimeNumbers {
   upperRaw: number;
@@ -27,9 +28,9 @@ interface TimeNumbers {
   detail: string;
 }
 
-/** 从 queryTimeUtc + timezoneIana 推出年支序数/月/日/时支序数。
- *  注意：此处采用公历近似 + 时支映射 (子=1..亥=12)；正式农历换算由 P4.1 calendar core 提供。
- *  这里独立推出确定数字以保证 deterministic：相同输入 → 相同输出。
+/** 从 queryTimeUtc + timezoneIana 推出农历年支序数/月/日/时支序数。
+ *  规则口径：当地民用日界 00:00；闰月沿用本月序数；子=1..亥=12。
+ *  该口径对应《梅花易数》卷一“年月日时起卦”的年/月/日/时取数法。
  */
 function deriveTimeNumbers(input: MeihuaInput, warnings: MeihuaWarning[]): TimeNumbers | null {
   if (!input.queryTimeUtc || !input.timezoneIana) return null;
@@ -53,29 +54,42 @@ function deriveTimeNumbers(input: MeihuaInput, warnings: MeihuaWarning[]): TimeN
   let hour = Number(parts.hour);
   if (hour === 24) hour = 0;
 
+  // Convert the local civil Gregorian date to the Chinese lunar date. The
+  // library is intentionally fed wall-clock components rather than the UTC
+  // instant so the chosen product policy follows the user's local civil day.
+  const lunar = Solar.fromYmdHms(year, month, day, hour, 0, 0).getLunar();
+  const lunarMonthRaw = lunar.getMonth();
+  const lunarMonth = Math.abs(lunarMonthRaw);
+  const lunarDay = lunar.getDay();
+  const yearBranch = lunar.getYearZhi();
+  const yearBranchIdx = EARTHLY_BRANCHES.indexOf(yearBranch as (typeof EARTHLY_BRANCHES)[number]);
+  if (yearBranchIdx < 0) {
+    warnings.push({ code: 'meihua.time.yearBranch.invalid', message: `无法识别农历年支：${yearBranch}`, level: 'error' });
+    return null;
+  }
+
   // 时支序数：23-1=子(1), 1-3=丑(2), ..., 21-23=亥(12)
   const branchIdx0 = Math.floor(((hour + 1) % 24) / 2); // 0..11 子→亥
   const branchOrd = branchIdx0 + 1;
+  const yearBranchOrd = yearBranchIdx + 1;
 
-  // 年支序数：以公历年对 12 取模映射到 12 地支（子=1900%12 起算的近似），仅用于起卦数字。
-  // 注：传统应用农历年干支；此处采用公历年对 12 取模作 deterministic surrogate，
-  // 并标记为 partial 以提示后续可由 calendar core 升级。
-  const yearBranchOrd = ((year - 4) % 12 + 12) % 12 + 1; // 公元 4 年=甲子年 → 子=1
-  warnings.push({
-    code: 'meihua.time.yearBranch.surrogate',
-    message: '年支序数采用公历年对 12 取模的 deterministic 近似，建议接入 calendar core 的真实农历年支以提升精度。',
-    level: 'warn',
-  });
+  if (lunarMonthRaw < 0) {
+    warnings.push({
+      code: 'meihua.time.leapMonth.policy',
+      message: `闰${lunarMonth}月按同月序数 ${lunarMonth} 取数。`,
+      level: 'info',
+    });
+  }
 
-  const upperRaw = yearBranchOrd + month + day;
-  const lowerRaw = yearBranchOrd + month + day + branchOrd;
+  const upperRaw = yearBranchOrd + lunarMonth + lunarDay;
+  const lowerRaw = yearBranchOrd + lunarMonth + lunarDay + branchOrd;
   const movingRaw = lowerRaw;
 
   return {
     upperRaw,
     lowerRaw,
     movingRaw,
-    detail: `年支序=${yearBranchOrd}(${EARTHLY_BRANCHES[((yearBranchOrd - 1) % 12 + 12) % 12]})，月=${month}，日=${day}，时支序=${branchOrd}(${EARTHLY_BRANCHES[branchIdx0]})；上=${upperRaw}, 下=${lowerRaw}, 动=${movingRaw}`,
+    detail: `当地公历=${year}-${month}-${day} ${hour}:00，农历=${lunar.getYear()}年${lunarMonthRaw < 0 ? '闰' : ''}${lunarMonth}月${lunarDay}日，年支序=${yearBranchOrd}(${yearBranch})，时支序=${branchOrd}(${EARTHLY_BRANCHES[branchIdx0]})；上=${upperRaw}, 下=${lowerRaw}, 动=${movingRaw}；日界=当地00:00，闰月=同月序`,
   };
 }
 
@@ -90,8 +104,8 @@ export function calculateMeihua(input: MeihuaInput): MeihuaChart {
   let lowerRaw = 0;
   let movingRaw = 0;
   let castingSource = '';
-  let implementationStatus: MeihuaChart['implementationStatus'] = 'complete';
-  let sourceGrade: MeihuaChart['sourceGrade'] = 'B';
+  const implementationStatus: MeihuaChart['implementationStatus'] = 'complete';
+  const sourceGrade: MeihuaChart['sourceGrade'] = 'B';
 
   if (input.mode === 'manual') {
     if (!input.manualUpper || !input.manualLower || !input.manualMovingLine) {
@@ -138,8 +152,6 @@ export function calculateMeihua(input: MeihuaInput): MeihuaChart {
     lowerTrigram = trigramFromNumber(lowerRaw);
     movingLine = movingLineFromSum(movingRaw);
     castingSource = `time:${input.queryTimeUtc}|tz=${input.timezoneIana}|${tn.detail}`;
-    implementationStatus = 'partial';
-    sourceGrade = 'C';
     trace.push({
       rule: 'meihua.cast.time',
       detail: `年月日时起卦：${tn.detail}；上卦=${upperTrigram.name}，下卦=${lowerTrigram.name}，动爻=第${movingLine}爻。`,
@@ -178,7 +190,7 @@ export function calculateMeihua(input: MeihuaInput): MeihuaChart {
   );
   const completenessScore =
     input.mode === 'manual' ? 0.95 :
-    input.mode === 'numbers' ? 0.9 : 0.75;
+    input.mode === 'numbers' ? 0.9 : 0.9;
 
   return {
     input,

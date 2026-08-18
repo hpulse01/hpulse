@@ -10,6 +10,8 @@ export interface ZiweiInput {
   day: number;
   hour: number;
   gender: 'male' | 'female';
+  /** Explicit forecast anchor; defaults to birth year for deterministic natal-only calls. */
+  targetYear?: number;
 }
 
 export interface ZiweiStar {
@@ -709,7 +711,7 @@ export const ZiweiEngine = {
     }
 
     // Liunian
-    const currentYear = new Date().getFullYear();
+    const currentYear = input.targetYear ?? input.year;
     const birthYear = input.year;
     const liunian: LiunianInfo[] = [];
     for (let offset = -2; offset <= 10; offset++) {

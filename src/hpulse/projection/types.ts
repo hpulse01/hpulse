@@ -17,15 +17,13 @@ export interface HeaderProjection {
   quantumSignature: string;
   /** Lifetime overall score 0..100. */
   overallScore: number;
-  /** 0..1 confidence. */
-  overallConfidence: number;
+  /** 0..1 descriptive audit reliability, not predictive probability. */
+  overallReliability: number;
   /** Coverage = active engines / considered. */
   coverage: number;
   enginesActive: number;
   enginesConsidered: number;
   enginesDegraded: number;
-  /** Death window peak age, or null. */
-  deathAge: number | null;
   /** Dominant life stage. */
   dominantStage: LifeStage;
   /** Single-sentence summary, deterministic. */
@@ -65,10 +63,12 @@ export interface StageRowProjection {
   fateVector: FateVector;
   /** Stage aggregate (mean of FateVector). */
   stageScore: number;
-  /** 0..1. */
-  confidence: number;
+  /** 0..1 descriptive audit reliability. */
+  reliability: number;
   /** 0..1. */
   coverage: number;
+  /** 0..1 cross-engine agreement. */
+  agreement: number;
   /** Top 3 dimensions for this stage. */
   topDimensions: Array<{ dimension: FateDimension; score: number }>;
   /** Dominant engine across stage's domains. */
@@ -79,15 +79,13 @@ export interface StageRowProjection {
   activeEngines: number;
 }
 
-export interface DeathProjection {
-  startAge: number;
-  endAge: number;
-  peakAge: number;
-  strength: "strong" | "weak" | "illness_only" | "default";
-  cause: "natural_aging" | "illness" | "accident" | "unknown";
-  fusedProbability: number;
+export interface EvidenceProjection {
+  ruleCoverage: number;
+  engineAgreement: number;
+  sourceQuality: number;
+  observationCount: number;
   contributingEngines: EngineId[];
-  causalChain: string[];
+  notes: string[];
 }
 
 export interface ProjectionView {
@@ -99,7 +97,7 @@ export interface ProjectionView {
   fateDimensions: FateDimensionProjection[];
   engines: EngineCardProjection[];
   stages: StageRowProjection[];
-  death: DeathProjection;
+  evidence: EvidenceProjection;
   /** Flattened explanation trace (pipeline + worldtree + fusion). */
   explanationTrace: string[];
   /** Warnings collected from engine results. */

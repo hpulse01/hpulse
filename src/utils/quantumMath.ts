@@ -1,19 +1,25 @@
 /**
- * H-Pulse Quantum Mathematics Framework v2.0
+ * H-Pulse Classical Scenario-Scoring Framework v2.1
  *
- * v2.0 升级:
- *   - Quantum decoherence time-decay model (量子退相干时间衰减)
+ * IMPORTANT: this module runs entirely on classical hardware. Historical
+ * `Quantum*` exported names remain for API compatibility; they are analogies,
+ * not implementations of quantum computing, quantum mechanics, or the Born
+ * rule. Its normalized weights are internal ranking weights, not calibrated
+ * probabilities that real-world events will occur.
+ *
+ * v2.1 terminology:
+ *   - Exponential analysis-horizon decay heuristic
  *   - Adaptive simulated annealing for temperature scheduling (自适应模拟退火)
- *   - Monte Carlo path integral for confidence interval estimation (蒙特卡洛路径积分)
- *   - Cross-engine entanglement detection (跨引擎纠缠检测)
+ *   - Deterministic perturbation sensitivity analysis
+ *   - Cross-engine score-association detection
  *   - Rényi entropy for multi-scale uncertainty measurement
  *
  * v1.0 原有功能:
- *   1. Wave function amplitude: Ψ(ω,t) = A·e^(-E(t)/kT)
+ *   1. Two-component visualization encoding of exponential scenario weight
  *   2. Partition function Z for normalization
  *   3. Fate potential: E_i(t) = -Σ W_s(t)·log P_s(ω_i|t)
- *   4. Deterministic collapse with seeded PRNG
- *   5. Probability distribution |c|² → Born rule
+ *   4. Deterministic weighted ranking with a seeded PRNG
+ *   5. Normalized Boltzmann-style internal weights
  */
 
 import type { FateVector, FateDimension } from '@/types/prediction';
@@ -28,7 +34,7 @@ export interface QuantumAmplitude {
   real: number;
   /** Complex amplitude: imaginary part */
   imag: number;
-  /** |Ψ|² = probability */
+  /** Squared display magnitude; used as an internal ranking weight. */
   normSquared: number;
 }
 
@@ -36,6 +42,7 @@ export interface WorldLineAmplitude {
   worldLineId: string;
   amplitude: QuantumAmplitude;
   fatePotential: number;
+  /** Internal normalized ranking weight, not event probability. */
   probability: number;
   cumulativeProbability: number;
 }
@@ -156,10 +163,9 @@ export function calculateFatePotential(engineSupports: EngineSupport[]): number 
 // ═══════════════════════════════════════════════
 
 /**
- * Calculate quantum amplitude for a world line.
- * Ψ(ω,t) = A · e^(-E(t)/kT)
- * 
- * Phase is determined by fate potential to create interference effects.
+ * Encode a scenario's exponential weight as a two-component display value.
+ * The phase has no effect on selection weights and no interference calculation
+ * is performed; this is retained only for backward-compatible visualization.
  */
 export function calculateAmplitude(
   fatePotential: number,
@@ -169,7 +175,7 @@ export function calculateAmplitude(
   // Magnitude e^(-E/2kT) so that |Ψ|² = e^(-E/kT) matches the Boltzmann
   // weights used by calculatePartitionFunction / calculateProbabilityDistribution.
   const magnitude = Math.exp(-fatePotential / (2 * Math.max(0.01, kT)));
-  // Phase determined by potential → creates constructive/destructive interference
+  // Deterministic display phase only; it does not model physical interference.
   const phase = (fatePotential * 2 * Math.PI + phaseSeed) % (2 * Math.PI);
   
   const real = magnitude * Math.cos(phase);
@@ -185,7 +191,7 @@ export function calculateAmplitude(
 
 /**
  * Calculate partition function Z = Σ e^(-E_i/kT)
- * Ensures probability normalization (Born rule).
+ * Normalizes the classical exponential weights.
  */
 export function calculatePartitionFunction(potentials: number[], kT: number): number {
   let Z = 0;
@@ -196,7 +202,7 @@ export function calculatePartitionFunction(potentials: number[], kT: number): nu
 }
 
 /**
- * Calculate probability distribution from potentials.
+ * Calculate internal scenario-ranking weights from potentials.
  * P(ω_i) = |Ψ_i|² / Σ|Ψ_j|² = e^(-2E_i/kT) / Z²
  * Simplifies to Boltzmann: P_i = e^(-E_i/kT) / Z
  */
@@ -216,7 +222,7 @@ export function calculateProbabilityDistribution(
 // ═══════════════════════════════════════════════
 
 /**
- * Shannon entropy of the probability distribution.
+ * Shannon entropy of the normalized ranking-weight distribution.
  * High entropy = many equally likely outcomes (uncertainty)
  * Low entropy = one dominant outcome (certainty)
  */
@@ -263,7 +269,7 @@ function calculateEffectiveTemperature(worldLines: WorldLineInput[]): number {
 }
 
 /**
- * Full quantum collapse pipeline:
+ * Backward-compatible classical scenario-ranking pipeline:
  *   1. Calculate fate potentials E_i(t)
  *   2. Calculate amplitudes Ψ_i
  *   3. Compute probability distribution P_i = |Ψ_i|²/Z
@@ -398,7 +404,7 @@ export function calculateFateVectorCoherence(
 }
 
 // ═══════════════════════════════════════════════
-// 8. Quantum Decoherence Time-Decay (量子退相干模型)
+// 8. Exponential Analysis-Horizon Decay Heuristic
 //
 // 随着预测时间跨度增大，引擎预测的确定性指数衰减。
 // Γ(t) = Γ_0 · e^{-t/τ_d}
@@ -426,8 +432,8 @@ const DEFAULT_DECOHERENCE: DecoherenceConfig = {
  * Calculate decoherence factor at a given time span.
  * Γ(t) = max(floor, Γ₀ · e^{-t/τ_d})
  *
- * Physically: near-term predictions are coherent (high certainty),
- * far-future predictions decohere (uncertainty increases).
+ * Product heuristic only: later horizons receive a lower rule-reliability
+ * multiplier. It is neither a physical decoherence model nor empirical proof.
  */
 export function calculateDecoherence(
   yearsAhead: number,
@@ -509,7 +515,7 @@ export function generateAnnealingSchedule(config: AnnealingSchedule = DEFAULT_AN
 }
 
 /**
- * Annealed quantum collapse: run collapse at each temperature step,
+ * Annealed scenario ranking: rerun selection at each temperature step,
  * track which world line is selected most frequently, and return
  * the consensus winner along with stability metrics.
  *
@@ -571,9 +577,10 @@ export function annealedCollapse(
 }
 
 // ═══════════════════════════════════════════════
-// 10. Monte Carlo Path Integral (蒙特卡洛路径积分)
+// 10. Deterministic Perturbation Sensitivity Analysis
 //
-// 通过多次随机扰动后重新坍缩，估算坍缩结果的置信区间。
+// 通过带种子的多次扰动后重新排序，估算排名稳定性；不是物理路径积分，
+// 也不是经真实事件校准的概率置信区间。
 // 这回答了关键问题："如果引擎输出有微小波动，结果会变吗？"
 // ═══════════════════════════════════════════════
 

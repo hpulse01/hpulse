@@ -4,7 +4,7 @@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { CollapseResult } from '@/types/destinyTree';
 import { useI18n } from '@/hooks/useI18n';
-import { ArrowRight, Skull, Sparkles, Target } from 'lucide-react';
+import { ArrowRight, Flag, Sparkles, Target } from 'lucide-react';
 
 interface Props { collapse: CollapseResult; birthYear: number }
 
@@ -14,8 +14,6 @@ export function UniquePathLayer({ collapse, birthYear }: Props) {
   const turningPoints = events.filter(n =>
     n.event.intensity === 'major' || n.event.intensity === 'critical' || n.event.intensity === 'life_defining'
   );
-
-  const deathLabel = (cause: string) => t(`death.${cause}`) !== `death.${cause}` ? t(`death.${cause}`) : cause;
 
   return (
     <div className="space-y-5">
@@ -27,7 +25,7 @@ export function UniquePathLayer({ collapse, birthYear }: Props) {
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground/50 font-sans">
           <span>{t('path.nodes')} <strong className="text-foreground/70">{events.length}</strong></span>
           <span>{t('path.turning_points')} <strong className="text-primary">{turningPoints.length}</strong></span>
-          <span>{t('path.terminus')} <strong className="text-accent">{collapse.deathAge}{t('common.age')} ({deathLabel(collapse.deathCause)})</strong></span>
+          <span>{lang === 'zh' ? '模型边界' : 'Model boundary'} <strong className="text-accent">{collapse.terminalAge}{t('common.age')} ({collapse.terminalReason})</strong></span>
           <span>{t('path.considered')} <strong className="text-foreground/70">{collapse.totalPathsConsidered}</strong></span>
         </div>
       </div>
@@ -69,7 +67,7 @@ export function UniquePathLayer({ collapse, birthYear }: Props) {
           <div className="space-y-1">
             {events.map((node, i) => (
               <div key={i} className={`flex items-start gap-3 p-2.5 rounded-xl border transition-colors ${
-                node.isDeath ? 'border-destructive/15 bg-destructive/3' :
+                node.isTerminal ? 'border-sky-500/15 bg-sky-500/3' :
                 node.event.intensity === 'life_defining' || node.event.intensity === 'critical' ? 'border-amber-500/10 bg-amber-500/3' :
                 'border-transparent hover:border-border/10 hover:bg-card/20'
               }`}>
@@ -79,7 +77,7 @@ export function UniquePathLayer({ collapse, birthYear }: Props) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    {node.isDeath && <Skull className="w-3 h-3 text-destructive/50" />}
+                    {node.isTerminal && <Flag className="w-3 h-3 text-sky-300/60" />}
                     <span className="text-[11px] text-foreground/50 leading-relaxed font-sans">
                       {node.event.description.length > 80 ? node.event.description.slice(0, 80) + '…' : node.event.description}
                     </span>

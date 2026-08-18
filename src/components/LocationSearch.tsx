@@ -7,6 +7,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin, Loader2, Search, AlertCircle } from 'lucide-react';
+import { resolveLocalTime } from '@/core/astro-time/timezone';
 
 export interface GeocodedLocation {
   normalizedLocationName: string;
@@ -92,8 +93,20 @@ export function LocationSearch({
         }
 
         const data = await resp.json();
-        setResults(data.results || []);
-        setShowDropdown((data.results || []).length > 0);
+        const resolvedResults = (data.results || []).map((loc: GeocodedLocation) => {
+          const resolution = resolveLocalTime({
+            year: birthYear,
+            month: birthMonth,
+            day: birthDay,
+            hour: birthHour,
+            minute: 0,
+          }, loc.timezoneIana);
+          return resolution.ok
+            ? { ...loc, timezoneOffsetMinutesAtBirth: resolution.offsetMinutes }
+            : loc;
+        });
+        setResults(resolvedResults);
+        setShowDropdown(resolvedResults.length > 0);
       } catch (err) {
         setError(err instanceof Error ? err.message : '搜索失败');
         setResults([]);

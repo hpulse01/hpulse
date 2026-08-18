@@ -31,6 +31,8 @@ function buildTestFusionResult() {
   const result = QuantumPredictionEngine.predict({
     year: 1990, month: 6, day: 15, hour: 14, minute: 30,
     gender: 'male', geoLatitude: 39.9042, geoLongitude: 116.4074, timezoneOffsetMinutes: 480,
+    timezoneIana: 'Asia/Shanghai',
+    queryTimeUtc: '2025-01-01T00:00:00.000Z',
   });
   // Collect seeds from raw data
   const seeds: DestinyEventSeed[] = [];
@@ -84,22 +86,22 @@ describe('World Tree Generation', () => {
     expect(t1.totalPaths).toBe(t2.totalPaths);
   });
 
-  it('every leaf is a death node', () => {
+  it('every leaf is an explicit finite-model terminal', () => {
     const fusion = buildTestFusionResult();
     const tree = generateWorldTree(fusion, BASE_FATE, 1990, 'male');
     const leaves = collectLeaves(tree.root);
     for (const leaf of leaves) {
-      expect(leaf.isDeath).toBe(true);
-      expect(leaf.alive).toBe(false);
+      expect(leaf.isTerminal).toBe(true);
+      expect(leaf.terminalReason).toBeTruthy();
     }
   });
 
-  it('no node expands after death', () => {
+  it('no node expands after a model terminal', () => {
     const fusion = buildTestFusionResult();
     const tree = generateWorldTree(fusion, BASE_FATE, 1990, 'male');
     const allNodes = collectAllNodes(tree.root);
     for (const node of allNodes) {
-      if (node.isDeath) {
+      if (node.isTerminal) {
         expect(node.children.length).toBe(0);
       }
     }
@@ -109,7 +111,7 @@ describe('World Tree Generation', () => {
     const fusion = buildTestFusionResult();
     const tree = generateWorldTree(fusion, BASE_FATE, 1990, 'male');
     expect(tree.root.parentId).toBeNull();
-    expect(tree.root.alive).toBe(true);
+    expect(tree.root.isTerminal).toBe(false);
   });
 });
 
@@ -119,8 +121,9 @@ describe('World Tree Collapse', () => {
     const tree = generateWorldTree(fusion, BASE_FATE, 1990, 'male');
     const collapse = collapseWorldTree(tree);
     expect(collapse.collapsedPath.length).toBeGreaterThan(0);
-    expect(collapse.deathAge).toBeGreaterThan(0);
-    expect(collapse.collapseConfidence).toBeGreaterThan(0);
+    expect(collapse.terminalAge).toBeGreaterThan(0);
+    expect(collapse.selectionStability).toBeGreaterThan(0);
+    expect(collapse.planningHorizonAge).toBe(100);
   });
 
   it('same input → same collapsed path', () => {
@@ -128,16 +131,17 @@ describe('World Tree Collapse', () => {
     const tree = generateWorldTree(fusion, BASE_FATE, 1990, 'male');
     const c1 = collapseWorldTree(tree);
     const c2 = collapseWorldTree(tree);
-    expect(c1.deathAge).toBe(c2.deathAge);
+    expect(c1.terminalAge).toBe(c2.terminalAge);
     expect(c1.collapsedPath.length).toBe(c2.collapsedPath.length);
   });
 
-  it('collapsed path ends with death node', () => {
+  it('collapsed path ends with a finite-model terminal', () => {
     const fusion = buildTestFusionResult();
     const tree = generateWorldTree(fusion, BASE_FATE, 1990, 'male');
     const collapse = collapseWorldTree(tree);
     const last = collapse.collapsedPath[collapse.collapsedPath.length - 1];
-    expect(last.isDeath).toBe(true);
+    expect(last.isTerminal).toBe(true);
+    expect(last.terminalReason).toBeTruthy();
   });
 
   it('collapse reasoning is non-empty', () => {
@@ -176,6 +180,21 @@ describe('Event Fusion', () => {
     expect(careerEvents[0].consensusCount).toBe(2);
     expect(careerEvents[0].engineSupports.length).toBe(2);
   });
+
+  it('excludes mortality and lifespan guesses before fusion', () => {
+    const unsafe: DestinyEventSeed = {
+      id: 'unsafe', engineName: 'numerology', engineVersion: 'legacy', timingBasis: 'birth',
+      category: 'death', subcategory: 'unsupported', description: 'unsupported lifespan guess',
+      earliestAge: 70, latestAge: 80, probability: 0.9, intensity: 'life_defining',
+      causalFactors: ['fabricated'], triggerConditions: [], deathRelated: true,
+      mergeKey: 'unsafe-lifespan', fateImpact: { health: -50 }, sourceDetail: 'none',
+      sourceFieldPath: 'legacy', sourceEvidence: 'none', reasoning: 'none', confidence: 0.9,
+      conflictTags: ['unsafe'],
+    };
+    const result = fuseEventSeeds([unsafe], { numerology: 1 });
+    expect(result.candidates).toEqual([]);
+    expect(result.excludedSensitiveCount).toBe(1);
+  });
 });
 
 describe('Full Pipeline Integration', () => {
@@ -183,21 +202,27 @@ describe('Full Pipeline Integration', () => {
     const result = QuantumPredictionEngine.predict({
       year: 1990, month: 6, day: 15, hour: 14, minute: 30,
       gender: 'male', geoLatitude: 39.9042, geoLongitude: 116.4074, timezoneOffsetMinutes: 480,
+      timezoneIana: 'Asia/Shanghai',
+      queryTimeUtc: '2025-01-01T00:00:00.000Z',
     });
     expect(result.destinyTree).toBeDefined();
     expect(result.collapseResult).toBeDefined();
     expect(result.destinyTree!.totalNodes).toBeGreaterThan(1);
     expect(result.collapseResult!.collapsedPath.length).toBeGreaterThan(0);
-    expect(result.collapseResult!.deathAge).toBeGreaterThan(0);
+    expect(result.collapseResult!.planningHorizonAge).toBe(100);
+    expect(result.collapseResult!.terminalAge).toBeGreaterThan(0);
   });
 
-  it('deathAge uses destiny tree value', () => {
+  it('analysis horizon uses the destiny tree model boundary', () => {
     const result = QuantumPredictionEngine.predict({
       year: 1990, month: 6, day: 15, hour: 14, minute: 30,
       gender: 'male', geoLatitude: 39.9042, geoLongitude: 116.4074, timezoneOffsetMinutes: 480,
+      timezoneIana: 'Asia/Shanghai',
+      queryTimeUtc: '2025-01-01T00:00:00.000Z',
     });
     if (result.collapseResult) {
-      expect(result.deathAge).toBe(result.collapseResult.deathAge);
+      expect(result.analysisHorizonAge).toBe(result.destinyTree?.planningHorizonAge);
+      expect(result.collapseResult.planningHorizonAge).toBe(result.destinyTree?.planningHorizonAge);
     }
   });
 });

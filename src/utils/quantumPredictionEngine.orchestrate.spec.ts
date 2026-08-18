@@ -33,6 +33,8 @@ describe('QuantumPredictionEngine.orchestrate', () => {
     expect(result.activationReasonSummary).toBeTruthy();
     expect(result.fusedFateVector).toBeDefined();
     expect(result.algorithmVersion).toBe('5.0.0');
+    expect(result.commercialReadiness.ready).toBe(false);
+    expect(result.commercialReadiness.schemaVersion).toBe('commercial-readiness/v1');
   });
 
   it('natalAnalysis activates all 13 engines including liuyao (low weight)', () => {
@@ -55,6 +57,8 @@ describe('QuantumPredictionEngine.orchestrate', () => {
     const r2 = QuantumPredictionEngine.orchestrate(input);
     expect(r1.fusedFateVector).toEqual(r2.fusedFateVector);
     expect(r1.activeEngines).toEqual(r2.activeEngines);
+    expect(r1.executionTrace).toEqual(r2.executionTrace);
+    expect(r1.engineOutputs).toEqual(r2.engineOutputs);
   });
 
   it('weights sum to 1.0', () => {
@@ -68,5 +72,25 @@ describe('QuantumPredictionEngine.orchestrate', () => {
     expect(result.input.normalizedLocationName).toBe('北京');
     expect(result.input.timezoneIana).toBe('Asia/Shanghai');
     expect(result.input.sourceMetadata.provider).toBe('test');
+  });
+
+  it('passes only an explicitly supplied calculation spelling to name-based cores', () => {
+    const result = QuantumPredictionEngine.orchestrate(makeInput({ calculationName: '  John   Smith  ' }));
+    expect(result.input.calculationName).toBe('John Smith');
+
+    const numerology = result.engineOutputs.find((output) => output.engineName === 'numerology');
+    const kabbalah = result.engineOutputs.find((output) => output.engineName === 'kabbalah');
+    expect(numerology?.normalizedOutput.destiny).not.toBe('-');
+    expect(numerology?.validationFlags.passed).toContain('name_numbers_computed');
+    expect(kabbalah?.normalizedOutput.derivedFromName).toBe('true');
+  });
+
+  it('does not fabricate name-derived values when the calculation spelling is absent', () => {
+    const result = QuantumPredictionEngine.orchestrate(makeInput());
+    const numerology = result.engineOutputs.find((output) => output.engineName === 'numerology');
+    const kabbalah = result.engineOutputs.find((output) => output.engineName === 'kabbalah');
+    expect(numerology?.normalizedOutput.destiny).toBe('-');
+    expect(numerology?.validationFlags.failed).toContain('name_numbers_unavailable');
+    expect(kabbalah?.normalizedOutput.derivedFromName).toBe('false');
   });
 });

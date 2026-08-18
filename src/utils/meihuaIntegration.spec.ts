@@ -26,9 +26,10 @@ describe('Meihua Integration with Orchestrator', () => {
     const meihuaOutput = result.engineOutputs.find(e => e.engineName === 'meihua');
     expect(meihuaOutput).toBeDefined();
     expect(meihuaOutput!.engineNameCN).toBe('梅花易数');
-    expect(meihuaOutput!.normalizedOutput['本卦']).toBeTruthy();
-    expect(meihuaOutput!.normalizedOutput['变卦']).toBeTruthy();
-    expect(meihuaOutput!.normalizedOutput['体用']).toBeTruthy();
+    expect(meihuaOutput!.normalizedOutput.benGua).toBeTruthy();
+    expect(meihuaOutput!.normalizedOutput.bianGua).toBeTruthy();
+    expect(meihuaOutput!.normalizedOutput.bodyUseRelation).toBeTruthy();
+    expect(meihuaOutput!.engineVersion).toBe('P4.6-core');
   });
 
   it('natalAnalysis also activates meihua (low weight)', () => {

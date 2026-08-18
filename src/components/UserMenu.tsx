@@ -6,6 +6,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 import {
   DropdownMenu,
@@ -18,15 +28,31 @@ import {
 import { useAuth, UserLevel } from '@/hooks/useAuth';
 import { AuthModal, UserLevelBadge } from '@/components/AuthModal';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
-  User, LogOut, Crown, Star, ChevronDown, Shield, Settings
+  User, LogOut, ChevronDown, Shield, Settings, Trash2
 } from 'lucide-react';
 
 export function UserMenu() {
-  const { user, profile, isAuthenticated, isLoading, signOut } = useAuth();
+  const { user, profile, isAuthenticated, isLoading, signOut, deleteAccount } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    const { error } = await deleteAccount();
+    setIsDeleting(false);
+    if (error) {
+      toast.error('账户删除失败，请稍后重试');
+      return;
+    }
+    setDeleteDialogOpen(false);
+    navigate('/', { replace: true });
+    toast.success('账户及关联数据已永久删除');
+  };
 
   // Check admin status
   useEffect(() => {
@@ -69,7 +95,8 @@ export function UserMenu() {
   }
 
   return (
-    <DropdownMenu>
+    <>
+      <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button 
           variant="outline" 
@@ -107,6 +134,14 @@ export function UserMenu() {
           </>
         )}
         
+        <DropdownMenuItem
+          onSelect={() => setDeleteDialogOpen(true)}
+          className="text-destructive focus:text-destructive cursor-pointer"
+        >
+          <Trash2 className="w-4 h-4 mr-2" />
+          永久删除账户
+        </DropdownMenuItem>
+
         <DropdownMenuItem 
           onClick={() => signOut()}
           className="text-destructive focus:text-destructive cursor-pointer"
@@ -114,8 +149,30 @@ export function UserMenu() {
           <LogOut className="w-4 h-4 mr-2" />
           退出登录
         </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>永久删除账户？</AlertDialogTitle>
+            <AlertDialogDescription>
+              此操作将删除登录账户、个人资料、预测记录和真实事件回填，且无法恢复。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? '正在删除…' : '确认永久删除'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 

@@ -40,19 +40,30 @@ export function dispatchTieban(si: StandardizedInput, facts?: FamilyFacts): Engi
   // empty when full report (clause DB) is unavailable; FateVector falls back
   // to neutral 50s but warnings + grade reflect the missing data.
   const stubReport: TiebanFullReport = {
-    pillars: calc.pillars,
+    inputSnapshot: {
+      birthLocalDateTime: si.birthLocalDateTime,
+      timezoneIana: si.timezoneIana,
+      geoLatitude: si.geoLatitude,
+      geoLongitude: si.geoLongitude,
+    },
     baseResult: calc.base,
     quarterKe: calc.quarter,
     calibration: calc.verification
       ? {
+          theoreticalBase: calc.base.theoreticalBase,
           confirmedClauseId: null,
           systemOffset: calc.verification.systemOffset ?? 0,
+          lockedQuarterIndex: calc.verification.locked.quarterIndex,
+          selectedOption: calc.verification.locked,
           calibrationTrace: calc.verification.explanationTrace,
           warnings: calc.verification.warnings,
         }
       : {
+          theoreticalBase: calc.base.theoreticalBase,
           confirmedClauseId: null,
           systemOffset: 0,
+          lockedQuarterIndex: null,
+          selectedOption: null,
           calibrationTrace: [],
           warnings: calc.warnings,
         },
@@ -67,8 +78,14 @@ export function dispatchTieban(si: StandardizedInput, facts?: FamilyFacts): Engi
     warnings: calc.warnings,
     explanationTrace: calc.explanationTrace,
     sourceGrade: calc.sourceGrade,
-    implementationStatus: facts ? "needs_source_validation" : "partial",
-  } as unknown as TiebanFullReport;
+    implementationStatus: "needs_source_validation",
+    confidence: facts ? 0.35 : 0.2,
+    completenessScore: facts ? 35 : 20,
+    uncertaintyNotes: [
+      "铁板公式尚未完成权威文献交叉验证。",
+      ...(facts ? [] : ["未提供六亲事实，考刻未锁定。"]),
+    ],
+  };
 
   return tiebanReportToEngineOutput(stubReport, {
     birthLocalDateTime: si.birthLocalDateTime,

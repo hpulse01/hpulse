@@ -13,7 +13,7 @@ const NotFound = () => {
     <div className="flex min-h-screen items-center justify-center bg-muted">
       <SEO
         title="Page not found — H-Pulse"
-        description="This H-Pulse route does not exist. Return to the home console to start a new quantum destiny projection."
+        description="This H-Pulse route does not exist. Return to the home console to start a new cultural-rule analysis."
         path={location.pathname}
       />
       <div className="text-center">

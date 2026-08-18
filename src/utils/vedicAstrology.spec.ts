@@ -80,6 +80,8 @@ describe('VedicAstrologyEngine', () => {
       hour: MOCK_INPUT.hour, minute: MOCK_INPUT.minute, gender: 'male',
       geoLatitude: MOCK_INPUT.geoLatitude, geoLongitude: MOCK_INPUT.geoLongitude,
       timezoneOffsetMinutes: MOCK_INPUT.timezoneOffsetMinutes,
+      timezoneIana: 'Asia/Shanghai',
+      queryTimeUtc: '2026-01-01T00:00:00.000Z',
     });
     const unified = QuantumPredictionEngine.orchestrate(si);
     const vedicEo = unified.engineOutputs.find(eo => eo.engineName === 'vedic');
@@ -89,7 +91,9 @@ describe('VedicAstrologyEngine', () => {
     expect(vedicEo!.validationFlags).toBeDefined();
     expect(vedicEo!.validationFlags.passed.length).toBeGreaterThan(0);
     expect(vedicEo!.timeWindows).toBeDefined();
-    expect(vedicEo!.timeWindows.length).toBeGreaterThan(0);
+    // The authoritative core does not fabricate timing windows that its
+    // current partial Dasha implementation cannot support.
+    expect(vedicEo!.timeWindows).toEqual([]);
     expect(vedicEo!.aspectScores).toBeDefined();
     expect(Object.keys(vedicEo!.aspectScores).length).toBeGreaterThan(0);
     expect(vedicEo!.eventCandidates.length).toBeGreaterThan(0);

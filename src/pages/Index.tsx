@@ -1,17 +1,22 @@
 import { Target } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { DisclaimerDialog, hasConsented } from '@/components/DisclaimerDialog';
-import { SixRelationsVerification } from '@/components/SixRelationsVerification';
 import { Footer } from '@/components/Footer';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { InputConsole } from '@/components/steps/InputConsole';
-import { ResultTabsView } from '@/components/results/ResultTabsView';
 import { HolographicPanel } from '@/components/hpulse/HolographicPanel';
 import { SectionHeader } from '@/components/hpulse/SectionHeader';
 import { QuantumLoadingScreen } from '@/components/hpulse/QuantumLoadingScreen';
 import { CollapseLoadingScreen } from '@/components/hpulse/CollapseLoadingScreen';
 import { usePredictionFlow } from '@/hooks/usePredictionFlow';
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
+
+const SixRelationsVerification = lazy(() =>
+  import('@/components/SixRelationsVerification').then((module) => ({ default: module.SixRelationsVerification })),
+);
+const ResultTabsView = lazy(() =>
+  import('@/components/results/ResultTabsView').then((module) => ({ default: module.ResultTabsView })),
+);
 
 const Index = () => {
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(() => hasConsented());
@@ -28,8 +33,8 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background bg-scroll-texture">
       <SEO
-        title="H-Pulse — Quantum Prediction System"
-        description="Run a deterministic, multi-engine quantum destiny projection across BaZi, Ziwei, Liu Yao, Qi Men, Tieban, Vedic, Western, Kabbalah and more."
+        title="H-Pulse — Multi-System Cultural Rule Analysis"
+        description="Run deterministic, source-traceable cultural-rule calculations across BaZi, Ziwei, Liu Yao, Qi Men, Tieban, Vedic, Western, Kabbalah and more. Not scientific prediction or quantum computing."
         path="/"
       />
       <DisclaimerDialog
@@ -62,12 +67,14 @@ const Index = () => {
                   icon={<Target className="w-4 h-4" />}
                   className="mb-5"
                 />
-                <SixRelationsVerification
-                  baseNumber={baseNumber}
-                  ganZhiDisplay={ganZhiDisplay}
-                  onTimeLocked={handleTimeLocked}
-                  isLoading={false}
-                />
+                <Suspense fallback={<div className="h-48 animate-pulse rounded-lg bg-card/40" />}>
+                  <SixRelationsVerification
+                    baseNumber={baseNumber}
+                    ganZhiDisplay={ganZhiDisplay}
+                    onTimeLocked={handleTimeLocked}
+                    isLoading={false}
+                  />
+                </Suspense>
               </HolographicPanel>
             </div>
           )}
@@ -86,19 +93,21 @@ const Index = () => {
           )}
 
           {isResultStep && fullReport && birthInput && quantumResult && (
-            <ResultTabsView
-              quantumResult={quantumResult}
-              unifiedReport={unifiedReport}
-              fullReport={fullReport}
-              birthInput={birthInput}
-              ganZhiDisplay={ganZhiDisplay}
-              baseNumber={baseNumber}
-              theoreticalBase={theoreticalBase}
-              calibrationResult={calibrationResult}
-              selectedKaoKe={selectedKaoKe}
-              hpulse={hpulse}
-              onReset={handleReset}
-            />
+            <Suspense fallback={<div className="h-72 animate-pulse rounded-lg bg-card/40" />}>
+              <ResultTabsView
+                quantumResult={quantumResult}
+                unifiedReport={unifiedReport}
+                fullReport={fullReport}
+                birthInput={birthInput}
+                ganZhiDisplay={ganZhiDisplay}
+                baseNumber={baseNumber}
+                theoreticalBase={theoreticalBase}
+                calibrationResult={calibrationResult}
+                selectedKaoKe={selectedKaoKe}
+                hpulse={hpulse}
+                onReset={handleReset}
+              />
+            </Suspense>
           )}
         </div>
       </main>

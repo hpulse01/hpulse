@@ -13,12 +13,12 @@ import { QuantumWaveform } from '@/components/quantum/QuantumWaveform';
 import { QuantumCoherencePanel } from '@/components/quantum/QuantumCoherencePanel';
 import { QuantumEntanglementMap } from '@/components/quantum/QuantumEntanglementMap';
 import {
-  QuantumPredictionEngine,
   type QuantumPredictionResult,
   type LifeAspect,
   type CollapsedEvent,
   type DestinyPhase,
 } from '@/utils/quantumPredictionEngine';
+import { QUANTUM_ASPECTS, getQuantumAspectLabel, getQuantumEventTypeLabel } from '@/utils/quantumLabels';
 import {
   Sparkles, TrendingUp, TrendingDown, Minus, Waves, Network, BarChart3, BookOpen,
   Briefcase, Coins, Heart, Activity, Brain, Users,
@@ -62,7 +62,7 @@ function EventCard({ event, currentAge }: { event: CollapsedEvent; currentAge: n
   const { lang } = useI18n();
   const isCurrent = event.age === currentAge;
   const isPast = event.age < currentAge;
-  const typeCN = QuantumPredictionEngine.getEventTypeCN(event.eventType);
+  const typeCN = getQuantumEventTypeLabel(event.eventType);
   const typeColor = EVENT_TYPE_COLORS[event.eventType] || 'border-border/30 bg-card/30';
 
   return (
@@ -273,7 +273,7 @@ export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelPr
                   return (
                     <div key={i} className="p-2.5 rounded-lg bg-card/30 border border-border/20">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] text-foreground">{QuantumPredictionEngine.getAspectLabel(e.aspectA)} ↔ {QuantumPredictionEngine.getAspectLabel(e.aspectB)}</span>
+                        <span className="text-[10px] text-foreground">{getQuantumAspectLabel(e.aspectA)} ↔ {getQuantumAspectLabel(e.aspectB)}</span>
                         <Badge variant="outline" className={`text-[9px] ${isPos ? 'border-emerald-500/30 text-emerald-400' : 'border-rose-500/30 text-rose-400'}`}>
                           {isPos ? '+' : ''}{(e.correlation * 100).toFixed(0)}%
                         </Badge>
@@ -298,7 +298,7 @@ export function UnifiedQuantumPanel({ result, birthYear }: UnifiedQuantumPanelPr
 
 function buildCoherenceData(result: QuantumPredictionResult, aspect: LifeAspect) {
   const contribs = {} as Record<LifeAspect, { system: string; weight: number; rawScore: number; normalizedScore: number; detail: string }[]>;
-  for (const a of QuantumPredictionEngine.getAllAspects()) {
+  for (const a of QUANTUM_ASPECTS) {
     contribs[a] = result.systems.map(sys => ({
       system: sys.nameCN,
       weight: sys.weight,

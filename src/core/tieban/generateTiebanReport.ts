@@ -19,6 +19,7 @@ import {
   SENSITIVE_KEYWORDS,
 } from './constants';
 import { findClause, type ClauseLookup } from './clauseMapping';
+import { containsHighRiskPersonalOutcome, PUBLIC_CLAUSE_REDACTION } from './sensitiveContent';
 import { projectPalaceClauseId } from './systemOffset';
 import type {
   CalibrationResult,
@@ -138,11 +139,16 @@ export async function generateTiebanReport(
       provider = () => null;
     }
 
-    const match = findClause(requested, provider, { searchRadius: radius });
+    const rawMatch = findClause(requested, provider, { searchRadius: radius });
+    const highRiskContentExcluded = containsHighRiskPersonalOutcome(rawMatch.payload);
+    const match: ClauseMatch = highRiskContentExcluded
+      ? { ...rawMatch, payload: undefined }
+      : rawMatch;
     lookups.push(match);
 
     const sensitiveFlags = spec.sensitive ? detectSensitiveFlags(match.payload) : [];
     if (spec.sensitive && spec.sensitiveCategory) sensitiveFlags.push(spec.sensitiveCategory);
+    if (highRiskContentExcluded) sensitiveFlags.push('high_risk_personal_outcome_excluded');
     sensitiveFlags.forEach((f) => sensitiveFlagsAll.add(f));
 
     const baseConf = calibration.confirmedClauseId != null ? 80 : 55;
@@ -186,6 +192,13 @@ export async function generateTiebanReport(
         severity: 'warning',
       });
     }
+    if (highRiskContentExcluded) {
+      warnings.push({
+        code: 'TIEBAN_HIGH_RISK_CONTENT_EXCLUDED',
+        message: `${spec.nameCN}: 原始条文包含不适合公开呈现的高风险个人结论，已屏蔽。`,
+        severity: 'warning',
+      });
+    }
 
     sections.push({
       sectionKey: spec.key,
@@ -193,7 +206,9 @@ export async function generateTiebanReport(
       palace: spec.palace,
       requestedClauseNumber: requested,
       clauseLookup: match,
-      interpretation: neutralInterpretation(match.payload, !!spec.sensitive),
+      interpretation: highRiskContentExcluded
+        ? PUBLIC_CLAUSE_REDACTION
+        : neutralInterpretation(match.payload, !!spec.sensitive),
       sensitiveFlags,
       confidence: sectionConfidence,
       explanationTrace: sectionTrace,

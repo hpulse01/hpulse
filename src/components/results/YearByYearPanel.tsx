@@ -1,13 +1,13 @@
 /**
  * YearByYearPanel — 逐年详批.
  *
- * For every year of the projected life, fuses all per-year backend data
+ * For each year inside the finite analysis window, fuses per-year rule data
  * into one explicit, detailed view:
  *  - 铁板神数: 流年条文 (12,000-clause DB), 纳音, 太玄乘数
  *  - 八字: 大运所属, 流年干支/十神/冲合/风险/机会 (core analyzeFlowYear),
  *    可展开的逐月流月明细 (core analyzeFlowMonth)
  *  - 紫微: 流年宫位/主星/四化 (core calculateLiunian)
- *  - 量子坍缩: 该年事件 (强度/类别/命运向量影响/支持引擎)
+ *  - 情景融合: 该年规则事件 (强度/类别/向量影响/支持引擎)
  *
  * Years are grouped by 大运 (10-year cycles); clause text is lazily
  * fetched from Supabase per group. All engine computations are
@@ -41,7 +41,7 @@ interface YearDetail {
   baziFlowYear: FlowYearInfo | null;
   ziweiLiunian: LiunianStep | null;
   events: CollapsedPathNode[];
-  isDeathYear: boolean;
+  isTerminalYear: boolean;
 }
 
 interface DaYunGroup {
@@ -120,11 +120,11 @@ export function YearByYearPanel({ report, birth, collapse }: Props) {
     return map;
   }, [collapse]);
 
-  const deathAge = collapse?.deathAge ?? null;
+  const analysisHorizonAge = collapse?.planningHorizonAge ?? 80;
 
   const groups: DaYunGroup[] = useMemo(() => {
     const maxAge = Math.min(
-      deathAge != null ? deathAge : 80,
+      analysisHorizonAge,
       report.flowYears.length > 0 ? report.flowYears[report.flowYears.length - 1].age : 80,
     );
 
@@ -147,7 +147,7 @@ export function YearByYearPanel({ report, birth, collapse }: Props) {
           baziFlowYear,
           ziweiLiunian: ziweiLiunianByYear.get(fy.year) ?? null,
           events: eventsByAge.get(fy.age) ?? [],
-          isDeathYear: deathAge != null && fy.age === deathAge,
+          isTerminalYear: collapse != null && fy.age === collapse.terminalAge,
         };
       });
 
@@ -180,7 +180,7 @@ export function YearByYearPanel({ report, birth, collapse }: Props) {
       });
     });
     return result;
-  }, [report, baziChart, ziweiLiunianByYear, eventsByAge, deathAge, zh]);
+  }, [report, baziChart, ziweiLiunianByYear, eventsByAge, analysisHorizonAge, collapse, zh]);
 
   // currentAge only affects highlighting, never engine computation.
   const currentAge = new Date().getFullYear() - birth.year;
@@ -237,16 +237,14 @@ export function YearByYearPanel({ report, birth, collapse }: Props) {
         <div className="flex items-center gap-2 mb-2">
           <CalendarDays className="w-4 h-4 text-primary" />
           <span className="text-sm font-serif text-foreground">
-            {zh ? '逐年详批 · 全生命周期' : 'Year-by-Year Detail · Full Lifecycle'}
+            {zh ? '逐年规则分析 · 有限窗口' : 'Year-by-Year Rule Analysis · Finite Horizon'}
           </span>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground/60 font-sans">
           <span>{zh ? '覆盖年份' : 'Years'} <strong className="text-foreground/80">{totalYears}</strong></span>
           <span>{zh ? '大运周期' : 'Cycles'} <strong className="text-foreground/80">{report.lifeCycles.length}</strong></span>
-          {deathAge != null && (
-            <span>{zh ? '寿数' : 'Lifespan'} <strong className="text-accent">{deathAge}{zh ? '岁' : ''}</strong></span>
-          )}
-          <span>{zh ? '数据源' : 'Sources'} <strong className="text-primary">{zh ? '铁板条文 · 八字流年/流月 · 紫微流年 · 量子事件' : 'Tieban · Bazi · Ziwei · Quantum'}</strong></span>
+          <span>{zh ? '分析窗口' : 'Analysis horizon'} <strong className="text-accent">0–{analysisHorizonAge}{zh ? '岁' : ''}</strong></span>
+          <span>{zh ? '数据源' : 'Sources'} <strong className="text-primary">{zh ? '铁板条文 · 八字流年/流月 · 紫微流年 · 情景融合' : 'Tieban · Bazi · Ziwei · Scenario fusion'}</strong></span>
         </div>
       </HolographicPanel>
 
@@ -329,7 +327,7 @@ function YearRow({
 
   return (
     <div className={`rounded-lg border transition-all ${
-      detail.isDeathYear ? 'border-destructive/30 bg-destructive/5'
+      detail.isTerminalYear ? 'border-sky-500/30 bg-sky-500/5'
       : isCurrent ? 'border-primary/50 bg-primary/10'
       : isExpanded ? 'border-primary/25 bg-card/40'
       : 'border-border/20 bg-card/20 hover:border-primary/20'
@@ -376,9 +374,9 @@ function YearRow({
                   {zh ? '重大事件' : 'Major Event'}
                 </Badge>
               )}
-              {detail.isDeathYear && (
-                <Badge variant="outline" className="text-[9px] px-1.5 border-destructive/40 text-destructive/80">
-                  {zh ? '寿终' : 'End of Life'}
+              {detail.isTerminalYear && (
+                <Badge variant="outline" className="text-[9px] px-1.5 border-sky-500/40 text-sky-300/80">
+                  {zh ? '模型边界' : 'Model boundary'}
                 </Badge>
               )}
             </div>
@@ -467,9 +465,9 @@ function YearRow({
             </YearSection>
           )}
 
-          {/* Quantum collapse events */}
+          {/* Deterministically ranked scenario events */}
           {detail.events.length > 0 && (
-            <YearSection icon={<Atom className="w-3 h-3" />} title={zh ? '量子坍缩事件' : 'Quantum Collapse Events'}>
+            <YearSection icon={<Atom className="w-3 h-3" />} title={zh ? '规则融合情景' : 'Rule-Fusion Scenarios'}>
               <div className="space-y-2">
                 {detail.events.map((node, i) => (
                   <div key={i} className="rounded-md border border-border/15 bg-card/30 p-2">

@@ -4,23 +4,18 @@ import { useI18n } from '@/hooks/useI18n';
 import { useHPulsePipeline } from '@/hpulse/react';
 import { getClauseCount } from '@/services/SupabaseService';
 import { savePredictionRun } from '@/services/predictionLedger';
-import { PredictionOrchestrator } from '@/utils/predictionOrchestrator';
 import type { BirthDataWithGeo } from '@/components/BirthDataForm';
-import {
-  TiebanEngine,
-  type TiebanInput,
-  type KaoKeWithMatch,
-  type CalibrationResult,
-  type FullDestinyReport,
+import type {
+  KaoKeWithMatch,
+  CalibrationResult,
+  FullDestinyReport,
 } from '@/utils/tiebanAlgorithm';
-import {
-  QuantumPredictionEngine,
-  type QuantumPredictionResult,
-} from '@/utils/quantumPredictionEngine';
+import type { QuantumPredictionResult } from '@/utils/quantumPredictionEngine';
+import type { FullPredictionReport } from '@/types/unifiedPrediction';
 
 export type AppStep = 'input' | 'calculating' | 'verification' | 'projecting' | 'result';
 
-export type UnifiedReport = ReturnType<typeof PredictionOrchestrator.execute>;
+export type UnifiedReport = FullPredictionReport;
 
 /**
  * State machine + orchestration for the prediction console:
@@ -28,7 +23,7 @@ export type UnifiedReport = ReturnType<typeof PredictionOrchestrator.execute>;
  */
 export function usePredictionFlow() {
   const [step, setStep] = useState<AppStep>('input');
-  const [birthInput, setBirthInput] = useState<TiebanInput | null>(null);
+  const [birthInput, setBirthInput] = useState<BirthDataWithGeo | null>(null);
   const [rawBirthForm, setRawBirthForm] = useState<BirthDataWithGeo | null>(null);
   const [ganZhiDisplay, setGanZhiDisplay] = useState('');
   const [baseNumber, setBaseNumber] = useState(0);
@@ -52,6 +47,7 @@ export function usePredictionFlow() {
     setStep('calculating');
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
+      const { TiebanEngine } = await import('@/utils/tiebanAlgorithm');
       setBirthInput(birthData);
       setRawBirthForm(birthData);
       const result = TiebanEngine.calculateBaseNumber(birthData);
@@ -75,6 +71,11 @@ export function usePredictionFlow() {
     setSelectedKaoKe(selectedOption);
     try {
       await new Promise(resolve => setTimeout(resolve, 2000));
+      const [{ TiebanEngine }, { QuantumPredictionEngine }, { PredictionOrchestrator }] = await Promise.all([
+        import('@/utils/tiebanAlgorithm'),
+        import('@/utils/quantumPredictionEngine'),
+        import('@/utils/predictionOrchestrator'),
+      ]);
       const systemOffset = TiebanEngine.calculateSystemOffset(theoreticalBase, selectedOption.clauseNumber);
       const calibration: CalibrationResult = {
         theoreticalBase,
@@ -91,7 +92,7 @@ export function usePredictionFlow() {
       const qResult = QuantumPredictionEngine.predict({ ...birthInput!, queryTimeUtc }, systemOffset);
       setQuantumResult(qResult);
       if (qResult.unifiedResult) {
-        setUnifiedReport(PredictionOrchestrator.execute(qResult.unifiedResult.input));
+        setUnifiedReport(PredictionOrchestrator.fromResult(qResult.unifiedResult.input, qResult));
         // P6: archive run into the verification ledger (no-op when logged out
         // or audit-blocked); failures never interrupt the prediction flow.
         void savePredictionRun(qResult.unifiedResult).catch(() => {});
@@ -104,10 +105,12 @@ export function usePredictionFlow() {
           birth_date: `${rawBirthForm.year}-${pad(rawBirthForm.month)}-${pad(rawBirthForm.day)}`,
           birth_time: `${pad(rawBirthForm.hour)}:${pad(rawBirthForm.minute)}`,
           calendar: 'gregorian' as const,
+          calculation_name: rawBirthForm.calculationName,
           location_name: rawBirthForm.normalizedLocationName,
           latitude: rawBirthForm.geoLatitude,
           longitude: rawBirthForm.geoLongitude,
           timezone: rawBirthForm.timezoneIana,
+          timezone_offset_minutes: rawBirthForm.timezoneOffsetMinutes,
           gender: rawBirthForm.gender,
           query_time_utc: queryTimeUtc,
           query_type: 'natal' as const,

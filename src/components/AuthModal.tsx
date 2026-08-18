@@ -143,7 +143,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             H-Pulse
           </DialogTitle>
           <DialogDescription className="text-muted-foreground/70 text-xs tracking-widest uppercase mt-1">
-            Quantum Destiny Prediction · 登录解锁高级功能
+            Cultural Rule Analysis · 登录解锁账户功能
           </DialogDescription>
         </DialogHeader>
 

@@ -9,7 +9,7 @@ import { ALL_FATE_DIMENSIONS, type FateVector, type FateDimension } from "@/type
 import { ALL_ENGINES, type EngineId } from "@/hpulse/weights/types";
 import type { PipelineReport } from "@/hpulse/orchestrator/pipeline";
 import type { WorldTree } from "@/hpulse/worldtree/types";
-import type { DeathFusionResult } from "@/hpulse/fusion/types";
+import type { DestinyFusionResult } from "@/hpulse/fusion/types";
 import type { EngineRunResult } from "@/hpulse/engines/runner";
 import { listEngines } from "@/hpulse/engines/registry";
 import {
@@ -19,7 +19,7 @@ import {
   type FateDimensionProjection,
   type EngineCardProjection,
   type StageRowProjection,
-  type DeathProjection,
+  type EvidenceProjection,
 } from "./types";
 
 const ENGINE_LABEL: Record<EngineId, string> = (() => {
@@ -47,28 +47,26 @@ function shortSignature(seedMaterial: string | null): string {
 
 function buildHeader(
   tree: WorldTree,
-  fusion: DeathFusionResult,
+  fusion: DestinyFusionResult,
 ): HeaderProjection {
   const enginesConsidered = tree.meta.enginesConsidered;
   const enginesDegraded = Object.keys(tree.permanentlyDegraded).length;
   const enginesActive = enginesConsidered - enginesDegraded;
   const coverage =
     enginesConsidered > 0 ? enginesActive / enginesConsidered : 0;
-  const death = fusion.deathWindow;
   const summary =
-    `生命主轨：${fusion.verdict.dominantStage} 主导，` +
+    `阶段模型：${fusion.verdict.dominantStage} 主导，` +
     `综合评分 ${Math.round(fusion.verdict.overallScore)}，` +
-    `置信度 ${Math.round(fusion.verdict.overallConfidence * 100)}%，` +
-    `寿限窗口 ${death.startAge}–${death.endAge}（峰值 ${death.peakAge}）。`;
+    `规则可靠度 ${Math.round(fusion.verdict.overallReliability * 100)}%，` +
+    `引擎覆盖 ${enginesActive}/${enginesConsidered}。`;
   return {
     quantumSignature: shortSignature(fusion.seedMaterial),
     overallScore: fusion.verdict.overallScore,
-    overallConfidence: fusion.verdict.overallConfidence,
+    overallReliability: fusion.verdict.overallReliability,
     coverage: Math.round(coverage * 1000) / 1000,
     enginesActive,
     enginesConsidered,
     enginesDegraded,
-    deathAge: death.peakAge ?? null,
     dominantStage: fusion.verdict.dominantStage,
     summary,
   };
@@ -157,9 +155,9 @@ function topDims(fv: FateVector, n: number) {
 
 function buildStages(
   tree: WorldTree,
-  fusion: DeathFusionResult,
+  fusion: DestinyFusionResult,
 ): StageRowProjection[] {
-  const confById = new Map(fusion.stageConfidence.map((s) => [s.stage, s]));
+  const confById = new Map(fusion.stageEvidence.map((s) => [s.stage, s]));
   return tree.stages.map((s) => {
     const conf = confById.get(s.window.stage);
     const dominantEngine =
@@ -179,8 +177,9 @@ function buildStages(
       pivotAge: s.window.pivotAge,
       fateVector: s.fateVector,
       stageScore: meanFateVector(s.fateVector),
-      confidence: conf?.confidence ?? 0,
+      reliability: conf?.reliability ?? 0,
       coverage: conf?.coverage ?? 0,
+      agreement: conf?.agreement ?? 0,
       topDimensions: topDims(s.fateVector, 3),
       dominantEngine,
       transitionMagnitude: s.transitionToNext?.magnitude ?? 0,
@@ -189,17 +188,15 @@ function buildStages(
   });
 }
 
-function buildDeath(fusion: DeathFusionResult): DeathProjection {
-  const dw = fusion.deathWindow;
+function buildEvidence(fusion: DestinyFusionResult): EvidenceProjection {
+  const evidence = fusion.evidenceQuality;
   return {
-    startAge: dw.startAge,
-    endAge: dw.endAge,
-    peakAge: dw.peakAge,
-    strength: dw.strength,
-    cause: dw.cause,
-    fusedProbability: dw.fusedProbability,
-    contributingEngines: [...dw.contributingEngines],
-    causalChain: [...dw.causalChain],
+    ruleCoverage: evidence.ruleCoverage,
+    engineAgreement: evidence.engineAgreement,
+    sourceQuality: evidence.sourceQuality,
+    observationCount: evidence.observationCount,
+    contributingEngines: [...evidence.contributingEngines],
+    notes: [...evidence.notes],
   };
 }
 
@@ -233,12 +230,11 @@ export function projectReport(report: PipelineReport): ProjectionView {
       header: {
         quantumSignature: "HPU·invalid",
         overallScore: 0,
-        overallConfidence: 0,
+        overallReliability: 0,
         coverage: 0,
         enginesActive: 0,
         enginesConsidered: 0,
         enginesDegraded: 0,
-        deathAge: null,
         dominantStage: "prime",
         summary: `输入未通过校验：${reason}`,
       },
@@ -252,15 +248,13 @@ export function projectReport(report: PipelineReport): ProjectionView {
         observationCount: 0,
       })),
       stages: [],
-      death: {
-        startAge: 0,
-        endAge: 0,
-        peakAge: 0,
-        strength: "default",
-        cause: "unknown",
-        fusedProbability: 0,
+      evidence: {
+        ruleCoverage: 0,
+        engineAgreement: 0,
+        sourceQuality: 0,
+        observationCount: 0,
         contributingEngines: [],
-        causalChain: [],
+        notes: [],
       },
       explanationTrace: [],
       warnings: report.normalize.issues.map(
@@ -277,7 +271,7 @@ export function projectReport(report: PipelineReport): ProjectionView {
     fateDimensions: buildFateDimensions(fusion.verdict.lifetimeFateVector),
     engines: buildEngines(worldTree, engineResults),
     stages: buildStages(worldTree, fusion),
-    death: buildDeath(fusion),
+    evidence: buildEvidence(fusion),
     explanationTrace: [...fusion.explanationTrace],
     warnings: collectWarnings(engineResults),
   };

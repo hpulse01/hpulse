@@ -36,7 +36,7 @@ export interface SectionSpec {
   /** Sensitive sections must use neutral/cautious language and emit sensitiveFlags. */
   sensitive?: boolean;
   /** Sensitive risk category for downstream UI gating. */
-  sensitiveCategory?: 'health' | 'lifespan' | 'disaster' | 'relationship';
+  sensitiveCategory?: 'health' | 'disaster' | 'relationship';
 }
 
 export const SECTION_SPECS: SectionSpec[] = [
@@ -44,7 +44,7 @@ export const SECTION_SPECS: SectionSpec[] = [
   { key: 'marriage',  nameCN: '婚姻姻缘',  palace: 'MARRIAGE', sensitive: true, sensitiveCategory: 'relationship' },
   { key: 'wealth',    nameCN: '财运财富',  palace: 'WEALTH' },
   { key: 'career',    nameCN: '事业前程',  palace: 'CAREER' },
-  { key: 'health',    nameCN: '健康寿元',  palace: 'HEALTH', sensitive: true, sensitiveCategory: 'health' },
+  { key: 'health',    nameCN: '健康趋势',  palace: 'HEALTH', sensitive: true, sensitiveCategory: 'health' },
   { key: 'children',  nameCN: '子嗣后代',  palace: 'CHILDREN' },
   { key: 'parents',   nameCN: '父母六亲',  palace: 'PARENTS' },
   { key: 'siblings',  nameCN: '兄弟姐妹',  palace: 'SIBLINGS' },
@@ -55,7 +55,6 @@ export const SECTION_SPECS: SectionSpec[] = [
 /** Keyword lists used to surface sensitiveFlags from clause text. */
 export const SENSITIVE_KEYWORDS: Record<NonNullable<SectionSpec['sensitiveCategory']>, string[]> = {
   health:       ['病', '疾', '疮', '伤', '残', '弱'],
-  lifespan:     ['寿', '亡', '殁', '终', '夭', '短命'],
   disaster:     ['灾', '厄', '凶', '险', '祸', '刑', '难'],
   relationship: ['离', '克', '寡', '孤', '别', '婚变'],
 };

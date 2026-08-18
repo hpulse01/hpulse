@@ -118,4 +118,39 @@ describe('P4.6 Meihua — time mode determinism', () => {
     expect(a.movingLine).toBe(b.movingLine);
     expect(a.castingSource).toBe(b.castingSource);
   });
+
+  it('uses lunar year branch/month/day instead of Gregorian month/day', () => {
+    // 2025-05-14 11:00 Asia/Shanghai = 农历乙巳年四月十七，午时。
+    // 巳=6, month=4, day=17, 午=7 → upper=27, lower/move=34.
+    const chart = calculateMeihua({
+      mode: 'time',
+      queryTimeUtc: '2025-05-14T03:00:00Z',
+      timezoneIana: 'Asia/Shanghai',
+    });
+    expect(chart.upperRaw).toBe(27);
+    expect(chart.lowerRaw).toBe(34);
+    expect(chart.movingLineRaw).toBe(34);
+    expect(chart.upperTrigram.name).toBe('离');
+    expect(chart.lowerTrigram.name).toBe('兑');
+    expect(chart.movingLine).toBe(4);
+    expect(chart.castingSource).toContain('农历=2025年4月17日');
+    expect(chart.warnings.some((warning) => warning.code === 'meihua.time.yearBranch.surrogate')).toBe(false);
+  });
+
+  it('changes the lunar year branch at Lunar New Year under the declared civil-day policy', () => {
+    const before = calculateMeihua({
+      mode: 'time',
+      queryTimeUtc: '2024-02-09T15:30:00Z', // Shanghai 23:30, lunar 2023-12-30
+      timezoneIana: 'Asia/Shanghai',
+    });
+    const after = calculateMeihua({
+      mode: 'time',
+      queryTimeUtc: '2024-02-10T04:00:00Z', // Shanghai 12:00, lunar 2024-01-01
+      timezoneIana: 'Asia/Shanghai',
+    });
+    expect(before.upperRaw).toBe(46); // 卯4 + 12 + 30
+    expect(before.lowerRaw).toBe(47); // 子1
+    expect(after.upperRaw).toBe(7); // 辰5 + 1 + 1
+    expect(after.lowerRaw).toBe(14); // 午7
+  });
 });

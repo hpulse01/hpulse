@@ -7,6 +7,8 @@
  */
 
 import { normalizeConfidence01 } from '@/core/shared/confidence';
+import { normalizeStatus } from '@/core/shared/implementationStatus';
+import { STEM_ELEMENT } from '@/core/calendar/ganzhi';
 import type { BaziChart as BaziCoreChart } from './calculateBazi';
 import type { StrengthAnalysis } from './analyzeStrength';
 import type { BaziChart, BaziCoreInput } from './types';
@@ -101,8 +103,11 @@ function buildFateVector(chart: BaziChart): { vector: FateVector; trace: string[
   // luck — based on currentDaYun favorability vs day master
   let luckBase = 50;
   if (chart.currentDaYun) {
-    if (chart.favorableElements.length && chart.favorableElements.includes(chart.currentDaYun.stem ? chart.fourPillars.year.stemElement : chart.fourPillars.year.stemElement)) {
+    const daYunElement = STEM_ELEMENT[chart.currentDaYun.stem];
+    if (chart.favorableElements.includes(daYunElement)) {
       luckBase += 10;
+    } else if (chart.unfavorableElements.includes(daYunElement)) {
+      luckBase -= 10;
     }
   }
   const luck = clamp(luckBase);
@@ -188,7 +193,7 @@ export function baziChartToEngineOutput(chart: BaziChart, input: BaziCoreInput):
       strengthScore: String(chart.strengthScore),
       pattern: chart.selectedPattern?.type ?? '未定格',
       usefulGod: chart.selectedUsefulGod ?? '',
-      implementationStatus: chart.implementationStatus,
+      implementationStatus: normalizeStatus(chart.implementationStatus),
       // ── P4.4c — rich fields exposed for UI panel ──
       kongWangPillars: chart.fourPillars
         ? ['year', 'month', 'day', 'hour']
