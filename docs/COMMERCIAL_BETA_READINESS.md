@@ -21,6 +21,7 @@ The mobile pipeline no longer depends on a checked-in placeholder WASM: local de
 - A fail-closed commercial-readiness report blocks release for missing engines, incomplete registry scope, weak/unstable sources, failed validation/core adapters, low completeness, or unsafe individualized mortality content.
 - Meihua time casting now uses lunar year branch/month/day plus the local hour branch instead of Gregorian surrogate values; the local civil-day and leap-month policy is recorded in the trace.
 - Optional name spelling now flows explicitly into Numerology and Kabbalah, is never inferred from an account profile, and is omitted from the persisted prediction ledger.
+- Kabbalah now reports the explicitly scoped Mispar Gadol final-letter 500–900 variant alongside Hechrachi/Katan/Siduri; Latin fallback never fabricates Hebrew final forms, and audit snapshots retain only script/letter-count metadata rather than the literal name.
 - Identical explicit input now produces a byte-stable full result, including execution traces and scenario timestamps.
 - Public product language now describes the former “quantum” layer as classical deterministic scenario scoring, not quantum computing or event probability.
 
