@@ -80,9 +80,11 @@ export function numerologyToEngineOutput(result: NumerologyResult): EngineOutput
       'https://www.worldnumerology.com/do-your-own-reading/',
       'https://www.worldnumerology.com/numerology-pinnacles/',
       'https://www.worldnumerology.com/numerology-challenges/',
+      'https://www.worldnumerology.com/numerology-expression/',
+      'https://www.worldnumerology.com/numerology-articles/numerology-Y-vowel-consonant.html',
     ],
     sourceGrade: result.sourceGrade,
-    ruleSchool: 'Decoz-style Pythagorean unit reduction; Pinnacles preserve 11/22/33; Challenges reduce masters and use absolute differences; Y-as-consonant product variant',
+    ruleSchool: 'Decoz-style Pythagorean unit/name-part reduction; contextual Y classification; Pinnacles preserve 11/22/33; Challenges reduce masters and use absolute differences',
     confidence: normalizeConfidence01(result.confidence),
     computationTimeMs: 0,
     rawInputSnapshot: {
@@ -116,7 +118,8 @@ export function numerologyToEngineOutput(result: NumerologyResult): EngineOutput
     },
     warnings: result.warnings.map((w) => `${w.code}: ${w.message}`),
     uncertaintyNotes: [
-      'Y is treated as a consonant for determinism. Some traditions count it as a vowel when adjacent to consonants — that variant is not modelled here.',
+      'Y uses the cited positional rule (initial/final/interior neighboring vowels); the source acknowledges rare syllabic exceptions outside this deterministic rule.',
+      'The declared Numerology name alphabet is unaccented A–Z. Unsupported letters fail closed; the engine does not silently discard or transliterate them.',
       'Primary numbers use the Pythagorean table; the Chaldean Destiny number is provided as a secondary cross-check (Chaldean 1..8, no 9).',
       'Pinnacle windows use the conventional 36-minus-single-digit-Life-Path boundary followed by two nine-year cycles.',
       'Challenge periods are intentionally reported without exact age windows because the cited school describes them as fluid and overlapping.',
