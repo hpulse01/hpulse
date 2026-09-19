@@ -108,6 +108,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fetchProfile(session.user.id);
       }
       setIsLoading(false);
+    }).catch((err) => {
+      console.error('Failed to get auth session:', err);
+      setIsLoading(false);
     });
 
     return () => {
