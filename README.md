@@ -76,6 +76,8 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md) for details.
 - [`docs/RESPONSIVE_DESIGN.md`](docs/RESPONSIVE_DESIGN.md) — desktop / tablet / mobile layout
 - [`docs/ENGINE_OUTPUT_SCHEMA.md`](docs/ENGINE_OUTPUT_SCHEMA.md) — `EngineOutput` field contract
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — phased roadmap
+- [`docs/MASTER_PLAN_ALIGN_HPULSE.md`](docs/MASTER_PLAN_ALIGN_HPULSE.md) — 总规划：唯一目的对齐、架构收敛、去重清单、七层映射、备忘录资产分级、Lovable 单一事实源与路线图（取代 NEXT_PLAN）
+- [`docs/NEXT_PLAN_20260919.md`](docs/NEXT_PLAN_20260919.md) — 2026-09 任务明细（T1–T12）与备忘录追问清单（附件）
 
 ## P5.1 (2026-05) — 铁板/紫微 UI 接入
 - 新增 17 个 panel 组件,完整暴露铁板的 baseNumber / theoreticalBase / quarterKe / systemOffset / clauseLookup / 六亲校时 / 9 大报告分区
