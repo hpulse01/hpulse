@@ -16,7 +16,7 @@ H-Pulse never claims absolute foreknowledge. The system is calibrated **continuo
 
 ## Tech Stack
 
-- **Frontend**: React 18 · Vite · TypeScript · TailwindCSS · shadcn/ui · Recharts · Framer Motion
+- **Frontend**: React 18 · Vite · TypeScript · TailwindCSS · shadcn/ui
 - **Algorithm Core**: pure deterministic TypeScript modules in `src/core/`
 - **Astronomy**: `astronomy-engine`, with independent golden-case verification still required
 - **Backend**: Supabase (Auth, Postgres, Edge Functions)

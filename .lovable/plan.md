@@ -1,3 +1,7 @@
+> **Completed in P3 (2026-05).** The current authoritative plan is
+> [`docs/MASTER_PLAN_ALIGN_HPULSE.md`](docs/MASTER_PLAN_ALIGN_HPULSE.md).
+> This file is retained because Lovable reads `.lovable/plan.md`.
+
 # H-Pulse P3-UI 全面重构计划
 
 将 H-Pulse 从「普通命理表单页」重构为「量子生命轨迹预测操作系统」，**不动核心算法、13 引擎、Supabase 结构、AI 解读、六亲校时、命运树、唯一路径、量子坍缩、管理员权限**。
