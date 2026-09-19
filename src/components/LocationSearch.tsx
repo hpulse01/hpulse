@@ -68,8 +68,11 @@ export function LocationSearch({
       setError('');
 
       try {
-        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID as string | undefined;
+        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+        if (!projectId || !anonKey) {
+          throw new Error('地理编码服务未配置');
+        }
         const url = `https://${projectId}.supabase.co/functions/v1/geocode-location`;
 
         const resp = await fetch(url, {
