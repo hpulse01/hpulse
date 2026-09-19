@@ -46,7 +46,9 @@ export function usePredictionFlow() {
   const hpulse = useHPulsePipeline();
 
   useEffect(() => {
-    getClauseCount().then(count => setClauseCount(count));
+    getClauseCount()
+      .then(count => setClauseCount(count))
+      .catch(err => console.error('[usePredictionFlow] getClauseCount rejected:', err));
   }, []);
 
   const handleBirthDataSubmit = useCallback(async (birthData: BirthDataWithGeo) => {

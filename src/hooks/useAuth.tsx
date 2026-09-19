@@ -81,24 +81,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Initialize auth state
   useEffect(() => {
-    // Set up auth state listener BEFORE checking session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+    let subscription: { unsubscribe: () => void } | undefined;
 
-        if (session?.user) {
-          // Use setTimeout to avoid Supabase deadlock
-          setTimeout(() => fetchProfile(session.user.id), 0);
-        } else {
-          setProfile(null);
-        }
+    try {
+      const result = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          setSession(session);
+          setUser(session?.user ?? null);
 
-        if (event === 'SIGNED_OUT') {
-          setProfile(null);
+          if (session?.user) {
+            // Use setTimeout to avoid Supabase deadlock
+            setTimeout(() => fetchProfile(session.user.id), 0);
+          } else {
+            setProfile(null);
+          }
+
+          if (event === 'SIGNED_OUT') {
+            setProfile(null);
+          }
         }
-      }
-    );
+      );
+      subscription = result.data.subscription;
+    } catch (err) {
+      console.error('[useAuth] onAuthStateChange setup failed:', err);
+    }
 
     // Check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -114,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, [fetchProfile]);
 
