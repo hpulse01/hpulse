@@ -195,10 +195,25 @@ export const ALGORITHM_SOURCE_REGISTRY: Record<string, EngineSourceRecord> = {
       'Pythagorean 字母→数字', '主数 11/22/33 保留',
       'Life Path', 'Destiny', 'Soul Urge', 'Personality', 'Personal Year',
       'Chaldean 体系', 'Karmic Debt (13/14/16/19)', 'Maturity Number',
+      'Life Path 月/日/年分单元约简（保留中间主数/业债数）',
+      '姓名各段先约简再合并（避免伪主数/丢失主数）',
+      'Y 依首尾与相邻元音位置分类',
+      'Pinnacles 四周期与 36-Life Path/9/9 年龄窗口',
+      'Challenges 四数绝对差（不伪造精确年龄边界）',
     ],
-    missingRules: ['Pinnacles/Challenges 周期'],
-    sourceUrls: ['Pythagorean numerology classical mapping'],
-    validationNotes: ['缺姓名时 Destiny/Soul/Personality 返回 null + warning，不伪造'],
+    missingRules: ['变音符/非拉丁姓名转写规则'],
+    sourceUrls: [
+      'https://www.worldnumerology.com/do-your-own-reading/',
+      'https://www.worldnumerology.com/numerology-pinnacles/',
+      'https://www.worldnumerology.com/numerology-challenges/',
+      'https://www.worldnumerology.com/numerology-expression/',
+      'https://www.worldnumerology.com/numerology-articles/numerology-Y-vowel-consonant.html',
+    ],
+    validationNotes: [
+      '缺姓名时 Destiny/Soul/Personality 返回 null + warning，不伪造',
+      'Challenge 时期来源明确为流动且重叠，仅报四数而不绑定精确年龄窗口',
+      '非 A–Z 字母 fail-closed：要求用户显式提供无变音符转写，不静默丢字符',
+    ],
   },
   mayan: {
     engineName: 'mayan',
@@ -223,11 +238,18 @@ export const ALGORITHM_SOURCE_REGISTRY: Record<string, EngineSourceRecord> = {
     implementedRules: [
       'Mispar Hechrachi gematria（希伯来）', '拉丁转写 fallback',
       'Tree of Life Sephirot 映射',
+      'Mispar Gadol（显式尾字母 500..900 变体）',
       'Mispar Katan/Siduri 扩展 gematria', '22 路径（希伯来字母/塔罗对应）完整解读',
     ],
-    missingRules: ['Mispar Gadol（尾字母 500..900 变体）', 'Tikkun 细化', '希伯来原文姓名转写表扩充'],
-    sourceUrls: ['Sefer Yetzirah 引用'],
-    validationNotes: ['缺姓名时降级为 birth-only + warning，confidence 显著降低'],
+    missingRules: ['Tikkun 细化', '希伯来原文姓名转写表扩充'],
+    sourceUrls: [
+      'https://www.chabad.org/library/article_cdo/aid/6037869/jewish/Why-the-Five-Hebrew-Final-Letters.htm',
+      'https://www.encyclopedia.com/philosophy-and-religion/bible/bible-general/gematria',
+    ],
+    validationNotes: [
+      '缺姓名时降级为 birth-only + warning，confidence 显著降低',
+      'Gadol 仅对用户显式输入的 ך/ם/ן/ף/ץ 应用 500/600/700/800/900；拉丁 fallback 不推测尾字母',
+    ],
   },
 };
 

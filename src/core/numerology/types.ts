@@ -29,6 +29,15 @@ export interface KarmicDebt {
   number: number;
 }
 
+export interface PinnacleCycle {
+  index: 1 | 2 | 3 | 4;
+  number: number;
+  /** Conventional age range; age 0 begins at birth. */
+  startAge: number;
+  /** Inclusive. Null means the fourth cycle is open-ended. */
+  endAgeInclusive: number | null;
+}
+
 export interface NumerologyResult {
   input: NumerologyInput;
   /** Life Path number derived from full birth date. Master numbers 11/22/33 preserved. */
@@ -50,6 +59,10 @@ export interface NumerologyResult {
   karmicDebts: KarmicDebt[];
   /** Chaldean Destiny (name) number — secondary system. Null without name. */
   chaldeanDestiny: number | null;
+  /** Four conventional Pinnacle values with their age ranges. */
+  pinnacleCycles: PinnacleCycle[];
+  /** Four Challenge values. Their timing is deliberately not given exact boundaries. */
+  challenges: [number, number, number, number];
   confidence: number;
   completenessScore: number;
   sourceGrade: 'A' | 'B' | 'C' | 'D';

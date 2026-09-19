@@ -220,7 +220,7 @@ const translations: Record<string, { zh: string; en: string }> = {
   'form.birth_time':         { zh: '出生时间', en: 'Birth Time' },
   'form.calculation_name':   { zh: '姓名算法拼写（可选）', en: 'Calculation Name (Optional)' },
   'form.calculation_name_placeholder': { zh: '拉丁字母或希伯来文的准确拼写', en: 'Exact Latin or Hebrew spelling' },
-  'form.calculation_name_help': { zh: '仅用于数字命理与卡巴拉规则；不会自动读取账户昵称。留空时姓名相关项目会明确跳过。', en: 'Used only for Numerology and Kabbalah rules. It is never taken from your account; name-based items are explicitly skipped when blank.' },
+  'form.calculation_name_help': { zh: '仅用于数字命理与卡巴拉；不读取账户昵称。数字命理需显式无变音符 A–Z 转写，卡巴拉可用希伯来文或 A–Z；留空或不支持时会明确跳过。', en: 'Used only for Numerology and Kabbalah, never your account name. Numerology requires an explicit unaccented A–Z transliteration; Kabbalah accepts Hebrew or A–Z. Blank or unsupported names are explicitly skipped.' },
   'form.year':               { zh: '年', en: 'Year' },
   'form.month':              { zh: '月', en: 'Month' },
   'form.day':                { zh: '日', en: 'Day' },

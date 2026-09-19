@@ -12,13 +12,26 @@ describe('kabbalah/gematria', () => {
   });
   it('computes Hebrew gematria', () => {
     // שלום: ש(300) + ל(30) + ו(6) + ם(40) = 376
-    expect(gematria('שלום').total).toBe(376);
-    expect(gematria('שלום').source).toBe('hebrew');
+    const g = gematria('שלום');
+    expect(g.total).toBe(376);
+    // 500..900 final-letter Gadol variant: final mem ם = 600.
+    expect(g.gadol).toBe(936);
+    expect(g.source).toBe('hebrew');
+  });
+  it('uses 500..900 only for explicit Hebrew final forms', () => {
+    const finals = gematria('ךםןףץ');
+    expect(finals.total).toBe(280);
+    expect(finals.gadol).toBe(3500);
+    expect(finals.letters.map((letter) => letter.gadolValue)).toEqual([500, 600, 700, 800, 900]);
+
+    const baseForms = gematria('כמנפצ');
+    expect(baseForms.gadol).toBe(baseForms.total);
   });
   it('falls back to transliteration for Latin input', () => {
     const g = gematria('John');
     expect(g.source).toBe('transliterated');
     expect(g.total).toBeGreaterThan(0);
+    expect(g.gadol).toBe(g.total);
   });
   it('computes extended gematria (katan, siduri)', () => {
     const g = gematria('שלום');
@@ -93,7 +106,7 @@ describe('kabbalah/calculate', () => {
     // שלום first letter ש → path 31 (Shin)
     expect(r.primaryPath?.number).toBe(31);
     expect(r.primaryPath?.letterName).toBe('Shin');
-    expect(r.implementationStatus).toBe('complete');
+    expect(r.implementationStatus).toBe('partial');
   });
   it('falls back path from birth-date number without name', () => {
     const r = calculateKabbalah({ birthYear: 1990, birthMonth: 5, birthDay: 14 });
@@ -105,5 +118,13 @@ describe('kabbalah/calculate', () => {
     expect(out.engineName).toBe('kabbalah');
     expect(Object.keys(out.fateVector)).toHaveLength(10);
     expect(out.normalizedOutput.pathNumber).toBe('31');
+    expect(out.normalizedOutput.gematriaGadol).toBe('936');
+    expect(out.aspectScores?.gematriaGadol).toBe(936);
+    expect(out.rawInputSnapshot).not.toHaveProperty('name');
+    expect(out.rawInputSnapshot).toMatchObject({
+      hasName: true,
+      nameScript: 'hebrew',
+      gematriaLetterCount: 4,
+    });
   });
 });

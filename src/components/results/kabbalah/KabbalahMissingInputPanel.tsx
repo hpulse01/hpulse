@@ -9,7 +9,7 @@ export function KabbalahMissingInputPanel({ hasName, hasHebrew }: Props) {
         <span className="font-mono uppercase tracking-[0.2em]">输入降级 · Input Degraded</span>
       </div>
       {!hasName && <div>· 未提供姓名 — name-derived gematria omitted, no fabrication.</div>}
-      {!hasHebrew && <div>· 未提供希伯来字符 — Hebrew transliteration unavailable, falling back to romanized approximation.</div>}
+      {hasName && !hasHebrew && <div>· 使用了显式拉丁拼写 — coarse transliteration is shown, and Hebrew final forms are not inferred.</div>}
     </div>
   );
 }

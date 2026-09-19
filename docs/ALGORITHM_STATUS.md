@@ -73,8 +73,8 @@ This document records implemented code, not predictive validity. `algorithmSourc
 
 ### 数字命理 Numerology
 - **Status**: `partial` · **Grade**: B · cap **≤ 0.65**
-- **Implemented**: Pythagorean 字母→数字 · 主数 11/22/33 保留 · Life Path / Destiny / Soul Urge / Personality / Personal Year · Chaldean 体系 · Karmic Debt (13/14/16/19) · Maturity Number
-- **Missing**: Pinnacles/Challenges 周期
+- **Implemented**: Pythagorean 字母→数字 · 主数 11/22/33 保留 · Life Path 分单元约简 · 姓名分段约简 · Y 位置分类 · Destiny / Soul Urge / Personality / Personal Year · Chaldean 体系 · Karmic Debt (13/14/16/19) · Maturity Number · Pinnacles · Challenges
+- **Missing**: 变音符/非拉丁姓名转写规则与独立黄金样本回归
 
 ### 玛雅历 Mayan
 - **Status**: `partial` · **Grade**: B · cap **≤ 0.65**
@@ -83,7 +83,7 @@ This document records implemented code, not predictive validity. `algorithmSourc
 
 ### 卡巴拉 Kabbalah
 - **Status**: `partial` · **Grade**: C · cap **≤ 0.65**
-- **Implemented**: Mispar Hechrachi gematria · 拉丁转写 fallback · Sephirot 映射 · Mispar Gadol/Katan/Siduri 扩展 gematria · 22 路径完整解读
+- **Implemented**: Mispar Hechrachi gematria · 拉丁转写 fallback · Sephirot 映射 · Mispar Gadol 显式尾字母 500–900 变体 · Mispar Katan/Siduri · 22 路径完整解读
 - **Missing**: Tikkun 细化 · 希伯来原文转写表扩充
 
 ---

@@ -26,3 +26,10 @@ export function reduceToDigit(n: number): number {
   }
   return v;
 }
+
+/** Reduce to 0..9 even when an intermediate value is 11/22/33. */
+export function reduceToSingleDigit(n: number): number {
+  let v = Math.abs(Math.trunc(n));
+  while (v > 9) v = sumDigits(v);
+  return v;
+}

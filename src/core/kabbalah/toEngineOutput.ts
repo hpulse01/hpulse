@@ -36,6 +36,7 @@ export function kabbalahToEngineOutput(result: KabbalahResult): EngineOutput {
     passed: [
       'deterministic_no_random',
       result.gematria ? `gematria_total=${result.gematria.total}` : 'gematria_skipped',
+      result.gematria ? `gematria_gadol=${result.gematria.gadol}` : 'gematria_gadol_skipped',
       result.primarySephirah ? `sephirah=${result.primarySephirah.name}` : 'sephirah_missing',
     ],
     failed: result.derivedFromName ? [] : ['derived_from_birthdate_only'],
@@ -44,7 +45,7 @@ export function kabbalahToEngineOutput(result: KabbalahResult): EngineOutput {
 
   const eventCandidates: string[] = [];
   if (result.gematria) {
-    eventCandidates.push(`Gematria (${result.gematria.source}): ${result.gematria.total} (${result.gematria.letters.length} letters)`);
+    eventCandidates.push(`Gematria (${result.gematria.source}): Hechrachi ${result.gematria.total}; Gadol ${result.gematria.gadol} (${result.gematria.letters.length} letters)`);
   }
   if (result.primarySephirah) {
     eventCandidates.push(`Sephirah ${result.primarySephirah.number} ${result.primarySephirah.name} — ${result.primarySephirah.attribute}`);
@@ -57,13 +58,18 @@ export function kabbalahToEngineOutput(result: KabbalahResult): EngineOutput {
     engineName: 'kabbalah',
     engineNameCN: '卡巴拉',
     engineVersion: 'P4.10-core',
-    sourceUrls: ['Mispar Hechrachi (standard Hebrew gematria); Tree of Life — 10 Sephirot'],
+    sourceUrls: [
+      'https://www.chabad.org/library/article_cdo/aid/6037869/jewish/Why-the-Five-Hebrew-Final-Letters.htm',
+      'https://www.encyclopedia.com/philosophy-and-religion/bible/bible-general/gematria',
+    ],
     sourceGrade: result.sourceGrade,
-    ruleSchool: 'Standard gematria; final forms (sofit) take non-final values',
+    ruleSchool: 'Mispar Hechrachi; Mispar Gadol 500..900 final-letter variant; Mispar Katan; Mispar Siduri',
     confidence: normalizeConfidence01(result.confidence),
     computationTimeMs: 0,
     rawInputSnapshot: {
-      name: result.input.name ?? null,
+      hasName: Boolean(result.input.name?.trim()),
+      nameScript: result.gematria?.source ?? null,
+      gematriaLetterCount: result.gematria?.letters.length ?? 0,
       birthYear: result.input.birthYear ?? null,
       birthMonth: result.input.birthMonth ?? null,
       birthDay: result.input.birthDay ?? null,
@@ -71,6 +77,7 @@ export function kabbalahToEngineOutput(result: KabbalahResult): EngineOutput {
     fateVector,
     normalizedOutput: {
       gematriaTotal: result.gematria ? String(result.gematria.total) : '-',
+      gematriaGadol: result.gematria ? String(result.gematria.gadol) : '-',
       gematriaSource: result.gematria?.source ?? '-',
       sephirahNumber: result.primarySephirah ? String(result.primarySephirah.number) : '-',
       sephirahName: result.primarySephirah?.name ?? '-',
@@ -85,7 +92,10 @@ export function kabbalahToEngineOutput(result: KabbalahResult): EngineOutput {
     },
     warnings: result.warnings.map((w) => `${w.code}: ${w.message}`),
     uncertaintyNotes: [
-      'Final forms (ך ם ן ף ץ) use standard non-final values. Mispar Gadol variant (500..900) not implemented.',
+      'Mispar Hechrachi keeps final forms at base-letter values; the separately reported Mispar Gadol value uses the explicit 500/600/700/800/900 final-letter variant.',
+      result.gematria?.source === 'transliterated'
+        ? 'Mispar Gadol final forms cannot be inferred from the coarse Latin transliteration, so its Gadol total equals the base-form total.'
+        : null,
       'Latin → Hebrew transliteration is a coarse phonetic map. For authentic gematria supply Hebrew letters.',
       'Primary path uses Golden Dawn letter→path attribution; other schools (Ari, Gra) assign letters differently.',
       result.derivedFromName
@@ -102,6 +112,7 @@ export function kabbalahToEngineOutput(result: KabbalahResult): EngineOutput {
     timeWindows: [],
     aspectScores: {
       gematriaTotal: result.gematria?.total ?? 0,
+      gematriaGadol: result.gematria?.gadol ?? 0,
       sephirahNumber: result.primarySephirah?.number ?? 0,
       derivedFromName: result.derivedFromName ? 1 : 0,
       pathNumber: result.primaryPath?.number ?? 0,
