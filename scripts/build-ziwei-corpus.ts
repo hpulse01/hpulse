@@ -117,11 +117,11 @@ function extractGeneric(src: string, file: string, category: string) {
   }
 }
 
-const files = walk(ROOT).filter(f => f.endsWith('.ts.txt'));
+const files = walk(ROOT).filter(f => f.endsWith('.ts.txt') || f.endsWith('/patterns.ts'));
 for (const f of files) {
   const src = readFileSync(f, 'utf8');
   if (f.includes('/classics/data/')) extractClassics(src, f);
-  else if (f.endsWith('/patterns.ts.txt')) extractPatterns(src, f);
+  else if (f.endsWith('/patterns.ts.txt') || f.endsWith('/patterns.ts')) extractPatterns(src, f);
   else if (f.includes('/nihai/')) extractNihai(src, f);
   else if (f.endsWith('/sihua.ts.txt')) extractGeneric(src, f, 'sihua');
   else if (f.endsWith('/heming-knowledge.ts.txt')) extractGeneric(src, f, 'heming');
