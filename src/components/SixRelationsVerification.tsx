@@ -11,7 +11,7 @@
  * - Rich Detail Cards: Shows full clause content with metadata badges
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,7 +31,7 @@ import {
 import { findDetailedFamilyMatches, searchClausesFreeText, type Clause } from '@/services/SupabaseService';
 import { KeywordParser, type ParsedKeywords } from '@/utils/KeywordParser';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Users, Minus, Plus, Crown, Star, Calendar, CheckCircle2, AlertCircle, Search, Lightbulb } from 'lucide-react';
+import { Sparkles, Users, Minus, Plus, Crown, Star, Calendar, CheckCircle2, AlertCircle, Search, Lightbulb, SkipForward } from 'lucide-react';
 
 // ==========================================
 // CONSTANTS
@@ -129,6 +129,7 @@ interface SixRelationsVerificationProps {
   baseNumber: number;
   ganZhiDisplay: string;
   onTimeLocked: (quarterIndex: number, selectedOption: KaoKeWithMatch) => void;
+  onSkipVerification?: () => void;
   isLoading?: boolean;
 }
 
@@ -154,6 +155,7 @@ export const SixRelationsVerification = ({
   baseNumber,
   ganZhiDisplay,
   onTimeLocked,
+  onSkipVerification,
   isLoading = false,
 }: SixRelationsVerificationProps) => {
   // Form state
@@ -175,15 +177,23 @@ export const SixRelationsVerification = ({
   const [isManualSearching, setIsManualSearching] = useState(false);
   const [parsedKeywords, setParsedKeywords] = useState<ParsedKeywords | null>(null);
 
-  // Reset calibration when form changes
+  // Track whether calibration has completed so the effect below can read
+  // the latest value without including it as a dependency (which would
+  // cause the effect to fire on the hasCalibrated transition itself,
+  // immediately wiping results — the root cause of the silent form reset).
+  const hasCalibratedRef = useRef(hasCalibrated);
+  hasCalibratedRef.current = hasCalibrated;
+
+  // Reset calibration when form inputs change (but NOT when hasCalibrated changes).
   useEffect(() => {
-    if (hasCalibrated) {
+    if (hasCalibratedRef.current) {
       setHasCalibrated(false);
       setMatchedOptions([]);
       setSelectedIndex(null);
       setNoMatchMessage(null);
     }
-  }, [fatherZodiac, motherZodiac, parentsStatus, siblingsCount, hasCalibrated]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fatherZodiac, motherZodiac, parentsStatus, siblingsCount]);
 
   /**
    * Run the Six Relations calibration algorithm
@@ -473,20 +483,38 @@ export const SixRelationsVerification = ({
 
       {/* No Match State */}
       {hasCalibrated && noMatchMessage && (
-        <div className="bg-secondary/30 border border-yellow-500/30 rounded-lg p-6 text-center">
+        <div className="bg-secondary/30 border border-yellow-500/30 rounded-lg p-6 text-center" data-testid="no-match-state">
           <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
           <p className="text-foreground/80 leading-relaxed">{noMatchMessage}</p>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setHasCalibrated(false);
-              setMatchedOptions([]);
-              setNoMatchMessage(null);
-            }}
-            className="mt-4 border-border/50 text-muted-foreground hover:text-foreground"
-          >
-            重新选择
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 mt-4 justify-center">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setHasCalibrated(false);
+                setMatchedOptions([]);
+                setNoMatchMessage(null);
+              }}
+              className="border-border/50 text-muted-foreground hover:text-foreground"
+            >
+              重新选择
+            </Button>
+            {onSkipVerification && (
+              <Button
+                variant="secondary"
+                onClick={onSkipVerification}
+                className="border-yellow-500/30 text-foreground/80 hover:text-foreground"
+                data-testid="no-match-continue"
+              >
+                <SkipForward className="w-4 h-4 mr-2" />
+                跳过校时，继续推算
+              </Button>
+            )}
+          </div>
+          {onSkipVerification && (
+            <p className="text-xs text-muted-foreground/60 mt-3">
+              跳过六亲校时后，系统偏移量默认为 0，铁板条文精度可能降低。
+            </p>
+          )}
         </div>
       )}
 

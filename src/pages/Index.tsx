@@ -73,6 +73,7 @@ const Index = () => {
                     baseNumber={baseNumber}
                     ganZhiDisplay={ganZhiDisplay}
                     onTimeLocked={handleTimeLocked}
+                    onSkipVerification={handleSkipVerification}
                     isLoading={false}
                   />
                 </Suspense>
