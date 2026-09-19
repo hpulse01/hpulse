@@ -1,3 +1,14 @@
+> **Historical document (circa 2026-03).** The claims "production-ready" and
+> "high fidelity to traditional texts" below are superseded by the algorithm
+> verification framework in
+> [`docs/ALGORITHM_VERIFICATION_MATRIX.md`](../ALGORITHM_VERIFICATION_MATRIX.md).
+> As of 2026-09, all 13 engines remain `complete = 0`; the runtime registry
+> enforces confidence caps and source-grade policies.  See
+> [`docs/MASTER_PLAN_ALIGN_HPULSE.md`](../MASTER_PLAN_ALIGN_HPULSE.md) for
+> the current architecture convergence plan.
+
+---
+
 # Codebase Analysis Report
 
 ## Application Overview
