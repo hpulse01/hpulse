@@ -31,6 +31,24 @@ npm run check
 npm run native:sync
 ```
 
+## Lovable Preview
+
+The WASM binary (`public/wasm/hpulse_input_bg.wasm`) is committed to the
+repository so Lovable and other static hosts can serve it without a Rust
+toolchain.
+
+Lovable Preview requires the following **Secrets** (set them in the Lovable
+project dashboard under *Settings → Secrets*):
+
+| Secret name | Required | Description |
+|---|---|---|
+| `VITE_SUPABASE_URL` | **yes** | Supabase project URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | **yes** | Supabase `anon` / publishable key |
+| `VITE_SUPABASE_PROJECT_ID` | **yes** | Supabase project ID |
+| `VITE_PUBLIC_SUPPORT_EMAIL` | optional | Displayed support e-mail address |
+
+Without the required secrets the preview will load but Supabase calls will fail.
+
 ## Current Functional Surface
 
 - ✅ Disclaimer-gated entry

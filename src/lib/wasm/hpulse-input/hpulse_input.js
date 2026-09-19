@@ -58,6 +58,10 @@ function __wbg_get_imports() {
             const ret = Error(getStringFromWasm0(arg0, arg1));
             return addHeapObject(ret);
         },
+        __wbg_Number_b7972a139bfbfdf0: function(arg0) {
+            const ret = Number(getObject(arg0));
+            return ret;
+        },
         __wbg_String_8564e559799eccda: function(arg0, arg1) {
             const ret = String(getObject(arg1));
             const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_export, wasm.__wbindgen_export2);
@@ -133,6 +137,10 @@ function __wbg_get_imports() {
                 result = false;
             }
             const ret = result;
+            return ret;
+        },
+        __wbg_isSafeInteger_01e964d144ad3a55: function(arg0) {
+            const ret = Number.isSafeInteger(getObject(arg0));
             return ret;
         },
         __wbg_length_56fcd3e2b7e0299d: function(arg0) {
