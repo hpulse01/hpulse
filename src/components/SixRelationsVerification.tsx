@@ -210,11 +210,11 @@ export const SixRelationsVerification = ({
       const richMatches = await findDetailedFamilyMatches(fZodiacName, mZodiacName, siblingsCount, 6);
 
       if (richMatches.length === 0) {
-        // No matches found - show message
-        setNoMatchMessage(
-          `数据库中未收录完全匹配 "父属${fZodiacName} 母属${mZodiacName}" 的详批条文。建议尝试只输入父亲属相进行模糊考刻。`
-        );
+        // No matches found - show message + toast (never fabricate clauses)
+        const msg = `数据库中未收录完全匹配 "父属${fZodiacName} 母属${mZodiacName}" 的详批条文。建议尝试只输入父亲属相进行模糊考刻。`;
+        setNoMatchMessage(msg);
         setHasCalibrated(true);
+        toast.warning('未检索到匹配条文', { description: msg });
         return;
       }
 
@@ -238,6 +238,8 @@ export const SixRelationsVerification = ({
     } catch (error) {
       console.error('Calibration error:', error);
       setNoMatchMessage('查询出错，请稍后重试。');
+      setHasCalibrated(true);
+      toast.error('考刻查询出错', { description: '网络或服务异常，请稍后重试。' });
     } finally {
       setIsCalibrating(false);
     }
