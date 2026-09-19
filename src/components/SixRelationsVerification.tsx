@@ -235,6 +235,7 @@ export const SixRelationsVerification = ({
     } catch (error) {
       console.error('Calibration error:', error);
       setNoMatchMessage('查询出错，请稍后重试。');
+      setHasCalibrated(true);
     } finally {
       setIsCalibrating(false);
     }

@@ -290,30 +290,34 @@ function getSiblingsPatterns(count: number): string[] {
   ];
 }
 
+import { getZodiacVariants } from './zodiacAliases';
+
 /**
  * Generate multiple search patterns for father's zodiac
  * e.g., for "牛": ["父牛", "父属牛", "生父属牛", "父命属牛"]
+ * For "狗" also generates "父犬", "父属犬", etc.
  */
 function getFatherPatterns(zodiac: string): string[] {
-  return [
-    `父${zodiac}`,      // 父牛 (compact form - most common in DB)
-    `父属${zodiac}`,    // 父属牛 (formal form)
-    `生父属${zodiac}`,  // 生父属牛 (biological father)
-    `父命属${zodiac}`,  // 父命属牛 (father's destiny)
-  ];
+  return getZodiacVariants(zodiac).flatMap(z => [
+    `父${z}`,
+    `父属${z}`,
+    `生父属${z}`,
+    `父命属${z}`,
+  ]);
 }
 
 /**
  * Generate multiple search patterns for mother's zodiac
  * e.g., for "兔": ["母兔", "母属兔", "生母属兔", "母命属兔"]
+ * For "狗" also generates "母犬", "母属犬", etc.
  */
 function getMotherPatterns(zodiac: string): string[] {
-  return [
-    `母${zodiac}`,      // 母兔 (compact form - most common in DB)
-    `母属${zodiac}`,    // 母属兔 (formal form)
-    `生母属${zodiac}`,  // 生母属兔 (biological mother)
-    `母命属${zodiac}`,  // 母命属兔 (mother's destiny)
-  ];
+  return getZodiacVariants(zodiac).flatMap(z => [
+    `母${z}`,
+    `母属${z}`,
+    `生母属${z}`,
+    `母命属${z}`,
+  ]);
 }
 
 /**
@@ -345,48 +349,62 @@ export async function findDetailedFamilyMatches(
   // Build all search results
   type SearchResult = { data: Clause[] | null; priority: number };
 
-  // Helper to run a search and capture result
+  // Helper to run a search and capture result.
+  // Supabase returns { data, error } — surface errors via console so
+  // silent DB failures are debuggable instead of looking like "no data".
   const runSearch = async (
-    query: PromiseLike<{ data: Clause[] | null }>,
+    query: PromiseLike<{ data: Clause[] | null; error?: unknown }>,
     priority: number
   ): Promise<SearchResult> => {
-    const { data } = await query;
+    const { data, error } = await (query as PromiseLike<{ data: Clause[] | null; error?: unknown }>);
+    if (error) {
+      console.error('[findDetailedFamilyMatches] Supabase query error (priority %d):', priority, error);
+    }
     return { data: data as Clause[] | null, priority };
   };
 
-  // Use primary patterns (compact form is most common in DB)
-  const fPrimary = fatherPatterns[0]; // 父牛
-  const mPrimary = motherPatterns[0]; // 母兔
+  const fVariants = getZodiacVariants(fatherZodiac);
+  const mVariants = getZodiacVariants(motherZodiac);
 
-  // === PRIORITY 0: Exact compact match "父牛母兔" ===
-  const exactCompactSearch = runSearch(
-    supabase
-      .from('tieban_clauses')
-      .select('*')
-      .ilike('content', `%${fPrimary}${mPrimary}%`)
-      .limit(5),
-    0
-  );
+  // Core patterns = compact + formal for every variant (used by sliced searches).
+  const fCorePatterns = fVariants.flatMap(z => [`父${z}`, `父属${z}`]);
+  const mCorePatterns = mVariants.flatMap(z => [`母${z}`, `母属${z}`]);
 
-  // === PRIORITY 1: Father + Mother + Siblings (any pattern) ===
-  const siblingSearches = siblingPatterns.flatMap((sibPattern) =>
-    fatherPatterns.slice(0, 2).map((fPattern) =>
+  // === PRIORITY 0: Exact compact match "父牛母兔" (all variant combos) ===
+  const exactCompactSearches = fVariants.flatMap(fv =>
+    mVariants.map(mv =>
       runSearch(
         supabase
           .from('tieban_clauses')
           .select('*')
-          .ilike('content', `%${fPattern}%`)
-          .ilike('content', `%母${motherZodiac}%`)
-          .ilike('content', `%${sibPattern}%`)
-          .limit(3),
-        1
+          .ilike('content', `%父${fv}母${mv}%`)
+          .limit(5),
+        0
+      )
+    )
+  );
+
+  // === PRIORITY 1: Father + Mother + Siblings (any pattern) ===
+  const siblingSearches = siblingPatterns.flatMap((sibPattern) =>
+    fCorePatterns.flatMap((fPattern) =>
+      mVariants.map((mv) =>
+        runSearch(
+          supabase
+            .from('tieban_clauses')
+            .select('*')
+            .ilike('content', `%${fPattern}%`)
+            .ilike('content', `%母${mv}%`)
+            .ilike('content', `%${sibPattern}%`)
+            .limit(3),
+          1
+        )
       )
     )
   );
 
   // === PRIORITY 2: Father + Mother (various patterns) ===
-  const parentSearches = fatherPatterns.slice(0, 2).flatMap((fPattern) =>
-    motherPatterns.slice(0, 2).map((mPattern) =>
+  const parentSearches = fCorePatterns.flatMap((fPattern) =>
+    mCorePatterns.map((mPattern) =>
       runSearch(
         supabase
           .from('tieban_clauses')
@@ -401,7 +419,7 @@ export async function findDetailedFamilyMatches(
 
   // === PRIORITY 3: Father + Siblings ===
   const fatherSiblingSearches = siblingPatterns.slice(0, 2).flatMap((sibPattern) =>
-    fatherPatterns.slice(0, 2).map((fPattern) =>
+    fCorePatterns.map((fPattern) =>
       runSearch(
         supabase
           .from('tieban_clauses')
@@ -440,7 +458,7 @@ export async function findDetailedFamilyMatches(
 
   // Execute all searches in parallel
   const results = await Promise.all([
-    exactCompactSearch,
+    ...exactCompactSearches,
     ...siblingSearches,
     ...parentSearches,
     ...fatherSiblingSearches,
