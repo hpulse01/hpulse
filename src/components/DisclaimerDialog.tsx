@@ -5,7 +5,6 @@
  */
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -134,8 +133,8 @@ export function DisclaimerDialog({ open, onAccept }: DisclaimerDialogProps) {
           />
           <label htmlFor="disclaimer-accept" className="text-xs text-foreground/90 cursor-pointer leading-snug select-none font-sans">
             我确认已年满 18 周岁，并已阅读
-            <Link className="mx-1 text-primary underline" to="/terms">使用条款</Link>
-            与<Link className="mx-1 text-primary underline" to="/privacy">隐私政策</Link>；我理解所有结果仅供文化研究、娱乐与自我反思。
+            <a className="mx-1 text-primary underline" href="/terms" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>使用条款</a>
+            与<a className="mx-1 text-primary underline" href="/privacy" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>隐私政策</a>；我理解所有结果仅供文化研究、娱乐与自我反思。
           </label>
         </div>
 
