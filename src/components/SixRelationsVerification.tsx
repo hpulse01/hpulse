@@ -31,6 +31,7 @@ import {
 import { findDetailedFamilyMatches, searchClausesFreeText, type Clause } from '@/services/SupabaseService';
 import { KeywordParser, type ParsedKeywords } from '@/utils/KeywordParser';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import { Sparkles, Users, Minus, Plus, Crown, Star, Calendar, CheckCircle2, AlertCircle, Search, Lightbulb } from 'lucide-react';
 
 // ==========================================
@@ -175,15 +176,17 @@ export const SixRelationsVerification = ({
   const [isManualSearching, setIsManualSearching] = useState(false);
   const [parsedKeywords, setParsedKeywords] = useState<ParsedKeywords | null>(null);
 
-  // Reset calibration when form changes
+  // Reset calibration when form changes.
+  // NOTE: hasCalibrated must NOT be a dependency here — otherwise setting it
+  // to true after calibration immediately re-triggers this effect and wipes
+  // the results / no-match message, leaving the user stuck on the form.
   useEffect(() => {
-    if (hasCalibrated) {
-      setHasCalibrated(false);
-      setMatchedOptions([]);
-      setSelectedIndex(null);
-      setNoMatchMessage(null);
-    }
-  }, [fatherZodiac, motherZodiac, parentsStatus, siblingsCount, hasCalibrated]);
+    setHasCalibrated(false);
+    setMatchedOptions([]);
+    setSelectedIndex(null);
+    setNoMatchMessage(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fatherZodiac, motherZodiac, parentsStatus, siblingsCount]);
 
   /**
    * Run the Six Relations calibration algorithm
