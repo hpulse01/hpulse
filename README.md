@@ -76,6 +76,7 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md) for details.
 - [`docs/RESPONSIVE_DESIGN.md`](docs/RESPONSIVE_DESIGN.md) — desktop / tablet / mobile layout
 - [`docs/ENGINE_OUTPUT_SCHEMA.md`](docs/ENGINE_OUTPUT_SCHEMA.md) — `EngineOutput` field contract
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — phased roadmap
+- [`docs/NEXT_PLAN_20260919.md`](docs/NEXT_PLAN_20260919.md) — 2026-09 下一步计划、系统设计完善建议、风险与备忘录追问清单
 
 ## P5.1 (2026-05) — 铁板/紫微 UI 接入
 - 新增 17 个 panel 组件,完整暴露铁板的 baseNumber / theoreticalBase / quarterKe / systemOffset / clauseLookup / 六亲校时 / 9 大报告分区
