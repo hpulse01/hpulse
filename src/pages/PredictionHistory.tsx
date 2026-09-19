@@ -225,10 +225,15 @@ const PredictionHistory = () => {
 
   const reload = useCallback(async () => {
     setLoading(true);
-    const [r, a] = await Promise.all([listPredictionRuns(), listPredictionActuals()]);
-    setRuns(r);
-    setActuals(a);
-    setLoading(false);
+    try {
+      const [r, a] = await Promise.all([listPredictionRuns(), listPredictionActuals()]);
+      setRuns(r);
+      setActuals(a);
+    } catch (err) {
+      console.error('[PredictionHistory] Failed to load ledger:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
