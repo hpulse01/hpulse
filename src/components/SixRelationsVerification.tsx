@@ -31,6 +31,7 @@ import {
 import { findDetailedFamilyMatches, searchClausesFreeText, type Clause } from '@/services/SupabaseService';
 import { KeywordParser, type ParsedKeywords } from '@/utils/KeywordParser';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import { Sparkles, Users, Minus, Plus, Crown, Star, Calendar, CheckCircle2, AlertCircle, Search, Lightbulb } from 'lucide-react';
 
 // ==========================================
@@ -175,15 +176,17 @@ export const SixRelationsVerification = ({
   const [isManualSearching, setIsManualSearching] = useState(false);
   const [parsedKeywords, setParsedKeywords] = useState<ParsedKeywords | null>(null);
 
-  // Reset calibration when form changes
+  // Reset calibration when form changes.
+  // NOTE: hasCalibrated must NOT be a dependency here — otherwise setting it
+  // to true after calibration immediately re-triggers this effect and wipes
+  // the results / no-match message, leaving the user stuck on the form.
   useEffect(() => {
-    if (hasCalibrated) {
-      setHasCalibrated(false);
-      setMatchedOptions([]);
-      setSelectedIndex(null);
-      setNoMatchMessage(null);
-    }
-  }, [fatherZodiac, motherZodiac, parentsStatus, siblingsCount, hasCalibrated]);
+    setHasCalibrated(false);
+    setMatchedOptions([]);
+    setSelectedIndex(null);
+    setNoMatchMessage(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fatherZodiac, motherZodiac, parentsStatus, siblingsCount]);
 
   /**
    * Run the Six Relations calibration algorithm
@@ -207,11 +210,11 @@ export const SixRelationsVerification = ({
       const richMatches = await findDetailedFamilyMatches(fZodiacName, mZodiacName, siblingsCount, 6);
 
       if (richMatches.length === 0) {
-        // No matches found - show message
-        setNoMatchMessage(
-          `数据库中未收录完全匹配 "父属${fZodiacName} 母属${mZodiacName}" 的详批条文。建议尝试只输入父亲属相进行模糊考刻。`
-        );
+        // No matches found - show message + toast (never fabricate clauses)
+        const msg = `数据库中未收录完全匹配 "父属${fZodiacName} 母属${mZodiacName}" 的详批条文。建议尝试只输入父亲属相进行模糊考刻。`;
+        setNoMatchMessage(msg);
         setHasCalibrated(true);
+        toast.warning('未检索到匹配条文', { description: msg });
         return;
       }
 
@@ -235,6 +238,8 @@ export const SixRelationsVerification = ({
     } catch (error) {
       console.error('Calibration error:', error);
       setNoMatchMessage('查询出错，请稍后重试。');
+      setHasCalibrated(true);
+      toast.error('考刻查询出错', { description: '网络或服务异常，请稍后重试。' });
     } finally {
       setIsCalibrating(false);
     }

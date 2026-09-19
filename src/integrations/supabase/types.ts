@@ -14,6 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
+      prediction_actuals: {
+        Row: {
+          created_at: string
+          domain: string
+          event_date: string
+          id: string
+          magnitude: number
+          note: string | null
+          polarity: number
+          run_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          event_date: string
+          id?: string
+          magnitude?: number
+          note?: string | null
+          polarity?: number
+          run_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          event_date?: string
+          id?: string
+          magnitude?: number
+          note?: string | null
+          polarity?: number
+          run_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prediction_actuals_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prediction_runs: {
+        Row: {
+          algorithm_version: string
+          audit_blockers: Json | null
+          birth_input: Json | null
+          created_at: string
+          engine_records: Json | null
+          final_confidence: number
+          fused_fate_vector: Json | null
+          generated_at: string
+          id: string
+          prediction_id: string
+          query_type: string
+          user_id: string
+        }
+        Insert: {
+          algorithm_version: string
+          audit_blockers?: Json | null
+          birth_input?: Json | null
+          created_at?: string
+          engine_records?: Json | null
+          final_confidence?: number
+          fused_fate_vector?: Json | null
+          generated_at?: string
+          id?: string
+          prediction_id: string
+          query_type: string
+          user_id: string
+        }
+        Update: {
+          algorithm_version?: string
+          audit_blockers?: Json | null
+          birth_input?: Json | null
+          created_at?: string
+          engine_records?: Json | null
+          final_confidence?: number
+          fused_fate_vector?: Json | null
+          generated_at?: string
+          id?: string
+          prediction_id?: string
+          query_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ai_uses_remaining: number
