@@ -46,7 +46,9 @@ export function usePredictionFlow() {
   const hpulse = useHPulsePipeline();
 
   useEffect(() => {
-    getClauseCount().then(count => setClauseCount(count));
+    getClauseCount()
+      .then(count => setClauseCount(count))
+      .catch(() => setClauseCount(0));
   }, []);
 
   const handleBirthDataSubmit = useCallback(async (birthData: BirthDataWithGeo) => {
