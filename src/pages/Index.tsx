@@ -1,4 +1,4 @@
-import { Target } from 'lucide-react';
+import { Target, SkipForward } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { DisclaimerDialog, hasConsented } from '@/components/DisclaimerDialog';
 import { Footer } from '@/components/Footer';
@@ -10,6 +10,7 @@ import { QuantumLoadingScreen } from '@/components/hpulse/QuantumLoadingScreen';
 import { CollapseLoadingScreen } from '@/components/hpulse/CollapseLoadingScreen';
 import { usePredictionFlow } from '@/hooks/usePredictionFlow';
 import { lazy, Suspense, useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 const SixRelationsVerification = lazy(() =>
   import('@/components/SixRelationsVerification').then((module) => ({ default: module.SixRelationsVerification })),
@@ -24,8 +25,8 @@ const Index = () => {
   const {
     step, birthInput, ganZhiDisplay, baseNumber, theoreticalBase,
     fullReport, calibrationResult, quantumResult, clauseCount,
-    unifiedReport, selectedKaoKe, hpulse,
-    handleBirthDataSubmit, handleTimeLocked, handleReset,
+    unifiedReport, selectedKaoKe, verificationSkipped, hpulse,
+    handleBirthDataSubmit, handleTimeLocked, handleSkipVerification, handleReset,
   } = flow;
 
   const isResultStep = step === 'result';
@@ -75,6 +76,19 @@ const Index = () => {
                     isLoading={false}
                   />
                 </Suspense>
+                <div className="mt-6 pt-4 border-t border-border/30 text-center">
+                  <Button
+                    variant="ghost"
+                    onClick={handleSkipVerification}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <SkipForward className="w-4 h-4 mr-2" />
+                    跳过校时，直接推算 (Skip Verification)
+                  </Button>
+                  <p className="text-xs text-muted-foreground/60 mt-2">
+                    跳过六亲校时后，系统偏移量默认为 0，铁板条文精度可能降低。
+                  </p>
+                </div>
               </HolographicPanel>
             </div>
           )}
@@ -104,6 +118,7 @@ const Index = () => {
                 theoreticalBase={theoreticalBase}
                 calibrationResult={calibrationResult}
                 selectedKaoKe={selectedKaoKe}
+                verificationSkipped={verificationSkipped}
                 hpulse={hpulse}
                 onReset={handleReset}
               />

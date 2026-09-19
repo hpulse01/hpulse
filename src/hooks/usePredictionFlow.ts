@@ -20,6 +20,11 @@ export type UnifiedReport = FullPredictionReport;
 /**
  * State machine + orchestration for the prediction console:
  * input → calculating → verification (Kao Ke) → projecting → result.
+ *
+ * The verification step is optional: users may skip 六亲校时 via
+ * handleSkipVerification, which proceeds with systemOffset=0 and sets
+ * verificationSkipped=true so downstream UX can disclose that the
+ * source-validation step was bypassed.
  */
 export function usePredictionFlow() {
   const [step, setStep] = useState<AppStep>('input');
@@ -34,6 +39,7 @@ export function usePredictionFlow() {
   const [clauseCount, setClauseCount] = useState<number | null>(null);
   const [unifiedReport, setUnifiedReport] = useState<UnifiedReport | null>(null);
   const [selectedKaoKe, setSelectedKaoKe] = useState<KaoKeWithMatch | null>(null);
+  const [verificationSkipped, setVerificationSkipped] = useState(false);
 
   const { toast } = useToast();
   const { t } = useI18n();
@@ -69,6 +75,7 @@ export function usePredictionFlow() {
   ) => {
     setStep('projecting');
     setSelectedKaoKe(selectedOption);
+    setVerificationSkipped(false);
     try {
       await new Promise(resolve => setTimeout(resolve, 2000));
       const [{ TiebanEngine }, { QuantumPredictionEngine }, { PredictionOrchestrator }] = await Promise.all([
@@ -128,6 +135,64 @@ export function usePredictionFlow() {
     }
   }, [theoreticalBase, birthInput, rawBirthForm, hpulse, toast, t]);
 
+  const handleSkipVerification = useCallback(async () => {
+    setStep('projecting');
+    setVerificationSkipped(true);
+    setSelectedKaoKe(null);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const [{ TiebanEngine }, { QuantumPredictionEngine }, { PredictionOrchestrator }] = await Promise.all([
+        import('@/utils/tiebanAlgorithm'),
+        import('@/utils/quantumPredictionEngine'),
+        import('@/utils/predictionOrchestrator'),
+      ]);
+      const systemOffset = 0;
+      const calibration: CalibrationResult = {
+        theoreticalBase,
+        confirmedClauseId: 0,
+        systemOffset,
+        lockedQuarterIndex: -1,
+      };
+      setCalibrationResult(calibration);
+      const report: FullDestinyReport = TiebanEngine.generateFullDestinyReport(birthInput!, theoreticalBase, systemOffset);
+      setFullReport(report);
+      const queryTimeUtc = new Date().toISOString();
+      const qResult = QuantumPredictionEngine.predict({ ...birthInput!, queryTimeUtc }, systemOffset);
+      setQuantumResult(qResult);
+      if (qResult.unifiedResult) {
+        setUnifiedReport(PredictionOrchestrator.fromResult(qResult.unifiedResult.input, qResult));
+        void savePredictionRun(qResult.unifiedResult).catch(() => {});
+      }
+
+      if (rawBirthForm) {
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const raw = {
+          birth_date: `${rawBirthForm.year}-${pad(rawBirthForm.month)}-${pad(rawBirthForm.day)}`,
+          birth_time: `${pad(rawBirthForm.hour)}:${pad(rawBirthForm.minute)}`,
+          calendar: 'gregorian' as const,
+          calculation_name: rawBirthForm.calculationName,
+          location_name: rawBirthForm.normalizedLocationName,
+          latitude: rawBirthForm.geoLatitude,
+          longitude: rawBirthForm.geoLongitude,
+          timezone: rawBirthForm.timezoneIana,
+          timezone_offset_minutes: rawBirthForm.timezoneOffsetMinutes,
+          gender: rawBirthForm.gender,
+          query_time_utc: queryTimeUtc,
+          query_type: 'natal' as const,
+          granularity: 'year' as const,
+        };
+        void hpulse.run(raw, { event: 'general', granularity: 'year' });
+      }
+
+      setStep('result');
+      toast({ title: t('ui.prediction_complete'), description: t('ui.prediction_complete_desc') });
+    } catch (error) {
+      console.error('Projection error (skip verification):', error);
+      toast({ title: t('ui.proj_error'), description: t('ui.proj_error_desc'), variant: 'destructive' });
+      setStep('verification');
+    }
+  }, [theoreticalBase, birthInput, rawBirthForm, hpulse, toast, t]);
+
   const handleReset = useCallback(() => {
     setStep('input');
     setBirthInput(null);
@@ -140,6 +205,7 @@ export function usePredictionFlow() {
     setQuantumResult(null);
     setUnifiedReport(null);
     setSelectedKaoKe(null);
+    setVerificationSkipped(false);
     hpulse.reset();
   }, [hpulse]);
 
@@ -155,9 +221,11 @@ export function usePredictionFlow() {
     clauseCount,
     unifiedReport,
     selectedKaoKe,
+    verificationSkipped,
     hpulse,
     handleBirthDataSubmit,
     handleTimeLocked,
+    handleSkipVerification,
     handleReset,
   };
 }

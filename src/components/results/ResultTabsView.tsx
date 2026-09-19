@@ -58,6 +58,7 @@ interface ResultTabsViewProps {
   theoreticalBase: number;
   calibrationResult: CalibrationResult | null;
   selectedKaoKe: KaoKeWithMatch | null;
+  verificationSkipped?: boolean;
   hpulse: ReturnType<typeof useHPulsePipeline>;
   onReset: () => void;
 }
@@ -76,6 +77,7 @@ export function ResultTabsView({
   theoreticalBase,
   calibrationResult,
   selectedKaoKe,
+  verificationSkipped = false,
   hpulse,
   onReset,
 }: ResultTabsViewProps) {
@@ -137,6 +139,15 @@ export function ResultTabsView({
         }
       >
         <Tabs value={activeTab} onValueChange={setActiveTab}>
+          {verificationSkipped && (
+            <div className="mb-4 flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-yellow-400" />
+              <span>
+                六亲校时已跳过 — 系统偏移默认为 0，铁板条文精准度可能降低。
+                <span className="ml-1 text-xs text-yellow-400/70">(Verification skipped — system offset defaulted to 0)</span>
+              </span>
+            </div>
+          )}
           <div className="overflow-x-auto -mx-2 px-2 scrollbar-thin">
             <TabsList className="inline-flex w-auto min-w-full bg-card/40 border border-primary/15 h-auto p-1 rounded-xl gap-1">
               {resultTabs.map(tab => {
