@@ -15,7 +15,7 @@ const oauth = () => (supabase.auth as unknown as { oauth: OAuthApi }).oauth;
 export default function OAuthConsent() {
   const [params] = useSearchParams();
   const authorizationId = params.get("authorization_id") ?? "";
-  const { user, loading } = useAuth() as { user: unknown; loading?: boolean };
+  const { user, isLoading: loading } = useAuth();
   const [details, setDetails] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
