@@ -1,28 +1,7 @@
--- Step 2: Update functions to support level_4
+-- Step 2: update functions to support level_4 without any identity-based bootstrap.
 
--- Update the auto_assign_admin_role function to set level_4
-CREATE OR REPLACE FUNCTION public.auto_assign_admin_role()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-BEGIN
-    -- Auto-assign super_admin role and level_4 ONLY for the designated email
-    IF NEW.email = 'hpulse001@gmail.com' THEN
-        INSERT INTO public.user_roles (user_id, role)
-        VALUES (NEW.id, 'super_admin')
-        ON CONFLICT (user_id, role) DO NOTHING;
-        
-        -- Upgrade to level_4 (super admin exclusive)
-        UPDATE public.profiles 
-        SET level = 'level_4', ai_uses_remaining = 9999
-        WHERE user_id = NEW.id;
-    END IF;
-    
-    RETURN NEW;
-END;
-$function$;
+DROP TRIGGER IF EXISTS on_auth_user_created_admin ON auth.users;
+DROP FUNCTION IF EXISTS public.auto_assign_admin_role();
 
 -- Update can_use_ai function to include level_4
 CREATE OR REPLACE FUNCTION public.can_use_ai(p_user_id uuid)
@@ -82,7 +61,7 @@ BEGIN
         RAISE EXCEPTION 'Permission denied: Not an admin';
     END IF;
     
-    -- level_4 is reserved for super_admin only (hpulse001@gmail.com)
+    -- level_4 is reserved for super_admin only
     IF p_new_level = 'level_4' THEN
         RAISE EXCEPTION 'Permission denied: level_4 is reserved for super admin';
     END IF;
@@ -106,3 +85,4 @@ BEGIN
     RETURN true;
 END;
 $function$;
+
