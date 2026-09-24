@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "sdk_version": "3.0.2",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://hlenwvmehbidfpjhbcqu.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "iron-plate-oracle",
+      "version": "0.1.0",
+      "title": "Iron Plate Oracle"
+    },
+    "tools": [
+      {
+        "name": "list_predictions",
+        "title": "List saved predictions",
+        "description": "List the signed-in user's archived prediction runs, newest first.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10,
+              "description": "Maximum runs to return."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_prediction",
+        "title": "Get prediction details",
+        "description": "Get one archived prediction run (fate vector, engine records, audit blockers) by its prediction ID.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "predictionId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Prediction ID from list_predictions."
+            }
+          },
+          "required": [
+            "predictionId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
