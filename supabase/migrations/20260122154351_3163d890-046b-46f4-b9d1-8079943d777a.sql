@@ -146,31 +146,9 @@ END;
 $$;
 
 -- Create trigger to auto-assign super_admin role for specific email
-CREATE OR REPLACE FUNCTION public.auto_assign_admin_role()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-    -- Auto-assign super_admin role for the designated email
-    IF NEW.email = 'hpulse001@gmail.com' THEN
-        INSERT INTO public.user_roles (user_id, role)
-        VALUES (NEW.id, 'super_admin')
-        ON CONFLICT (user_id, role) DO NOTHING;
-        
-        -- Also upgrade to level_3
-        UPDATE public.profiles 
-        SET level = 'level_3', ai_uses_remaining = 999
-        WHERE user_id = NEW.id;
-    END IF;
-    
-    RETURN NEW;
-END;
-$$;
 
--- Create trigger on auth.users for auto admin assignment
+-- Security hardening: privileged roles must never be granted by matching a
+-- signup email address. Role grants require an audited administrative path.
 DROP TRIGGER IF EXISTS on_auth_user_created_admin ON auth.users;
-CREATE TRIGGER on_auth_user_created_admin
-    AFTER INSERT ON auth.users
-    FOR EACH ROW EXECUTE FUNCTION public.auto_assign_admin_role();
+DROP FUNCTION IF EXISTS public.auto_assign_admin_role();
+

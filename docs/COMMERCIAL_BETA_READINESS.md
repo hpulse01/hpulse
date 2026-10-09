@@ -25,6 +25,7 @@ The mobile pipeline no longer depends on a checked-in placeholder WASM: local de
 - Numerology now reduces month/day/year as separate Life Path units (preserving Karmic Debt intermediates) and reports cited Pinnacle/Challenge values; Challenge timing remains explicitly fluid rather than falsely age-exact.
 - Identical explicit input now produces a byte-stable full result, including execution traces and scenario timestamps.
 - Public product language now describes the former “quantum” layer as classical deterministic scenario scoring, not quantum computing or event probability.
+- Historical signup migrations in the current tree no longer contain identity-specific privileged-role grants. A final additive migration binds privileged RPCs to `auth.uid()`, revokes `PUBLIC`/`anon` execution, and serializes quota consumption with a row lock.
 
 ## Required before TestFlight / Play internal testing
 
@@ -32,6 +33,7 @@ The mobile pipeline no longer depends on a checked-in placeholder WASM: local de
 - CI must pass on the GitHub branch, including generated Rust/WASM and both native builds.
 - Replace development app icons/splash assets and add localized permission/purpose copy.
 - Deploy and verify Supabase migrations/functions in a staging project; run account deletion end-to-end.
+- Exercise every hardened admin/quota RPC in staging as anonymous, ordinary authenticated, administrator, super-administrator, and service-role callers; current static checks do not replace a live PostgreSQL authorization test.
 - Add crash reporting, privacy-safe analytics, uptime monitoring, and a support workflow.
 - Perform physical-device QA on the supported iOS/Android matrix, including offline/poor-network, auth expiry, deep links, keyboard, accessibility, and account deletion.
 - Produce a data inventory and retention test proving deletion across Auth, profile, prediction runs, actuals, and registration controls.
@@ -43,6 +45,7 @@ The mobile pipeline no longer depends on a checked-in placeholder WASM: local de
 - Obtain legal review of privacy policy, terms, age restriction, consumer disclosures, and regional availability.
 - Complete App Store / Play Store privacy declarations, screenshots, review notes, support URL, deletion URL, signing, and release automation.
 - Run security review: committed-secret history, dependency/SBOM scan, RLS tests, edge-function authorization, abuse/rate limits, and incident response.
+- Rotate the previously exposed administrator credential, revoke active sessions, and perform an explicitly approved Git history rewrite if the old credential must be removed from existing commit objects. Current-tree cleanup alone cannot erase Git history.
 - Conduct a controlled free beta with explicit cohort size, rollback criteria, feedback handling, and no payment code enabled.
 
 ## External policy references

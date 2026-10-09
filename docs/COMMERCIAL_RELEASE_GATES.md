@@ -43,6 +43,12 @@ The canonical details live in `ALGORITHM_VERIFICATION_MATRIX.md`. At present:
 - Historical Tieban source data may remain in the controlled admin corpus, but public fetch/report paths redact high-risk individualized outcome text.
 - Scenario ranking is labeled as deterministic cultural-rule analysis, not quantum physics or a unique future.
 - Historical `Quantum*` code identifiers are compatibility names only; the implementation is a classical exponential-weight/annealing heuristic, and public copy states that it is not quantum computing or calibrated event probability.
+- Current-tree migrations contain no identity-specific signup-time super-admin grant. Privileged RPCs bind caller IDs to `auth.uid()`, revoke anonymous/public execution, and use an atomic row lock for quota consumption.
+
+## Remaining security evidence
+
+- Apply all migrations to an isolated Supabase staging project and run an authorization matrix for anonymous, authenticated, admin, super-admin, and service-role callers.
+- Rotate the credential that was previously shared or committed and invalidate its sessions. Rewriting existing Git history is a separate destructive operation and requires explicit owner approval plus coordinated branch replacement.
 
 ## Release sequence
 
